@@ -740,7 +740,7 @@
     "unlocking": "Sinusuri…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Isang banayad na gabay ng Aletheia", "progress": "Hiyas {current} sa {total}", "dismiss": "Isara at magpatuloy",
+    "nudgeLabel": "Isang banayad na gabay ng Aletheia", "progress": "Hiyas ngayong araw", "dismiss": "Isara at magpatuloy",
     "welcome": { "title": "Magsimula sa mahalaga ngayon", "titleSignedIn": "Gawing iyo ang espasyong ito", "body": "Pumili ng isang lente ng karunungan. Unti-unting ipakikita ng Aletheia ang iba pa, isang kapaki-pakinabang na hiyas sa bawat pagkakataon.", "modePrompt": "Aling lente ang pinakamakakatulong?", "questionPrompt": "Ano ang nasa isip mo? (opsyonal)", "questionPlaceholder": "Isang pasya, alalahanin, pag-asa, o tanong…", "reassurance": "Wala nang kailangang ayusin ngayon. Maaari mong baguhin ang lahat sa Account sa ibang pagkakataon.", "action": "Pumasok sa Aletheia", "actionWithQuestion": "Magsimula sa tanong ko" },
     "today": { "title": "Isang tahimik na lugar para magsimula", "body": "Nag-aalok ang Ngayon ng maikling karunungan at maingat na susunod na hakbang—nang walang presyur ng streak.", "action": "Tingnan ang Ngayon" },
     "ask": { "title": "Itanong kung ano talaga ang nasa ilalim", "body": "Magdala ng pasya o tensiyon. Sasagot ang Aletheia gamit ang Kasulatan, pagninilay, at makatotohanang susunod na hakbang.", "action": "Tanungin ang Aletheia" },

@@ -740,7 +740,7 @@
     "unlocking": "Ń ṣàyẹ̀wò…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Ìtọ́sọ́nà Aletheia pẹ̀lẹ́", "progress": "Ohun iyebíye {current} nínú {total}", "dismiss": "Pa á, kí o sì tẹ̀síwájú",
+    "nudgeLabel": "Ìtọ́sọ́nà Aletheia pẹ̀lẹ́", "progress": "Ohun iyebíye òní", "dismiss": "Pa á, kí o sì tẹ̀síwájú",
     "welcome": { "title": "Bẹ̀rẹ̀ pẹ̀lú ohun tó ṣe pàtàkì lónìí", "titleSignedIn": "Jẹ́ kí àyè yìí jẹ́ tìrẹ", "body": "Yan ojú ìwòye ọgbọ́n kan. Aletheia yóò máa fi àwọn yòókù hàn pẹ̀lẹ́pẹ̀lẹ́, ohun iyebíye tó wúlò kan lẹ́ẹ̀kan.", "modePrompt": "Ojú ìwòye wo ló máa ràn ọ́ lọ́wọ́ jù?", "questionPrompt": "Kí ló wà lọ́kàn rẹ? (kò pọn dandan)", "questionPlaceholder": "Ìpinnu, àníyàn, ìrètí, tàbí ìbéèrè…", "reassurance": "Kò sí ohun míì láti ṣètò báyìí. O lè yí gbogbo ìfẹ́ rẹ padà ní Àkọọ́lẹ̀ lẹ́yìn náà.", "action": "Wọ Aletheia", "actionWithQuestion": "Bẹ̀rẹ̀ pẹ̀lú ìbéèrè mi" },
     "today": { "title": "Ibi ìdákẹ́jẹ láti bẹ̀rẹ̀", "body": "Òní n fún ọ ní kíkà ọgbọ́n kúkúrú àti ìgbésẹ̀ tó tẹ̀lé tí a ronú jinlẹ̀—láìsí ìfipá ọjọ́-tẹ̀lé-ọjọ́.", "action": "Wo Òní" },
     "ask": { "title": "Béèrè ohun tó wà lẹ́yìn rẹ gan-an", "body": "Mú ìpinnu tàbí ìdààmú wá. Aletheia yóò dáhùn pẹ̀lú Ìwé Mímọ́, ìrònú, àti ìgbésẹ̀ tó tẹ̀lé tó dúró lórí òtítọ́.", "action": "Béèrè lọ́wọ́ Aletheia" },

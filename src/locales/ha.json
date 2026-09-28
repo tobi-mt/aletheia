@@ -740,7 +740,7 @@
     "unlocking": "Ana dubawa…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Jagorar Aletheia mai sauƙi", "progress": "Lu’u-lu’u {current} cikin {total}", "dismiss": "Rufe ka ci gaba",
+    "nudgeLabel": "Jagorar Aletheia mai sauƙi", "progress": "Lu’u-lu’un yau", "dismiss": "Rufe ka ci gaba",
     "welcome": { "title": "Fara da abin da ya fi muhimmanci yau", "titleSignedIn": "Ka mai da wannan wuri naka", "body": "Zaɓi mahangar hikima guda. Aletheia za ta nuna sauran a hankali, lu’u-lu’u mai amfani ɗaya bayan ɗaya.", "modePrompt": "Wace mahanga ce za ta fi taimaka maka?", "questionPrompt": "Me ke zuciyarka? (ba dole ba)", "questionPlaceholder": "Wata shawara, damuwa, bege, ko tambaya…", "reassurance": "Babu wani abin da za ka saita yanzu. Za ka iya canza komai daga baya a Asusun.", "action": "Shiga Aletheia", "actionWithQuestion": "Fara da tambayata" },
     "today": { "title": "Wuri mai natsuwa don farawa", "body": "Yau na ba da ɗan gajeren karatun hikima da mataki na gaba mai tunani—ba tare da matsin lambar jerin kwanaki ba.", "action": "Duba Yau" },
     "ask": { "title": "Tambayi abin da ke ƙarƙashin batun", "body": "Kawo shawara ko tashin hankali. Aletheia za ta amsa da Nassi, tunani, da mataki na gaba mai ma’ana.", "action": "Tambayi Aletheia" },

@@ -740,7 +740,7 @@
     "unlocking": "Wird geprüft…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Ein sanfter Aletheia-Wegweiser", "progress": "Juwel {current} von {total}", "dismiss": "Schließen und fortfahren",
+    "nudgeLabel": "Ein sanfter Aletheia-Wegweiser", "progress": "Heutiges Juwel", "dismiss": "Schließen und fortfahren",
     "welcome": { "title": "Beginne mit dem, was heute zählt", "titleSignedIn": "Gestalte diesen Raum zu deinem", "body": "Wähle eine Perspektive der Weisheit. Aletheia zeigt dir alles Weitere behutsam – Juwel für Juwel.", "modePrompt": "Welche Perspektive hilft dir am meisten?", "questionPrompt": "Was beschäftigt dich? (optional)", "questionPlaceholder": "Eine Entscheidung, Sorge, Hoffnung oder Frage…", "reassurance": "Jetzt ist nichts weiter einzurichten. Alle Einstellungen kannst du später im Konto ändern.", "action": "Aletheia betreten", "actionWithQuestion": "Mit meiner Frage beginnen" },
     "today": { "title": "Ein ruhiger Anfang", "body": "Heute bietet einen kurzen Weisheitsimpuls und einen durchdachten nächsten Schritt – ohne Serienzwang.", "action": "Heute ansehen" },
     "ask": { "title": "Frage nach dem, was wirklich dahinterliegt", "body": "Bring eine Entscheidung oder Spannung mit. Aletheia antwortet mit Bibelwort, Reflexion und einem bodenständigen nächsten Schritt.", "action": "Aletheia fragen" },

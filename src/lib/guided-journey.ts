@@ -1,5 +1,7 @@
 export const GUIDED_JOURNEY_STORAGE_KEY = "aletheia_guided_journey_v1";
 
+// Append new discoveries here. Journey state stores stable IDs rather than a
+// position, so existing users can receive a newly added gem without resetting.
 export const GUIDED_JOURNEY_STEPS = [
   "welcome",
   "today",
@@ -13,10 +15,16 @@ export const GUIDED_JOURNEY_STEPS = [
 export type GuidedJourneyStep = (typeof GUIDED_JOURNEY_STEPS)[number];
 
 export type GuidedJourneyState = {
-  version: 1;
-  nextStepIndex: number;
+  version: 2;
+  seenStepIds: GuidedJourneyStep[];
   lastPresentedDate: string;
 };
+
+export type GuidedJourneyUsage = Partial<Record<Exclude<GuidedJourneyStep, "welcome">, number>>;
+
+function isGuidedJourneyStep(value: unknown): value is GuidedJourneyStep {
+  return typeof value === "string" && (GUIDED_JOURNEY_STEPS as readonly string[]).includes(value);
+}
 
 export function localDateKey(date: Date) {
   const year = date.getFullYear();
@@ -27,8 +35,8 @@ export function localDateKey(date: Date) {
 
 export function startGuidedJourney(date = new Date()): GuidedJourneyState {
   return {
-    version: 1,
-    nextStepIndex: 1,
+    version: 2,
+    seenStepIds: ["welcome"],
     lastPresentedDate: localDateKey(date),
   };
 }
@@ -36,35 +44,59 @@ export function startGuidedJourney(date = new Date()): GuidedJourneyState {
 export function parseGuidedJourneyState(value: string | null): GuidedJourneyState | null {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as Partial<GuidedJourneyState>;
-    if (
-      parsed.version !== 1 ||
-      !Number.isInteger(parsed.nextStepIndex) ||
-      Number(parsed.nextStepIndex) < 1 ||
-      Number(parsed.nextStepIndex) > GUIDED_JOURNEY_STEPS.length ||
-      typeof parsed.lastPresentedDate !== "string"
-    ) {
-      return null;
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    if (typeof parsed.lastPresentedDate !== "string") return null;
+
+    if (parsed.version === 2) {
+      if (!Array.isArray(parsed.seenStepIds) || !parsed.seenStepIds.every(isGuidedJourneyStep)) return null;
+      return {
+        version: 2,
+        seenStepIds: [...new Set(parsed.seenStepIds as GuidedJourneyStep[])],
+        lastPresentedDate: parsed.lastPresentedDate,
+      };
     }
-    return parsed as GuidedJourneyState;
+
+    if (
+      parsed.version === 1 &&
+      Number.isInteger(parsed.nextStepIndex) &&
+      Number(parsed.nextStepIndex) >= 1 &&
+      Number(parsed.nextStepIndex) <= GUIDED_JOURNEY_STEPS.length
+    ) {
+      return {
+        version: 2,
+        seenStepIds: [...GUIDED_JOURNEY_STEPS.slice(0, Number(parsed.nextStepIndex))],
+        lastPresentedDate: parsed.lastPresentedDate,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-export function nextGuidedJourneyStep(state: GuidedJourneyState | null, date = new Date()): GuidedJourneyStep | null {
-  if (!state || state.nextStepIndex >= GUIDED_JOURNEY_STEPS.length) return null;
-  if (state.lastPresentedDate === localDateKey(date)) return null;
-  return GUIDED_JOURNEY_STEPS[state.nextStepIndex] ?? null;
+export function prioritizeGuidedJourneySteps(usage: GuidedJourneyUsage): GuidedJourneyStep[] {
+  return GUIDED_JOURNEY_STEPS.filter((step) => step !== "welcome").sort((left, right) => {
+    const usageDifference = (usage[left] ?? 0) - (usage[right] ?? 0);
+    return usageDifference || GUIDED_JOURNEY_STEPS.indexOf(left) - GUIDED_JOURNEY_STEPS.indexOf(right);
+  });
+}
+
+export function nextGuidedJourneyStep(
+  state: GuidedJourneyState | null,
+  date = new Date(),
+  prioritizedSteps: readonly GuidedJourneyStep[] = GUIDED_JOURNEY_STEPS,
+): GuidedJourneyStep | null {
+  if (!state || state.lastPresentedDate === localDateKey(date)) return null;
+  const candidates = [...prioritizedSteps, ...GUIDED_JOURNEY_STEPS];
+  return candidates.find((step) => step !== "welcome" && !state.seenStepIds.includes(step)) ?? null;
 }
 
 export function markGuidedJourneyPresented(state: GuidedJourneyState, date = new Date()): GuidedJourneyState {
   return { ...state, lastPresentedDate: localDateKey(date) };
 }
 
-export function advanceGuidedJourney(state: GuidedJourneyState): GuidedJourneyState {
-  return {
-    ...state,
-    nextStepIndex: Math.min(GUIDED_JOURNEY_STEPS.length, state.nextStepIndex + 1),
-  };
+export function advanceGuidedJourney(state: GuidedJourneyState, step: GuidedJourneyStep): GuidedJourneyState {
+  return state.seenStepIds.includes(step)
+    ? state
+    : { ...state, seenStepIds: [...state.seenStepIds, step] };
 }

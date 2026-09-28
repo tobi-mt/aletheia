@@ -740,7 +740,7 @@
     "unlocking": "Comprobando…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Una guía amable de Aletheia", "progress": "Gema {current} de {total}", "dismiss": "Cerrar y continuar",
+    "nudgeLabel": "Una guía amable de Aletheia", "progress": "La gema de hoy", "dismiss": "Cerrar y continuar",
     "welcome": { "title": "Empieza con lo que importa hoy", "titleSignedIn": "Haz que este espacio sea tuyo", "body": "Elige una perspectiva de sabiduría. Aletheia irá revelando lo demás con calma, una gema útil cada vez.", "modePrompt": "¿Qué perspectiva te ayudaría más?", "questionPrompt": "¿Qué tienes en mente? (opcional)", "questionPlaceholder": "Una decisión, inquietud, esperanza o pregunta…", "reassurance": "No tienes que configurar nada más ahora. Podrás cambiar todas las preferencias en Cuenta.", "action": "Entrar en Aletheia", "actionWithQuestion": "Empezar con mi pregunta" },
     "today": { "title": "Un lugar tranquilo para empezar", "body": "Hoy ofrece una lectura breve de sabiduría y un siguiente paso reflexivo, sin exigirte una racha.", "action": "Ver Hoy" },
     "ask": { "title": "Pregunta qué hay realmente en el fondo", "body": "Trae una decisión o tensión. Aletheia responde con Escritura, reflexión y un siguiente paso realista.", "action": "Preguntar a Aletheia" },

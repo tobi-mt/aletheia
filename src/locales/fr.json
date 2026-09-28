@@ -740,7 +740,7 @@
     "unlocking": "Vérification…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Un guide Aletheia tout en douceur", "progress": "Joyau {current} sur {total}", "dismiss": "Fermer et continuer",
+    "nudgeLabel": "Un guide Aletheia tout en douceur", "progress": "Le joyau du jour", "dismiss": "Fermer et continuer",
     "welcome": { "title": "Commencez par ce qui compte aujourd’hui", "titleSignedIn": "Faites de cet espace le vôtre", "body": "Choisissez un regard de sagesse. Aletheia vous révélera la suite en douceur, un joyau utile à la fois.", "modePrompt": "Quel regard vous aiderait le plus ?", "questionPrompt": "Qu’avez-vous à l’esprit ? (facultatif)", "questionPlaceholder": "Une décision, une préoccupation, un espoir ou une question…", "reassurance": "Rien d’autre à configurer maintenant. Vous pourrez tout modifier plus tard dans Compte.", "action": "Entrer dans Aletheia", "actionWithQuestion": "Commencer par ma question" },
     "today": { "title": "Un espace paisible pour commencer", "body": "Aujourd’hui propose une courte lecture de sagesse et une prochaine étape réfléchie, sans imposer de série.", "action": "Voir Aujourd’hui" },
     "ask": { "title": "Demandez ce qui se cache vraiment derrière", "body": "Apportez une décision ou une tension. Aletheia répond avec les Écritures, une réflexion et une prochaine étape concrète.", "action": "Demander à Aletheia" },

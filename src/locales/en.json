@@ -741,7 +741,7 @@
   },
   "guidedJourney": {
     "nudgeLabel": "A gentle Aletheia guide",
-    "progress": "Gem {current} of {total}",
+    "progress": "Today’s gem",
     "dismiss": "Close and continue",
     "welcome": {
       "title": "Begin with what matters today",

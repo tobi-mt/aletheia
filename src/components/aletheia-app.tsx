@@ -156,11 +156,11 @@ import type { BibleStudyData } from "@/lib/bible-study";
 import { wisdomListenDecisionNote, wisdomListenReflectionBody, type WisdomListenResult } from "@/lib/wisdom-listen";
 import {
   advanceGuidedJourney,
-  GUIDED_JOURNEY_STEPS,
   GUIDED_JOURNEY_STORAGE_KEY,
   markGuidedJourneyPresented,
   nextGuidedJourneyStep,
   parseGuidedJourneyState,
+  prioritizeGuidedJourneySteps,
   startGuidedJourney,
   type GuidedJourneyState,
   type GuidedJourneyStep,
@@ -6509,6 +6509,15 @@ export function AletheiaApp({
     }
   }, []);
 
+  const guidedJourneyPriority = useMemo(() => prioritizeGuidedJourneySteps({
+    today: 0,
+    ask: messages.filter((message) => message.role === "user").length,
+    decisions: wisdomDecisions.length,
+    reflect: journalEntries.length + gratitudeEntries.length,
+    library: savedScriptures.length,
+    account: user ? 1 : 0,
+  }), [gratitudeEntries.length, journalEntries.length, messages, savedScriptures.length, user, wisdomDecisions.length]);
+
   useEffect(() => {
     const blocked =
       !clientStateRestored ||
@@ -6532,7 +6541,7 @@ export function AletheiaApp({
       biometricLockState === "locked";
     if (blocked) return;
 
-    const step = nextGuidedJourneyStep(guidedJourneyState);
+    const step = nextGuidedJourneyStep(guidedJourneyState, new Date(), guidedJourneyPriority);
     if (!step) return;
 
     const revealId = window.setTimeout(() => {
@@ -6550,7 +6559,7 @@ export function AletheiaApp({
       setActiveGuidedJourneyStep(step);
       trackClientEvent("guided_journey_presented", {
         step,
-        gem_number: GUIDED_JOURNEY_STEPS.indexOf(step) + 1,
+        selection_basis: "least_used_unseen_feature",
       });
     }, 1400);
     return () => window.clearTimeout(revealId);
@@ -6562,6 +6571,7 @@ export function AletheiaApp({
     counselInviteToken,
     counselRemovalPrompt,
     guidedJourneyState,
+    guidedJourneyPriority,
     isListening,
     isSpeaking,
     isWorking,
@@ -6581,9 +6591,8 @@ export function AletheiaApp({
     if (!activeGuidedJourneyStep || !guidedJourneyState) return;
     trackClientEvent(reason === "actioned" ? "guided_journey_actioned" : "guided_journey_dismissed", {
       step: activeGuidedJourneyStep,
-      gem_number: GUIDED_JOURNEY_STEPS.indexOf(activeGuidedJourneyStep) + 1,
     });
-    persistGuidedJourneyState(advanceGuidedJourney(guidedJourneyState));
+    persistGuidedJourneyState(advanceGuidedJourney(guidedJourneyState, activeGuidedJourneyStep));
     setActiveGuidedJourneyStep(null);
   }, [activeGuidedJourneyStep, guidedJourneyState, persistGuidedJourneyState]);
 
@@ -14200,7 +14209,6 @@ function GuidedJourneyNudge({
   onAction: () => void;
 }) {
   if (!step || step === "welcome") return null;
-  const gemNumber = GUIDED_JOURNEY_STEPS.indexOf(step) + 1;
   return (
     <AnimatePresence>
       <motion.aside
@@ -14209,9 +14217,8 @@ function GuidedJourneyNudge({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
-        className="fixed left-1/2 z-[39] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
+        className="fixed bottom-[calc(var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px))+6.9rem)] left-1/2 z-[39] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
         style={{
-          bottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 6.9rem)",
           borderColor: theme.borderLight,
           background: `linear-gradient(145deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, transparent), color-mix(in srgb, ${theme.bgCard} 96%, transparent))`,
         }}
@@ -14224,7 +14231,7 @@ function GuidedJourneyNudge({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-              {ts("guidedJourney.progress").replace("{current}", String(gemNumber)).replace("{total}", String(GUIDED_JOURNEY_STEPS.length))}
+              {ts("guidedJourney.progress")}
             </p>
             <h2 className="mt-1 text-[1.05rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>{ts(`guidedJourney.${step}.title`)}</h2>
             <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{ts(`guidedJourney.${step}.body`)}</p>
@@ -14278,7 +14285,7 @@ function ProgressiveOnboardingModal({
         <div className="pr-12">
           <div className="flex items-center gap-2">
             <span className="grid size-9 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.activeBg, color: theme.accentGold }} aria-hidden="true"><Sparkles size={16} /></span>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ts("guidedJourney.progress").replace("{current}", "1").replace("{total}", String(GUIDED_JOURNEY_STEPS.length))}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ts("guidedJourney.progress")}</p>
           </div>
           <h2 id="progressive-onboarding-title" className="mt-3 text-[1.55rem] font-semibold leading-[1.05] tracking-[-0.025em] text-balance sm:text-[1.85rem]" style={{ color: theme.textPrimary }}>
             {audience === "account" ? ts("guidedJourney.welcome.titleSignedIn") : ts("guidedJourney.welcome.title")}

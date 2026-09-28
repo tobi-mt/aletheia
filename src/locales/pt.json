@@ -740,7 +740,7 @@
     "unlocking": "Verificando…"
   },
   "guidedJourney": {
-    "nudgeLabel": "Um guia gentil da Aletheia", "progress": "Joia {current} de {total}", "dismiss": "Fechar e continuar",
+    "nudgeLabel": "Um guia gentil da Aletheia", "progress": "A joia de hoje", "dismiss": "Fechar e continuar",
     "welcome": { "title": "Comece pelo que importa hoje", "titleSignedIn": "Faça deste espaço o seu", "body": "Escolha uma lente de sabedoria. Aletheia revelará o restante com calma, uma joia útil de cada vez.", "modePrompt": "Qual lente ajudaria mais?", "questionPrompt": "O que está em sua mente? (opcional)", "questionPlaceholder": "Uma decisão, preocupação, esperança ou pergunta…", "reassurance": "Nada mais precisa ser configurado agora. Você pode alterar tudo depois em Conta.", "action": "Entrar na Aletheia", "actionWithQuestion": "Começar com minha pergunta" },
     "today": { "title": "Um lugar tranquilo para começar", "body": "Hoje oferece uma breve leitura de sabedoria e um próximo passo cuidadoso, sem exigir sequência.", "action": "Ver Hoje" },
     "ask": { "title": "Pergunte o que está por trás", "body": "Traga uma decisão ou tensão. Aletheia responde com Escritura, reflexão e um próximo passo realista.", "action": "Perguntar à Aletheia" },
