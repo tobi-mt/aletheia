@@ -153,8 +153,24 @@ function phraseSimilarity(transcript: string, verseText: string) {
   return shared / verseGrams.size;
 }
 
+export function normalizeSpokenScriptureReferences(transcript: string) {
+  return transcript
+    .replace(/\bfirst\s+(?=[A-Za-z])/gi, "1 ")
+    .replace(/\bsecond\s+(?=[A-Za-z])/gi, "2 ")
+    .replace(/\bthird\s+(?=[A-Za-z])/gi, "3 ")
+    .replace(
+      /\b((?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+chapter\s+(\d{1,3})(?:\s*,?\s*(?:verse|verses)\s+(\d{1,3}))?/gi,
+      (_match, book: string, chapter: string, verse?: string) =>
+        verse ? `${book} ${chapter}:${verse}` : `${book} ${chapter}`
+    )
+    .replace(
+      /\b((?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d{1,3})\s+(?:verse|verses)\s+(\d{1,3})\b/gi,
+      "$1 $2:$3"
+    );
+}
+
 function directReferences(transcript: string) {
-  const normalized = transcript.replace(/\b(?:chapter|verse)\s+/gi, "");
+  const normalized = normalizeSpokenScriptureReferences(transcript);
   const matches = normalized.match(/\b(?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?\s+\d{1,3}:\d{1,3}\b/g) ?? [];
   return new Set(matches.map((match) => normalizeRecognitionText(match).replace(/\s+/g, " ")));
 }

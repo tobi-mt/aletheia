@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { retrieveVerifiedCuratedCandidates, retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
+import { normalizeSpokenScriptureReferences, retrieveVerifiedCuratedCandidates, retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
 import { normalizeStoredWisdomListenResult, wisdomListenDecisionNote, wisdomListenReflectionBody } from "../src/lib/wisdom-listen.ts";
 
 test("deterministic retrieval finds a directly quoted verse in the verified corpus", () => {
@@ -62,6 +62,14 @@ test("spoken canonical references resolve without allowing AI-created references
   const candidates = retrieveVerifiedScriptureCandidates("The speaker asked us to read James 1:5", 5);
   assert.ok(candidates.some((candidate) => candidate.reference === "James 1:5"));
   assert.ok(candidates.every((candidate) => candidate.id.startsWith("web:")));
+});
+
+test("natural spoken chapter and verse references resolve deterministically", () => {
+  assert.match(normalizeSpokenScriptureReferences("Please find John chapter 3 verse 16"), /John 3:16/);
+  assert.match(normalizeSpokenScriptureReferences("First John chapter 4 verse 8"), /1 John 4:8/);
+  const candidates = retrieveVerifiedScriptureCandidates("Please read John chapter 3 verse 16", 5);
+  assert.equal(candidates[0]?.reference, "John 3:16");
+  assert.equal(verifiedCandidateMatchLabel(candidates[0]), "strong_wording");
 });
 
 test("empty transcripts do not produce candidates", () => {
@@ -140,7 +148,7 @@ test("Listen behaves as a localized voice companion without speaking over captur
     readFile(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(recorder, /voiceEnabled/);
-  assert.match(recorder, /listen\.voiceReady/);
+  assert.doesNotMatch(recorder, /listen\.voiceReady/);
   assert.match(recorder, /listen\.voiceFound/);
   assert.match(recorder, /listen\.voiceNoMatch/);
   assert.match(recorder, /listen\.hearResponse/);
@@ -153,6 +161,8 @@ test("Listen behaves as a localized voice companion without speaking over captur
   assert.match(app, /onStopSpeakingFromListen=\{\(\) => stopSpeech/);
   assert.match(app, /utterance\.lang = browserSpeechLanguage\(preferences\.language\)/);
   assert.match(app, /language: preferences\.language/);
+  const launcher = recorder.slice(recorder.indexOf("premium-tap-card"), recorder.indexOf("premium-tap-card") + 1200);
+  assert.doesNotMatch(launcher, /speakCompanion/);
 });
 
 test("interpretation failure preserves verified candidates", async () => {

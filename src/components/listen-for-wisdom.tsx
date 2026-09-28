@@ -908,15 +908,7 @@ export default function ListenForWisdom(props: Props) {
     <>
       <button
         type="button"
-        onClick={() => {
-          setOpen(true);
-          speakCompanion(
-            ts(
-              "listen.voiceReady",
-              "I’m ready. Tap the microphone and speak naturally. I’ll listen for Scripture first, then help you understand the counsel."
-            )
-          );
-        }}
+        onClick={() => setOpen(true)}
         className="premium-tap-card flex w-full items-center gap-3 rounded-xl border p-3.5 text-left"
         style={{
           borderColor: theme.borderMedium,

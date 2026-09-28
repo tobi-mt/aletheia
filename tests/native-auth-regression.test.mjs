@@ -108,6 +108,8 @@ test("native biometric lock uses system biometrics and protects sensitive accoun
   assert.match(client, /biometricAppWasBackgroundedRef/);
   assert.match(client, /if \(biometricLockRequestRef\.current\) return/);
   assert.match(client, /else if \(biometricAppWasBackgroundedRef\.current\)/);
+  assert.match(client, /shouldLockAfterBackground/);
+  assert.doesNotMatch(client, /else if \(biometricAppWasBackgroundedRef\.current\)[\s\S]{0,500}authenticateBiometricLock/);
 });
 
 test("native authentication installs secure session cookies before reload", async () => {

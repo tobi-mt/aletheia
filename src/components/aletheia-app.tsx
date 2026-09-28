@@ -146,6 +146,7 @@ import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation,
 import { ManagedAudio } from "@/lib/native-audio";
 import { NativeAuth, supportsNativeAppleSignIn } from "@/lib/native-auth";
 import { NativeBiometricLock, supportsNativeBiometricLock, type BiometricLockState } from "@/lib/native-biometric-lock";
+import { shouldLockAfterBackground } from "@/lib/native-biometric-lifecycle";
 import { scriptureHighlightKey, type SavedScripture, type ScriptureHighlightColor, type ScriptureHighlights } from "@/lib/saved-scripture";
 import { ToastContainer, useToast } from "@/components/toast-notification";
 import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
@@ -5824,6 +5825,7 @@ export function AletheiaApp({
   const biometricLockRequestRef = useRef(false);
   const biometricLockEnabledRef = useRef(false);
   const biometricAppWasBackgroundedRef = useRef(false);
+  const biometricBackgroundedAtRef = useRef<number | null>(null);
   const biometricUnlockReasonRef = useRef("");
   const [notificationStatus, setNotificationStatus] = useState("");
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
@@ -6323,10 +6325,18 @@ export function AletheiaApp({
       if (biometricLockRequestRef.current) return;
       if (!isActive) {
         biometricAppWasBackgroundedRef.current = true;
+        biometricBackgroundedAtRef.current = Date.now();
         setBiometricLockState("locked");
       } else if (biometricAppWasBackgroundedRef.current) {
         biometricAppWasBackgroundedRef.current = false;
-        void authenticateBiometricLock(biometricUnlockReasonRef.current);
+        const shouldRemainLocked = shouldLockAfterBackground(
+          biometricBackgroundedAtRef.current,
+          Date.now()
+        );
+        biometricBackgroundedAtRef.current = null;
+        if (!shouldRemainLocked) {
+          setBiometricLockState("unlocked");
+        }
       }
     }).then((handle) => { appStateHandle = handle; }).catch(() => undefined);
     return () => {
@@ -6342,6 +6352,7 @@ export function AletheiaApp({
       const next = await NativeBiometricLock.setEnabled({ enabled, reason: ts("biometric.enableReason") });
       biometricLockEnabledRef.current = next.enabled;
       biometricAppWasBackgroundedRef.current = false;
+      biometricBackgroundedAtRef.current = null;
       setBiometricLock(next);
       setBiometricLockState("unlocked");
       setWorkflowNotice({
