@@ -4,8 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { deriveTrafficLabel, trackEvent } from "@/lib/analytics";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request";
+import { classifyAnalyticsClient } from "@/lib/analytics-client-context";
 
-const GEO_ENRICHMENT_ENABLED = process.env.ANALYTICS_GEO_ENRICHMENT_ENABLED === "true";
+const GEO_ENRICHMENT_ENABLED = process.env.ANALYTICS_GEO_ENRICHMENT_ENABLED !== "false";
 
 function readCoarseGeo(headerStore: Awaited<ReturnType<typeof headers>>) {
   const country =
@@ -65,6 +66,17 @@ export async function POST(request: Request) {
   }
 
   const coarseGeo = GEO_ENRICHMENT_ENABLED ? readCoarseGeo(headerStore) : { country: null, region: null };
+  const clientContext = classifyAnalyticsClient(userAgent, body.metadata?.runtime);
+  const systemMetadata = {
+    traffic_source: traffic.source,
+    traffic_environment: traffic.environment,
+    geo_country: coarseGeo.country,
+    geo_region: coarseGeo.region,
+    runtime: clientContext.runtime,
+    device_class: clientContext.deviceClass,
+    os_family: clientContext.osFamily,
+    browser_family: clientContext.browserFamily,
+  };
 
   await trackEvent({
     userId: user?.id ?? null,
@@ -74,13 +86,7 @@ export async function POST(request: Request) {
     path: body.path,
     referrer: body.referrer,
     source: body.source,
-    metadata: {
-      ...(body.metadata ?? {}),
-      traffic_source: traffic.source,
-      traffic_environment: traffic.environment,
-      geo_country: coarseGeo.country,
-      geo_region: coarseGeo.region,
-    },
+    metadata: Object.assign({ ...systemMetadata, ...(body.metadata ?? {}) }, systemMetadata),
     userAgent,
   });
 

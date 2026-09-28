@@ -2015,6 +2015,16 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
     return;
   }
 
+  const nativePlatform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : null;
+  const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  const runtime = nativePlatform === "ios"
+    ? "ios_app"
+    : nativePlatform === "android"
+      ? "android_app"
+      : standalone
+        ? "pwa"
+        : "web";
   const payload = {
     eventName,
     anonId: analyticsId(window.localStorage, "aletheia_anon_id"),
@@ -2022,7 +2032,7 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
     path: window.location.pathname,
     referrer: document.referrer || null,
     source: new URLSearchParams(window.location.search).get("utm_source"),
-    metadata,
+    metadata: { ...metadata, runtime },
   };
 
   fetch("/api/analytics/events", {

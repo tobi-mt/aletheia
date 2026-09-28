@@ -24,3 +24,14 @@ test("retention measures return windows only after cohorts mature", () => {
   assert.match(analytics, /created_at >= signup_cohorts\.signup_at \+ interval '30 days'/);
   assert.match(analytics, /created_at < signup_cohorts\.signup_at \+ interval '37 days'/);
 });
+
+test("dashboard exposes privacy-safe audience and product-health dimensions", () => {
+  assert.match(analytics, /'runtime' AS dimension/);
+  assert.match(analytics, /'device', COALESCE\(NULLIF\(metadata->>'device_class'/);
+  assert.match(analytics, /'country', COALESCE\(NULLIF\(metadata->>'geo_country'/);
+  assert.match(analytics, /'acquisition', COALESCE\(NULLIF\(source/);
+  assert.match(analytics, /'returning_rate' AS metric/);
+  assert.match(analytics, /'activation_rate'/);
+  assert.match(analytics, /audienceBreakdowns: audienceBreakdownRows/);
+  assert.match(analytics, /growthMetrics: growthMetricRows/);
+});

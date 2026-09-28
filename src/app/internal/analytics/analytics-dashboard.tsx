@@ -64,6 +64,20 @@ type ScreenRow = {
   unique_people: number;
 };
 
+type AudienceBreakdownRow = {
+  dimension: "runtime" | "device" | "os" | "browser" | "country" | "acquisition";
+  value: string;
+  events: number;
+  unique_people: number;
+};
+
+type GrowthMetricRow = {
+  metric: "returning_rate" | "engaged_rate" | "activation_rate" | "sharing_rate";
+  numerator: number;
+  denominator: number;
+  rate: number;
+};
+
 type NotificationSyncFailureCauseRow = {
   cause: string;
   count: number;
@@ -98,6 +112,8 @@ type AnalyticsPayload = {
     endDate: string;
   };
   views30d?: ScreenRow[];
+  audienceBreakdowns?: AudienceBreakdownRow[];
+  growthMetrics?: GrowthMetricRow[];
   generatedAt?: string;
 };
 
@@ -589,6 +605,29 @@ function MetricCard({
   );
 }
 
+function BreakdownList({ title, rows }: { title: string; rows: AudienceBreakdownRow[] }) {
+  const max = rows.reduce((current, row) => Math.max(current, row.unique_people), 0);
+  return (
+    <article className="rounded-xl border border-slate-200 p-4">
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      <div className="mt-3 space-y-3">
+        {rows.slice(0, 8).map((row) => (
+          <div key={`${row.dimension}-${row.value}`}>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="font-medium text-slate-700">{formatLabel(row.value)}</span>
+              <span className="text-slate-500">{formatCount(row.unique_people)} people</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-blue-600" style={{ width: `${max > 0 ? Math.max(2, (row.unique_people / max) * 100) : 0}%` }} />
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 ? <p className="text-sm text-slate-500">No data captured yet.</p> : null}
+      </div>
+    </article>
+  );
+}
+
 export default function AnalyticsDashboard() {
   const [secret, setSecret] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -746,6 +785,8 @@ export default function AnalyticsDashboard() {
       notificationDeliveryReport: payload.notificationDeliveryReport ?? null,
       notificationSyncFailuresByCause: payload.notificationSyncFailuresByCause ?? [],
       notificationSyncFailureTrend: payload.notificationSyncFailureTrend ?? [],
+      audienceBreakdowns: payload.audienceBreakdowns ?? [],
+      growthMetrics: payload.growthMetrics ?? [],
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -823,6 +864,8 @@ export default function AnalyticsDashboard() {
   const weeklyCohorts = payload?.cohortBreakdowns?.weekly ?? [];
   const monthlyCohorts = payload?.cohortBreakdowns?.monthly ?? [];
   const funnelRows = payload?.funnel30d ?? [];
+  const audienceRows = payload?.audienceBreakdowns ?? [];
+  const growthMetrics = Object.fromEntries((payload?.growthMetrics ?? []).map((row) => [row.metric, row]));
   const topScreensMax = topScreens.reduce((max, row) => Math.max(max, row.count), 0);
   const notificationReport = payload?.notificationDeliveryReport ?? null;
   const notificationReportRows = notificationReport?.rows ?? [];
@@ -983,6 +1026,36 @@ export default function AnalyticsDashboard() {
           <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" />
           <MetricCard label="Tracked Features" value={formatCount(payload?.features30d.length ?? 0)} tone="amber" />
           <MetricCard label="Top Screens" value={formatCount(topScreens.length)} tone="slate" />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Growth and product health</h2>
+            <p className="text-sm text-slate-600">Behavioral rates for the selected range, using unique people as the denominator.</p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCard label="Activated" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="teal" />
+            <MetricCard label="Returned on 2+ days" value={`${growthMetrics.returning_rate?.rate ?? 0}%`} tone="blue" />
+            <MetricCard label="Active on 3+ days" value={`${growthMetrics.engaged_rate?.rate ?? 0}%`} tone="amber" />
+            <MetricCard label="Shared" value={`${growthMetrics.sharing_rate?.rate ?? 0}%`} tone="slate" />
+          </div>
+          <p className="mt-3 text-xs text-slate-500">Activation means asking a question, creating a decision or reflection, recording gratitude, or opening Scripture.</p>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Audience, geography, and access</h2>
+            <p className="text-sm text-slate-600">Privacy-safe app runtime, device, operating system, browser, country, and acquisition breakdowns from app opens.</p>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <BreakdownList title="App runtime" rows={audienceRows.filter((row) => row.dimension === "runtime")} />
+            <BreakdownList title="Device class" rows={audienceRows.filter((row) => row.dimension === "device")} />
+            <BreakdownList title="Operating system" rows={audienceRows.filter((row) => row.dimension === "os")} />
+            <BreakdownList title="Browser" rows={audienceRows.filter((row) => row.dimension === "browser")} />
+            <BreakdownList title="Country" rows={audienceRows.filter((row) => row.dimension === "country")} />
+            <BreakdownList title="Acquisition source" rows={audienceRows.filter((row) => row.dimension === "acquisition")} />
+          </div>
+          <p className="mt-3 text-xs text-slate-500">Country and region are derived from trusted proxy headers when available. IP addresses and precise locations are not stored.</p>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

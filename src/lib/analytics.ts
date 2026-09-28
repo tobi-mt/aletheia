@@ -430,6 +430,8 @@ export async function analyticsSummary(
     authPromptCloseRows,
     authPromptDailyRows,
     retentionMonthlyRows,
+    audienceBreakdownRows,
+    growthMetricRows,
     usageTrendRows,
     featureTrendRows,
     notificationHealthRows,
@@ -989,6 +991,89 @@ export async function analyticsSummary(
        GROUP BY retention.cohort
        ORDER BY retention.cohort ASC`
     ),
+    many<{ dimension: string; value: string; events: number; unique_people: number }>(
+      `WITH app_opens AS (
+         SELECT COALESCE(anon_id, user_id, session_id) AS person_id,
+                metadata,
+                source,
+                COALESCE(user_agent, '') AS user_agent
+         FROM analytics_events
+         WHERE event_name = 'app_opened'
+           AND ${selectedDateFilter}
+           AND ${trafficFilter}
+       ), dimensions AS (
+         SELECT 'runtime' AS dimension,
+                COALESCE(NULLIF(metadata->>'runtime', ''), CASE WHEN metadata->>'standalone' = 'true' THEN 'pwa' ELSE 'unknown' END) AS value,
+                person_id FROM app_opens
+         UNION ALL
+         SELECT 'device', COALESCE(NULLIF(metadata->>'device_class', ''), CASE
+           WHEN user_agent ~* 'ipad|tablet|kindle|silk' OR (user_agent ~* 'android' AND user_agent !~* 'mobile') THEN 'tablet'
+           WHEN user_agent ~* 'iphone|ipod|android|mobile' THEN 'mobile'
+           WHEN user_agent <> '' THEN 'desktop'
+           ELSE 'unknown' END), person_id FROM app_opens
+         UNION ALL
+         SELECT 'os', COALESCE(NULLIF(metadata->>'os_family', ''), CASE
+           WHEN user_agent ~* 'iphone|ipad|ipod' THEN 'ios'
+           WHEN user_agent ~* 'android' THEN 'android'
+           WHEN user_agent ~* 'windows' THEN 'windows'
+           WHEN user_agent ~* 'mac os|macintosh' THEN 'macos'
+           WHEN user_agent ~* 'linux|x11' THEN 'linux'
+           ELSE 'other' END), person_id FROM app_opens
+         UNION ALL
+         SELECT 'browser', COALESCE(NULLIF(metadata->>'browser_family', ''), CASE
+           WHEN user_agent ~* 'edg/' THEN 'edge'
+           WHEN user_agent ~* 'firefox|fxios' THEN 'firefox'
+           WHEN user_agent ~* 'chrome|crios' THEN 'chrome'
+           WHEN user_agent ~* 'safari' THEN 'safari'
+           ELSE 'other' END), person_id FROM app_opens
+         UNION ALL
+         SELECT 'country', COALESCE(NULLIF(metadata->>'geo_country', ''), 'unknown'), person_id FROM app_opens
+         UNION ALL
+         SELECT 'acquisition', COALESCE(NULLIF(source, ''), 'direct'), person_id FROM app_opens
+       )
+       SELECT dimension,
+              value,
+              COUNT(*)::int AS events,
+              COUNT(DISTINCT person_id)::int AS unique_people
+       FROM dimensions
+       GROUP BY dimension, value
+       ORDER BY dimension ASC, unique_people DESC, events DESC`
+    ),
+    many<{ metric: string; numerator: number; denominator: number; rate: number }>(
+      `WITH person_days AS (
+         SELECT COALESCE(anon_id, user_id, session_id) AS person_id,
+                COUNT(DISTINCT created_at::date)::int AS active_days,
+                BOOL_OR(event_name IN (
+                  'question_asked', 'chat_question_sent', 'decision_created',
+                  'journal_entry_created', 'gratitude_entry_created', 'scripture_opened'
+                )) AS activated,
+                BOOL_OR(event_name IN ('app_shared', 'share_started')) AS shared
+         FROM analytics_events
+         WHERE ${selectedDateFilter}
+           AND ${trafficFilter}
+           AND COALESCE(anon_id, user_id, session_id) IS NOT NULL
+         GROUP BY COALESCE(anon_id, user_id, session_id)
+       ), activity AS (
+         SELECT
+           COUNT(*)::int AS active_people,
+           COUNT(*) FILTER (WHERE active_days >= 2)::int AS returning_people,
+           COUNT(*) FILTER (WHERE active_days >= 3)::int AS engaged_people,
+           COUNT(*) FILTER (WHERE activated)::int AS activated_people,
+           COUNT(*) FILTER (WHERE shared)::int AS sharing_people
+         FROM person_days
+       )
+       SELECT 'returning_rate' AS metric, returning_people AS numerator, active_people AS denominator,
+              COALESCE(ROUND((100.0 * returning_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision AS rate FROM activity
+       UNION ALL
+       SELECT 'engaged_rate', engaged_people, active_people,
+              COALESCE(ROUND((100.0 * engaged_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'activation_rate', activated_people, active_people,
+              COALESCE(ROUND((100.0 * activated_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'sharing_rate', sharing_people, active_people,
+              COALESCE(ROUND((100.0 * sharing_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity`
+    ),
     Promise.all(usageTrendPromises),
     Promise.all(featureTrendPromises),
     (async () => {
@@ -1085,6 +1170,8 @@ export async function analyticsSummary(
     views30d: viewRows,
     topScreens30d: viewRows,
     acquisitionSources30d: sourceRows,
+    audienceBreakdowns: audienceBreakdownRows,
+    growthMetrics: growthMetricRows,
     paths30d: pathRows,
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,
