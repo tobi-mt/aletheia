@@ -2,13 +2,11 @@ import "server-only";
 import { many } from "@/lib/db";
 import {
   defaultPreferences,
-  languages,
   localizedCrisisSupportCopy,
   localizedModeProfile,
   localizedScriptureRead,
   localizedScriptureReference,
   localizedWisdomEntry,
-  regions,
   scriptureDisplayLabel,
   type UserPreferences,
 } from "@/lib/localization";
@@ -202,14 +200,18 @@ export function composeFallbackResponse(
       : "",
     lifeConcern === "self_harm"
       ? ""
-      : `Scripture text: ${primaryRead.text}`,
+      : primaryRead.kind === "passage"
+        ? `Scripture text: ${primaryRead.text}`
+        : "",
     "",
     lifeConcern === "self_harm"
       ? ""
       : `${sourceReference(secondary, preferences)} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
     lifeConcern === "self_harm"
       ? ""
-      : `Scripture text: ${secondaryRead.text}`,
+      : secondaryRead.kind === "passage"
+        ? `Scripture text: ${secondaryRead.text}`
+        : "",
     lifeConcern === "self_harm" || sources.length < 3
       ? ""
       : `${sourceReference(sources[2], preferences)} widens the counsel: ${localizedWisdomEntry(sources[2], preferences).principle.toLowerCase()}`,
@@ -248,14 +250,8 @@ export function composeModeAwareFallbackResponse(
   if (mode === MODE_KEYS.LIFE && detectLifeSupportConcern(question) === "self_harm") {
     return base;
   }
-  const language = languages[preferences.language] ?? languages.en;
-  const region = regions[preferences.region] ?? regions.global;
-  const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
-
   return [
     base,
-    "",
-    `Preference note: respond for ${language.name} readers, with examples sensitive to ${region.label}. Scripture references use ${sourceReference(primary, preferences)} where curated text is available; otherwise use the reference and explain the principle plainly.`,
     "",
     `Because you are in ${mode} mode, I would look at this through ${profile.lens.toLowerCase()}`,
     "",

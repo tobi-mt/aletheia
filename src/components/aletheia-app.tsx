@@ -28847,7 +28847,7 @@ function AnswerFeedback({
                   setOutcomeValue(value);
                   onMeaningfulOutcome(value);
                 }}
-                className="h-9 shrink-0 rounded-full border px-3 text-xs font-semibold"
+                className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
                 style={{ borderColor: outcomeValue === value ? theme.primary : theme.borderMedium, backgroundColor: outcomeValue === value ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}
               >
                 {label}
