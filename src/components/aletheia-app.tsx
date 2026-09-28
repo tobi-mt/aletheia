@@ -20,6 +20,7 @@ import {
   useRailOverflowCue,
 } from "@/components/surfaces/surface-primitives";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
+import { assignExperimentVariant, readExperimentVariant, type ExperimentVariant } from "@/lib/product-experiments";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
@@ -8742,6 +8743,10 @@ export function AletheiaApp({
       privacyLevel: onboardingPrivacyLevel,
       focusIntentions: focusIntentions.join(","),
       hasConcern: Boolean(onboardingConcern.trim()),
+      experiment: "activation_onboarding_v1",
+      variant: (() => {
+        try { return readExperimentVariant(window.localStorage, "activation_onboarding_v1") ?? "unassigned"; } catch { return "unassigned"; }
+      })(),
       ...analyticsQuestionMetadata(onboardingConcern, mode),
     });
     setOnboardingPath(null);
@@ -9132,6 +9137,26 @@ function startFirstRunGuestFlow() {
       return;
     }
     announceWorkflow(ts('notifications.feedbackSaved'), ts('notifications.feedbackSavedBody'), "success");
+  }
+
+  function recordMeaningfulOutcome(value: string) {
+    trackClientEvent("meaningful_outcome_recorded", {
+      outcome: value,
+      mode,
+      language: preferences.language,
+      experiment: "impact_prompt_v1",
+      variant: "focused",
+    });
+    setStatusMessage(ts('status.feedbackReceived'));
+  }
+
+  function createGentleReturnPath(exchange: ConversationExchange) {
+    trackClientEvent("return_path_selected", {
+      path: "three_day_pause",
+      mode: exchange.mode,
+      source: "answer_feedback",
+    });
+    waitFromExchange(exchange);
   }
 
   function trackDecisionFromExchange(exchange: ConversationExchange) {
@@ -10165,6 +10190,9 @@ function startFirstRunGuestFlow() {
       region: preferences.region,
       persisted: Boolean(user),
       followup: messages.some((message) => message.role === "aletheia"),
+      onboarding_variant: (() => {
+        try { return readExperimentVariant(window.localStorage, "activation_onboarding_v1") ?? "unassigned"; } catch { return "unassigned"; }
+      })(),
       ...analyticsQuestionMetadata(trimmed, mode),
     };
     trackClientEvent("question_asked", questionAnalytics);
@@ -10283,6 +10311,7 @@ function startFirstRunGuestFlow() {
     setAuthProvider("email");
     setAuthError("");
     setAuthNotice(ts('auth.signingIn'));
+    let serverRecordedFailure = false;
 
     try {
       const requestBody = {
@@ -10311,6 +10340,7 @@ function startFirstRunGuestFlow() {
         responseOk = response.ok;
       }
       if (!responseOk || !data.user) {
+        serverRecordedFailure = Boolean(data.errorCode);
         throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'auth.authenticationFailed'));
       }
       setAuthPassword("");
@@ -10393,7 +10423,9 @@ function startFirstRunGuestFlow() {
         failureMetadata.category = "validation";
         failureMetadata.reason = authMode === "register" ? "invalid_input" : "missing_credentials";
       }
-      trackAuthFailure(failureMetadata);
+      if (!serverRecordedFailure) {
+        trackAuthFailure(failureMetadata);
+      }
       announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
     } finally {
       setAuthProvider(null);
@@ -12519,6 +12551,8 @@ function startFirstRunGuestFlow() {
                       onSharePostcard={shareAnswerPostcard}
                       onShare={(channel) => shareAletheia(channel, "answer")}
                       onFeedback={(value) => recordAnswerFeedback(value, "answer")}
+                      onMeaningfulOutcome={recordMeaningfulOutcome}
+                      onReturnLater={createGentleReturnPath}
                       voiceTranscriptPreview={voiceTranscriptPreview}
                       signedIn={Boolean(user)}
                       theme={theme}
@@ -14089,6 +14123,15 @@ function OnboardingModal({
   theme: ThemeColors;
 }) {
   const [activeSetupStep, setActiveSetupStep] = useState("mode");
+  const [activationVariant] = useState<ExperimentVariant>(() => {
+    if (typeof window === "undefined") return "control";
+    try {
+      return assignExperimentVariant(window.localStorage, "activation_onboarding_v1");
+    } catch {
+      return "control";
+    }
+  });
+  const exposureTrackedRef = useRef(false);
   const modalScrollRef = useRef<HTMLDivElement | null>(null);
   const modeSectionRef = useRef<HTMLElement | null>(null);
   const toneSectionRef = useRef<HTMLElement | null>(null);
@@ -14130,6 +14173,16 @@ function OnboardingModal({
       behavior: prefersReducedMotion ? "auto" : "smooth",
     });
   }, []);
+
+  useEffect(() => {
+    if (!open || exposureTrackedRef.current) return;
+    exposureTrackedRef.current = true;
+    trackClientEvent("experiment_exposed", {
+      experiment: "activation_onboarding_v1",
+      variant: activationVariant,
+      surface: "onboarding",
+    });
+  }, [activationVariant, open]);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") {
@@ -14367,6 +14420,27 @@ function OnboardingModal({
                 </select>
               </label>
             </div>
+            {activationVariant === "focused" ? (
+              <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('labels.onboardingOptionalLater')}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackClientEvent("experiment_converted", {
+                      experiment: "activation_onboarding_v1",
+                      variant: activationVariant,
+                      conversion: "onboarding_completed",
+                      has_concern: Boolean(concern.trim()),
+                    });
+                    onComplete();
+                  }}
+                  className="mt-3 h-11 w-full rounded-full px-4 text-sm font-semibold shadow-sm"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {concern.trim() ? ts('labels.startWithMyQuestion') : ts('labels.startWithAsk')}
+                </button>
+              </div>
+            ) : null}
           </section>
 
           <section ref={languageSectionRef} tabIndex={-1} className="scroll-mt-4 grid gap-3 rounded-lg border p-3 outline-none sm:grid-cols-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
@@ -26918,6 +26992,8 @@ function CompanionPanel({
   onSharePostcard,
   onShare,
   onFeedback,
+  onMeaningfulOutcome,
+  onReturnLater,
   isWorking,
   isListening,
   voiceTranscriptPreview,
@@ -26959,6 +27035,8 @@ function CompanionPanel({
   onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
+  onMeaningfulOutcome: (value: string) => void;
+  onReturnLater: (exchange: ConversationExchange) => void;
   isWorking: boolean;
   isListening: boolean;
   voiceTranscriptPreview: string;
@@ -27286,6 +27364,8 @@ function CompanionPanel({
                 onSharePostcard={onSharePostcard}
                 onShare={onShare}
                 onFeedback={onFeedback}
+                onMeaningfulOutcome={onMeaningfulOutcome}
+                onReturnLater={onReturnLater}
                 signedIn={signedIn}
                 isWorking={isWorking}
               />
@@ -28470,6 +28550,8 @@ function CurrentCounselCard({
   onSharePostcard,
   onShare,
   onFeedback,
+  onMeaningfulOutcome,
+  onReturnLater,
   signedIn,
   isWorking,
 }: {
@@ -28494,6 +28576,8 @@ function CurrentCounselCard({
   onSharePostcard: (exchange: ConversationExchange) => void;
   onShare: (channel: ShareChannel) => void;
   onFeedback: (value: string) => void;
+  onMeaningfulOutcome: (value: string) => void;
+  onReturnLater: (exchange: ConversationExchange) => void;
   signedIn: boolean;
   isWorking: boolean;
 }) {
@@ -28656,7 +28740,14 @@ function CurrentCounselCard({
             </div>
           </section>
 
-          <AnswerFeedback theme={theme} ui={ui} onFeedback={onFeedback} />
+          <AnswerFeedback
+            theme={theme}
+            ui={ui}
+            ts={ts}
+            onFeedback={onFeedback}
+            onMeaningfulOutcome={onMeaningfulOutcome}
+            onReturnLater={() => onReturnLater(exchange)}
+          />
 
           <section className="mt-3 rounded-[1.35rem] border p-3.5 sm:mt-4 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <p className="text-[0.95rem] font-semibold leading-6 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
@@ -28681,8 +28772,24 @@ function CurrentCounselCard({
   );
 }
 
-function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiText; onFeedback: (value: string) => void }) {
+function AnswerFeedback({
+  theme,
+  ui,
+  ts,
+  onFeedback,
+  onMeaningfulOutcome,
+  onReturnLater,
+}: {
+  theme: ThemeColors;
+  ui: UiText;
+  ts: (key: string, fallback?: string) => string;
+  onFeedback: (value: string) => void;
+  onMeaningfulOutcome: (value: string) => void;
+  onReturnLater: () => void;
+}) {
   const text = { ...englishText, ...ui };
+  const [feedbackValue, setFeedbackValue] = useState<string | null>(null);
+  const [outcomeValue, setOutcomeValue] = useState<string | null>(null);
   const items = [
     ["helpful", text.feedbackHelpful!],
     ["mildly_helpful", text.feedbackMildlyHelpful!],
@@ -28699,7 +28806,10 @@ function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiT
           <button
             key={value}
             type="button"
-            onClick={() => onFeedback(value)}
+            onClick={() => {
+              setFeedbackValue(value);
+              onFeedback(value);
+            }}
             className="h-8 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
@@ -28707,6 +28817,42 @@ function AnswerFeedback({ theme, ui, onFeedback }: { theme: ThemeColors; ui: UiT
           </button>
         ))}
       </RailButtonTray>
+      {feedbackValue === "helpful" || feedbackValue === "mildly_helpful" ? (
+        <div className="mt-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.meaningfulOutcomeQuestion')}</p>
+          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('labels.meaningfulOutcomePrivacy')}</p>
+          <RailButtonTray theme={theme} label={ts('labels.meaningfulOutcomeQuestion')} dense>
+            {([
+              ["clearer", ts('labels.outcomeClearer')],
+              ["calmer", ts('labels.outcomeCalmer')],
+              ["acted", ts('labels.outcomeActed')],
+              ["not_yet", ts('labels.outcomeNotYet')],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={outcomeValue === value}
+                onClick={() => {
+                  setOutcomeValue(value);
+                  onMeaningfulOutcome(value);
+                }}
+                className="h-9 shrink-0 rounded-full border px-3 text-xs font-semibold"
+                style={{ borderColor: outcomeValue === value ? theme.primary : theme.borderMedium, backgroundColor: outcomeValue === value ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}
+              >
+                {label}
+              </button>
+            ))}
+          </RailButtonTray>
+          <button
+            type="button"
+            onClick={onReturnLater}
+            className="mt-3 h-10 rounded-full border px-4 text-xs font-semibold"
+            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+          >
+            {ts('labels.returnInThreeDays')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

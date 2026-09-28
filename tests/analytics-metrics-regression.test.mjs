@@ -35,3 +35,13 @@ test("dashboard exposes privacy-safe audience and product-health dimensions", ()
   assert.match(analytics, /audienceBreakdowns: audienceBreakdownRows/);
   assert.match(analytics, /growthMetrics: growthMetricRows/);
 });
+
+test("dashboard reports impact experiments and diagnosable authentication failures", () => {
+  assert.match(analytics, /event_name IN \('answer_feedback', 'meaningful_outcome_recorded'\)/);
+  assert.match(analytics, /impactBreakdowns: impactBreakdownRows/);
+  assert.match(analytics, /event_name IN \('experiment_exposed', 'experiment_converted', 'onboarding_completed'\)/);
+  assert.match(analytics, /experiments: experimentRows/);
+  assert.match(analytics, /authFailures30d: authFailureRows/);
+  assert.match(analytics, /metadata->>'method'/);
+  assert.match(analytics, /metadata->>'reason'/);
+});

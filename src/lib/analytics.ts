@@ -11,6 +11,10 @@ const ALLOWED_EVENTS = new Set([
   "answer_feedback",
   "answer_followup_asked",
   "answer_saved_or_acted",
+  "meaningful_outcome_recorded",
+  "return_path_selected",
+  "experiment_exposed",
+  "experiment_converted",
   "answer_abandoned_after_generation",
   "app_shared",
   "avatar_updated",
@@ -432,6 +436,8 @@ export async function analyticsSummary(
     retentionMonthlyRows,
     audienceBreakdownRows,
     growthMetricRows,
+    impactBreakdownRows,
+    experimentRows,
     usageTrendRows,
     featureTrendRows,
     notificationHealthRows,
@@ -1074,6 +1080,54 @@ export async function analyticsSummary(
        SELECT 'sharing_rate', sharing_people, active_people,
               COALESCE(ROUND((100.0 * sharing_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity`
     ),
+    many<{ dimension: string; value: string; count: number; unique_people: number }>(
+      `WITH ranked AS (
+         SELECT CASE WHEN event_name = 'answer_feedback' THEN 'helpfulness' ELSE 'meaningful_outcome' END AS dimension,
+                COALESCE(NULLIF(CASE WHEN event_name = 'answer_feedback' THEN metadata->>'value' ELSE metadata->>'outcome' END, ''), 'unknown') AS value,
+                COALESCE(anon_id, user_id, session_id) AS person_id,
+                ROW_NUMBER() OVER (
+                  PARTITION BY COALESCE(anon_id, user_id, session_id), event_name
+                  ORDER BY created_at DESC
+                ) AS recency
+         FROM analytics_events
+         WHERE event_name IN ('answer_feedback', 'meaningful_outcome_recorded')
+           AND ${selectedDateFilter}
+           AND ${trafficFilter}
+           AND COALESCE(anon_id, user_id, session_id) IS NOT NULL
+       )
+       SELECT dimension,
+              value,
+              COUNT(*)::int AS count,
+              COUNT(DISTINCT person_id)::int AS unique_people
+       FROM ranked
+       WHERE recency = 1
+       GROUP BY dimension, value
+       ORDER BY dimension ASC, count DESC`
+    ),
+    many<{ experiment: string; variant: string; exposed: number; converted: number; conversion_rate: number }>(
+      `WITH assignments AS (
+         SELECT metadata->>'experiment' AS experiment,
+                metadata->>'variant' AS variant,
+                COALESCE(anon_id, user_id, session_id) AS person_id,
+                BOOL_OR(event_name = 'experiment_exposed') AS exposed,
+                BOOL_OR(event_name IN ('experiment_converted', 'onboarding_completed')) AS converted
+         FROM analytics_events
+         WHERE event_name IN ('experiment_exposed', 'experiment_converted', 'onboarding_completed')
+           AND ${selectedDateFilter}
+           AND ${trafficFilter}
+           AND metadata->>'experiment' IS NOT NULL
+           AND metadata->>'variant' IS NOT NULL
+         GROUP BY metadata->>'experiment', metadata->>'variant', COALESCE(anon_id, user_id, session_id)
+       )
+       SELECT experiment,
+              variant,
+              COUNT(*) FILTER (WHERE exposed)::int AS exposed,
+              COUNT(*) FILTER (WHERE converted)::int AS converted,
+              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE converted) / NULLIF(COUNT(*) FILTER (WHERE exposed), 0))::numeric, 1), 0)::double precision AS conversion_rate
+       FROM assignments
+       GROUP BY experiment, variant
+       ORDER BY experiment ASC, variant ASC`
+    ),
     Promise.all(usageTrendPromises),
     Promise.all(featureTrendPromises),
     (async () => {
@@ -1172,6 +1226,8 @@ export async function analyticsSummary(
     acquisitionSources30d: sourceRows,
     audienceBreakdowns: audienceBreakdownRows,
     growthMetrics: growthMetricRows,
+    impactBreakdowns: impactBreakdownRows,
+    experiments: experimentRows,
     paths30d: pathRows,
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,

@@ -78,6 +78,30 @@ type GrowthMetricRow = {
   rate: number;
 };
 
+type ImpactBreakdownRow = {
+  dimension: "helpfulness" | "meaningful_outcome";
+  value: string;
+  count: number;
+  unique_people: number;
+};
+
+type ExperimentRow = {
+  experiment: string;
+  variant: string;
+  exposed: number;
+  converted: number;
+  conversion_rate: number;
+};
+
+type AuthFailureRow = {
+  method: string;
+  flow: string;
+  category: string;
+  reason: string;
+  count: number;
+  unique_people: number;
+};
+
 type NotificationSyncFailureCauseRow = {
   cause: string;
   count: number;
@@ -114,6 +138,9 @@ type AnalyticsPayload = {
   views30d?: ScreenRow[];
   audienceBreakdowns?: AudienceBreakdownRow[];
   growthMetrics?: GrowthMetricRow[];
+  impactBreakdowns?: ImpactBreakdownRow[];
+  experiments?: ExperimentRow[];
+  authFailures30d?: AuthFailureRow[];
   generatedAt?: string;
 };
 
@@ -605,7 +632,7 @@ function MetricCard({
   );
 }
 
-function BreakdownList({ title, rows }: { title: string; rows: AudienceBreakdownRow[] }) {
+function BreakdownList({ title, rows }: { title: string; rows: Array<{ dimension: string; value: string; events: number; unique_people: number }> }) {
   const max = rows.reduce((current, row) => Math.max(current, row.unique_people), 0);
   return (
     <article className="rounded-xl border border-slate-200 p-4">
@@ -787,6 +814,9 @@ export default function AnalyticsDashboard() {
       notificationSyncFailureTrend: payload.notificationSyncFailureTrend ?? [],
       audienceBreakdowns: payload.audienceBreakdowns ?? [],
       growthMetrics: payload.growthMetrics ?? [],
+      impactBreakdowns: payload.impactBreakdowns ?? [],
+      experiments: payload.experiments ?? [],
+      authFailures30d: payload.authFailures30d ?? [],
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -866,6 +896,9 @@ export default function AnalyticsDashboard() {
   const funnelRows = payload?.funnel30d ?? [];
   const audienceRows = payload?.audienceBreakdowns ?? [];
   const growthMetrics = Object.fromEntries((payload?.growthMetrics ?? []).map((row) => [row.metric, row]));
+  const impactRows = payload?.impactBreakdowns ?? [];
+  const experimentRows = payload?.experiments ?? [];
+  const authFailureRows = payload?.authFailures30d ?? [];
   const topScreensMax = topScreens.reduce((max, row) => Math.max(max, row.count), 0);
   const notificationReport = payload?.notificationDeliveryReport ?? null;
   const notificationReportRows = notificationReport?.rows ?? [];
@@ -1040,6 +1073,49 @@ export default function AnalyticsDashboard() {
             <MetricCard label="Shared" value={`${growthMetrics.sharing_rate?.rate ?? 0}%`} tone="slate" />
           </div>
           <p className="mt-3 text-xs text-slate-500">Activation means asking a question, creating a decision or reflection, recording gratitude, or opening Scripture.</p>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Impact, not attention</h2>
+            <p className="text-sm text-slate-600">Voluntary answer helpfulness and privacy-safe outcomes. Categories are stored; users’ private answer and reflection text is not.</p>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <BreakdownList title="Answer helpfulness" rows={impactRows.filter((row) => row.dimension === "helpfulness").map((row) => ({ ...row, events: row.count }))} />
+            <BreakdownList title="Meaningful outcomes" rows={impactRows.filter((row) => row.dimension === "meaningful_outcome").map((row) => ({ ...row, events: row.count }))} />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Measured experiments</h2>
+            <p className="text-sm text-slate-600">Stable variant assignment with unique-person exposure and conversion counts. Treat small samples as directional, not causal.</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[42rem] text-left text-sm">
+              <thead className="text-slate-500"><tr><th className="pb-2">Experiment</th><th className="pb-2">Variant</th><th className="pb-2">Exposed</th><th className="pb-2">Converted</th><th className="pb-2">Rate</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {experimentRows.map((row) => <tr key={`${row.experiment}-${row.variant}`}><td className="py-2 font-medium">{formatLabel(row.experiment)}</td><td>{formatLabel(row.variant)}</td><td>{formatCount(row.exposed)}</td><td>{formatCount(row.converted)}</td><td>{row.conversion_rate}%</td></tr>)}
+              </tbody>
+            </table>
+            {experimentRows.length === 0 ? <p className="py-3 text-sm text-slate-500">No experiment exposures captured yet.</p> : null}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Authentication failure diagnosis</h2>
+            <p className="text-sm text-slate-600">Failure events grouped by method, flow, category, and normalized cause. Client transport failures are recorded only when the server did not already record the response.</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[48rem] text-left text-sm">
+              <thead className="text-slate-500"><tr><th className="pb-2">Method</th><th className="pb-2">Flow</th><th className="pb-2">Category</th><th className="pb-2">Cause</th><th className="pb-2">Events</th><th className="pb-2">People</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {authFailureRows.map((row, index) => <tr key={`${row.method}-${row.flow}-${row.reason}-${index}`}><td className="py-2 font-medium">{formatLabel(row.method)}</td><td>{formatLabel(row.flow)}</td><td>{formatLabel(row.category)}</td><td>{formatLabel(row.reason)}</td><td>{formatCount(row.count)}</td><td>{formatCount(row.unique_people)}</td></tr>)}
+              </tbody>
+            </table>
+            {authFailureRows.length === 0 ? <p className="py-3 text-sm text-slate-500">No authentication failures in this range.</p> : null}
+          </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
