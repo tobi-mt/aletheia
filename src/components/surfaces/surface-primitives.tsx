@@ -58,7 +58,7 @@ export function IconControl({ children, onClick, theme, ariaLabel, disabled = fa
 }
 
 export function ModalCornerCloseButton({ onClick, theme, ariaLabel, className = "" }: { onClick: () => void; theme: ThemeColors; ariaLabel: string; className?: string }) {
-  return <IconControl onClick={onClick} theme={theme} ariaLabel={ariaLabel} className={`absolute right-4 top-4 z-20 ${className}`.trim()}><X size={16} aria-hidden="true" /></IconControl>;
+  return <IconControl onClick={onClick} theme={theme} ariaLabel={ariaLabel} className={`!absolute right-4 top-4 z-20 ${className}`.trim()}><X size={16} aria-hidden="true" /></IconControl>;
 }
 
 export function ToggleSwitch({ checked, onChange, theme, ariaLabel, disabled = false }: { checked: boolean; onChange: (checked: boolean) => void; theme: ThemeColors; ariaLabel: string; disabled?: boolean }) {

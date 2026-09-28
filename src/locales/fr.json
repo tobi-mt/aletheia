@@ -739,6 +739,16 @@
     "unlock": "Déverrouiller",
     "unlocking": "Vérification…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Un guide Aletheia tout en douceur", "progress": "Joyau {current} sur {total}", "dismiss": "Fermer et continuer",
+    "welcome": { "title": "Commencez par ce qui compte aujourd’hui", "titleSignedIn": "Faites de cet espace le vôtre", "body": "Choisissez un regard de sagesse. Aletheia vous révélera la suite en douceur, un joyau utile à la fois.", "modePrompt": "Quel regard vous aiderait le plus ?", "questionPrompt": "Qu’avez-vous à l’esprit ? (facultatif)", "questionPlaceholder": "Une décision, une préoccupation, un espoir ou une question…", "reassurance": "Rien d’autre à configurer maintenant. Vous pourrez tout modifier plus tard dans Compte.", "action": "Entrer dans Aletheia", "actionWithQuestion": "Commencer par ma question" },
+    "today": { "title": "Un espace paisible pour commencer", "body": "Aujourd’hui propose une courte lecture de sagesse et une prochaine étape réfléchie, sans imposer de série.", "action": "Voir Aujourd’hui" },
+    "ask": { "title": "Demandez ce qui se cache vraiment derrière", "body": "Apportez une décision ou une tension. Aletheia répond avec les Écritures, une réflexion et une prochaine étape concrète.", "action": "Demander à Aletheia" },
+    "decisions": { "title": "Donnez de l’espace aux choix importants", "body": "Rassemblez options, conseils et apprentissages pour laisser la clarté grandir avec le temps.", "action": "Explorer les décisions" },
+    "reflect": { "title": "Observez ce qui se forme en vous", "body": "Consignez gratitude et réflexion en privé, puis revenez quand vous serez prêt à discerner un motif.", "action": "Ouvrir Réflexion" },
+    "library": { "title": "Une sagesse à laquelle revenir", "body": "Explorez les Écritures et la sagesse pratique, puis enregistrez ce que vous souhaitez garder.", "action": "Visiter la bibliothèque" },
+    "account": { "title": "Vous gardez le contrôle", "body": "Langue, confidentialité, notifications, synchronisation et préférences personnelles sont réunies dans Compte.", "action": "Ouvrir Compte" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Sagesse pour l'intendance",

@@ -739,6 +739,16 @@
     "unlock": "Ṣí",
     "unlocking": "Ń ṣàyẹ̀wò…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Ìtọ́sọ́nà Aletheia pẹ̀lẹ́", "progress": "Ohun iyebíye {current} nínú {total}", "dismiss": "Pa á, kí o sì tẹ̀síwájú",
+    "welcome": { "title": "Bẹ̀rẹ̀ pẹ̀lú ohun tó ṣe pàtàkì lónìí", "titleSignedIn": "Jẹ́ kí àyè yìí jẹ́ tìrẹ", "body": "Yan ojú ìwòye ọgbọ́n kan. Aletheia yóò máa fi àwọn yòókù hàn pẹ̀lẹ́pẹ̀lẹ́, ohun iyebíye tó wúlò kan lẹ́ẹ̀kan.", "modePrompt": "Ojú ìwòye wo ló máa ràn ọ́ lọ́wọ́ jù?", "questionPrompt": "Kí ló wà lọ́kàn rẹ? (kò pọn dandan)", "questionPlaceholder": "Ìpinnu, àníyàn, ìrètí, tàbí ìbéèrè…", "reassurance": "Kò sí ohun míì láti ṣètò báyìí. O lè yí gbogbo ìfẹ́ rẹ padà ní Àkọọ́lẹ̀ lẹ́yìn náà.", "action": "Wọ Aletheia", "actionWithQuestion": "Bẹ̀rẹ̀ pẹ̀lú ìbéèrè mi" },
+    "today": { "title": "Ibi ìdákẹ́jẹ láti bẹ̀rẹ̀", "body": "Òní n fún ọ ní kíkà ọgbọ́n kúkúrú àti ìgbésẹ̀ tó tẹ̀lé tí a ronú jinlẹ̀—láìsí ìfipá ọjọ́-tẹ̀lé-ọjọ́.", "action": "Wo Òní" },
+    "ask": { "title": "Béèrè ohun tó wà lẹ́yìn rẹ gan-an", "body": "Mú ìpinnu tàbí ìdààmú wá. Aletheia yóò dáhùn pẹ̀lú Ìwé Mímọ́, ìrònú, àti ìgbésẹ̀ tó tẹ̀lé tó dúró lórí òtítọ́.", "action": "Béèrè lọ́wọ́ Aletheia" },
+    "decisions": { "title": "Fún àwọn yíyan pàtàkì ní àyè", "body": "Pa àwọn àṣàyàn, ìmọ̀ràn, àti ohun tí o kọ́ mọ́ra kí ìmúlẹ̀ le dàgbà bí àkókò ṣe ń lọ.", "action": "Ṣàwárí Àwọn Ìpinnu" },
+    "reflect": { "title": "Ṣàkíyèsí ohun tó ń dàgbà nínú rẹ", "body": "Kọ ìmoore àti ìrònú sílẹ̀ ní ìkọ̀kọ̀, kí o sì padà nígbà tí o bá ṣetán láti rí àpẹẹrẹ.", "action": "Ṣí Ìrònú" },
+    "library": { "title": "Ọgbọ́n tó yẹ ká padà sí", "body": "Ṣàwárí Ìwé Mímọ́ àti ọgbọ́n ìgbésí ayé, kí o sì fi ohun tí o fẹ́ mú dání pamọ́.", "action": "Ṣàbẹ̀wò sí Ilé-ìkàwé" },
+    "account": { "title": "Ìwọ ló ṣì ń darí", "body": "Èdè, àṣírí, ìfitónilétí, ìmúdọ́gba, àti gbogbo ìfẹ́ ti ara rẹ wà ní Àkọọ́lẹ̀.", "action": "Ṣí Àkọọ́lẹ̀" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Ọgbọ́n fún ìṣàkóso",

@@ -739,6 +739,16 @@
     "unlock": "Entsperren",
     "unlocking": "Wird geprüft…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Ein sanfter Aletheia-Wegweiser", "progress": "Juwel {current} von {total}", "dismiss": "Schließen und fortfahren",
+    "welcome": { "title": "Beginne mit dem, was heute zählt", "titleSignedIn": "Gestalte diesen Raum zu deinem", "body": "Wähle eine Perspektive der Weisheit. Aletheia zeigt dir alles Weitere behutsam – Juwel für Juwel.", "modePrompt": "Welche Perspektive hilft dir am meisten?", "questionPrompt": "Was beschäftigt dich? (optional)", "questionPlaceholder": "Eine Entscheidung, Sorge, Hoffnung oder Frage…", "reassurance": "Jetzt ist nichts weiter einzurichten. Alle Einstellungen kannst du später im Konto ändern.", "action": "Aletheia betreten", "actionWithQuestion": "Mit meiner Frage beginnen" },
+    "today": { "title": "Ein ruhiger Anfang", "body": "Heute bietet einen kurzen Weisheitsimpuls und einen durchdachten nächsten Schritt – ohne Serienzwang.", "action": "Heute ansehen" },
+    "ask": { "title": "Frage nach dem, was wirklich dahinterliegt", "body": "Bring eine Entscheidung oder Spannung mit. Aletheia antwortet mit Bibelwort, Reflexion und einem bodenständigen nächsten Schritt.", "action": "Aletheia fragen" },
+    "decisions": { "title": "Gib wichtigen Entscheidungen Raum", "body": "Halte Optionen, Rat und Erkenntnisse zusammen, damit mit der Zeit Klarheit wachsen kann.", "action": "Entscheidungen erkunden" },
+    "reflect": { "title": "Nimm wahr, was in dir wächst", "body": "Halte Dankbarkeit und Gedanken privat fest und kehre zurück, wenn du bereit bist, Muster zu erkennen.", "action": "Reflexion öffnen" },
+    "library": { "title": "Weisheit, zu der du zurückkehren kannst", "body": "Entdecke Bibeltexte und praktische Weisheit und speichere, was dich begleiten soll.", "action": "Bibliothek öffnen" },
+    "account": { "title": "Du behältst die Kontrolle", "body": "Sprache, Datenschutz, Benachrichtigungen, Synchronisierung und persönliche Einstellungen findest du im Konto.", "action": "Konto öffnen" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Weisheit für Verwaltung",

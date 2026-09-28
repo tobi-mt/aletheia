@@ -739,6 +739,16 @@
     "unlock": "Desbloquear",
     "unlocking": "Verificando…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Um guia gentil da Aletheia", "progress": "Joia {current} de {total}", "dismiss": "Fechar e continuar",
+    "welcome": { "title": "Comece pelo que importa hoje", "titleSignedIn": "Faça deste espaço o seu", "body": "Escolha uma lente de sabedoria. Aletheia revelará o restante com calma, uma joia útil de cada vez.", "modePrompt": "Qual lente ajudaria mais?", "questionPrompt": "O que está em sua mente? (opcional)", "questionPlaceholder": "Uma decisão, preocupação, esperança ou pergunta…", "reassurance": "Nada mais precisa ser configurado agora. Você pode alterar tudo depois em Conta.", "action": "Entrar na Aletheia", "actionWithQuestion": "Começar com minha pergunta" },
+    "today": { "title": "Um lugar tranquilo para começar", "body": "Hoje oferece uma breve leitura de sabedoria e um próximo passo cuidadoso, sem exigir sequência.", "action": "Ver Hoje" },
+    "ask": { "title": "Pergunte o que está por trás", "body": "Traga uma decisão ou tensão. Aletheia responde com Escritura, reflexão e um próximo passo realista.", "action": "Perguntar à Aletheia" },
+    "decisions": { "title": "Dê espaço às escolhas importantes", "body": "Mantenha opções, conselhos e aprendizados juntos para que a clareza cresça com o tempo.", "action": "Explorar Decisões" },
+    "reflect": { "title": "Perceba o que está se formando em você", "body": "Registre gratidão e reflexão em privado e volte quando estiver pronto para notar um padrão.", "action": "Abrir Reflexão" },
+    "library": { "title": "Sabedoria à qual vale voltar", "body": "Explore as Escrituras e a sabedoria prática e salve o que deseja levar consigo.", "action": "Visitar Biblioteca" },
+    "account": { "title": "Você continua no controle", "body": "Idioma, privacidade, notificações, sincronização e preferências pessoais ficam reunidos em Conta.", "action": "Abrir Conta" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Sabedoria para mordomia",

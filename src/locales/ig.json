@@ -739,6 +739,16 @@
     "unlock": "Kpọghee",
     "unlocking": "A na-enyocha…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Nduzi Aletheia dị nro", "progress": "Ọla {current} n’ime {total}", "dismiss": "Mechie ma gaa n’ihu",
+    "welcome": { "title": "Malite n’ihe dị mkpa taa", "titleSignedIn": "Mee ka oghere a bụrụ nke gị", "body": "Họrọ otu echiche amamihe. Aletheia ga-eji nwayọọ gosi ndị ọzọ, otu ọla bara uru n’otu oge.", "modePrompt": "Kedu echiche ga-akacha nyere gị aka?", "questionPrompt": "Gịnị dị gị n’obi? (nhọrọ)", "questionPlaceholder": "Mkpebi, nchegbu, olileanya, ma ọ bụ ajụjụ…", "reassurance": "Ọ dịghị ihe ọzọ ị ga-ahazi ugbu a. Ị nwere ike ịgbanwe ihe niile n’oge ọzọ na Akaụntụ.", "action": "Banye Aletheia", "actionWithQuestion": "Malite n’ajụjụ m" },
+    "today": { "title": "Ebe dị jụụ ịmalite", "body": "Taa na-enye obere ọgụgụ amamihe na nzọụkwụ ọzọ a tụlere nke ọma—na-enweghị nrụgide ịga n’usoro.", "action": "Lee Taa" },
+    "ask": { "title": "Jụọ ihe dị n’okpuru ya n’ezie", "body": "Weta mkpebi ma ọ bụ esemokwu. Aletheia na-aza site n’Akwụkwọ Nsọ, ntụgharị uche, na nzọụkwụ ọzọ dabara adaba.", "action": "Jụọ Aletheia" },
+    "decisions": { "title": "Nye mkpebi ndị dị mkpa ohere", "body": "Debe nhọrọ, ndụmọdụ, na ihe ị mụtara ọnụ ka nghọta nwee ike ito ka oge na-aga.", "action": "Chọpụta Mkpebi" },
+    "reflect": { "title": "Chọpụta ihe na-akpụ n’ime gị", "body": "Detuo ekele na ntụgharị uche na nzuzo, laghachikwa mgbe ị dị njikere ịhụ usoro.", "action": "Mepee Ntụgharị Uche" },
+    "library": { "title": "Amamihe kwesịrị ịlaghachikwuru", "body": "Chọpụta Akwụkwọ Nsọ na amamihe bara uru, wee chekwaa ihe ịchọrọ iburu.", "action": "Gaa n’Ọbá Akwụkwọ" },
+    "account": { "title": "Ị ka nọ n’ịchịkwa", "body": "Asụsụ, nzuzo, ọkwa, mmekọrịta ngwaọrụ, na mmasị gị niile dị n’Akaụntụ.", "action": "Mepee Akaụntụ" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Amamihe maka ịkpa mkpebi",

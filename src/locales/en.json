@@ -739,6 +739,52 @@
     "unlock": "Unlock",
     "unlocking": "Checking…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "A gentle Aletheia guide",
+    "progress": "Gem {current} of {total}",
+    "dismiss": "Close and continue",
+    "welcome": {
+      "title": "Begin with what matters today",
+      "titleSignedIn": "Make this space feel like yours",
+      "body": "Choose one wisdom lens. Aletheia will reveal the rest gently, one useful gem at a time.",
+      "modePrompt": "Which lens would help most?",
+      "questionPrompt": "What is on your mind? (optional)",
+      "questionPlaceholder": "A decision, concern, hope, or question…",
+      "reassurance": "Nothing else to configure now. You can change every preference later in Account.",
+      "action": "Enter Aletheia",
+      "actionWithQuestion": "Begin with my question"
+    },
+    "today": {
+      "title": "A quiet place to begin",
+      "body": "Today offers one short wisdom reading and a thoughtful next step—without demanding a streak.",
+      "action": "See Today"
+    },
+    "ask": {
+      "title": "Ask what is really underneath",
+      "body": "Bring a decision or tension. Aletheia responds with Scripture, reflection, and a grounded next step.",
+      "action": "Ask Aletheia"
+    },
+    "decisions": {
+      "title": "Give important choices room",
+      "body": "Keep options, counsel, and what you learn together so clarity can grow over time.",
+      "action": "Explore Decisions"
+    },
+    "reflect": {
+      "title": "Notice what is forming in you",
+      "body": "Capture gratitude and reflection privately, then return when you are ready to see a pattern.",
+      "action": "Open Reflect"
+    },
+    "library": {
+      "title": "Wisdom worth returning to",
+      "body": "Explore Scripture and practical wisdom, then save what you want to carry with you.",
+      "action": "Visit Library"
+    },
+    "account": {
+      "title": "You remain in control",
+      "body": "Language, privacy, notifications, sync, and every personal preference live together in Account.",
+      "action": "Open Account"
+    }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Wisdom for stewardship",

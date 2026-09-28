@@ -739,6 +739,16 @@
     "unlock": "I-unlock",
     "unlocking": "Sinusuri…"
   },
+  "guidedJourney": {
+    "nudgeLabel": "Isang banayad na gabay ng Aletheia", "progress": "Hiyas {current} sa {total}", "dismiss": "Isara at magpatuloy",
+    "welcome": { "title": "Magsimula sa mahalaga ngayon", "titleSignedIn": "Gawing iyo ang espasyong ito", "body": "Pumili ng isang lente ng karunungan. Unti-unting ipakikita ng Aletheia ang iba pa, isang kapaki-pakinabang na hiyas sa bawat pagkakataon.", "modePrompt": "Aling lente ang pinakamakakatulong?", "questionPrompt": "Ano ang nasa isip mo? (opsyonal)", "questionPlaceholder": "Isang pasya, alalahanin, pag-asa, o tanong…", "reassurance": "Wala nang kailangang ayusin ngayon. Maaari mong baguhin ang lahat sa Account sa ibang pagkakataon.", "action": "Pumasok sa Aletheia", "actionWithQuestion": "Magsimula sa tanong ko" },
+    "today": { "title": "Isang tahimik na lugar para magsimula", "body": "Nag-aalok ang Ngayon ng maikling karunungan at maingat na susunod na hakbang—nang walang presyur ng streak.", "action": "Tingnan ang Ngayon" },
+    "ask": { "title": "Itanong kung ano talaga ang nasa ilalim", "body": "Magdala ng pasya o tensiyon. Sasagot ang Aletheia gamit ang Kasulatan, pagninilay, at makatotohanang susunod na hakbang.", "action": "Tanungin ang Aletheia" },
+    "decisions": { "title": "Bigyan ng puwang ang mahahalagang pasya", "body": "Pagsamahin ang mga pagpipilian, payo, at natutuhan upang lumalim ang linaw sa paglipas ng panahon.", "action": "Tuklasin ang Mga Pasya" },
+    "reflect": { "title": "Pansinin ang nahuhubog sa iyo", "body": "Itala nang pribado ang pasasalamat at pagninilay, at bumalik kapag handa ka nang makita ang isang padron.", "action": "Buksan ang Pagninilay" },
+    "library": { "title": "Karunungang sulit balikan", "body": "Tuklasin ang Kasulatan at praktikal na karunungan, at i-save ang gusto mong dalhin.", "action": "Bisitahin ang Aklatan" },
+    "account": { "title": "Ikaw pa rin ang may kontrol", "body": "Nasa Account ang wika, privacy, notifications, sync, at lahat ng personal mong kagustuhan.", "action": "Buksan ang Account" }
+  },
   "labels": {
     "appName": "Aletheia",
     "appTagline": "Karunungan para sa pangangasiwa",

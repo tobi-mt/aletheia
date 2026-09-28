@@ -20,7 +20,7 @@ import {
   useRailOverflowCue,
 } from "@/components/surfaces/surface-primitives";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
-import { assignExperimentVariant, readExperimentVariant, type ExperimentVariant } from "@/lib/product-experiments";
+import { readExperimentVariant } from "@/lib/product-experiments";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
@@ -154,6 +154,17 @@ import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAna
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
 import { wisdomListenDecisionNote, wisdomListenReflectionBody, type WisdomListenResult } from "@/lib/wisdom-listen";
+import {
+  advanceGuidedJourney,
+  GUIDED_JOURNEY_STEPS,
+  GUIDED_JOURNEY_STORAGE_KEY,
+  markGuidedJourneyPresented,
+  nextGuidedJourneyStep,
+  parseGuidedJourneyState,
+  startGuidedJourney,
+  type GuidedJourneyState,
+  type GuidedJourneyStep,
+} from "@/lib/guided-journey";
 
 const BibleReader = dynamic(() => import("@/components/bible-reader"), {
   ssr: false,
@@ -5776,10 +5787,12 @@ export function AletheiaApp({
   const [postSignOutWelcomeName, setPostSignOutWelcomeNameState] = useState<string | null>(null);
   const [onboardingPath, setOnboardingPath] = useState<"guest" | "account" | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [guidedJourneyState, setGuidedJourneyState] = useState<GuidedJourneyState | null>(null);
+  const [activeGuidedJourneyStep, setActiveGuidedJourneyStep] = useState<GuidedJourneyStep | null>(null);
   const [onboardingConcern, setOnboardingConcern] = useState("");
-  const [onboardingTone, setOnboardingTone] = useState("gentle");
-  const [faithFamiliarity, setFaithFamiliarity] = useState("familiar");
-  const [onboardingPrivacyLevel, setOnboardingPrivacyLevel] = useState("minimal");
+  const [onboardingTone] = useState("gentle");
+  const [faithFamiliarity] = useState("familiar");
+  const [onboardingPrivacyLevel] = useState("minimal");
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscriptPreview, setVoiceTranscriptPreview] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -6140,6 +6153,7 @@ export function AletheiaApp({
       setShowWelcomeGate(restoreWelcomeGate);
       setPostSignOutWelcomeNameState(restoreWelcomeGate ? readPostSignOutWelcomeName() : null);
       setShowOnboarding(shouldShowOnboarding());
+      setGuidedJourneyState(parseGuidedJourneyState(window.localStorage.getItem(GUIDED_JOURNEY_STORAGE_KEY)));
       setCarryToday(storedCarryToday(restoredPreferences));
       setScriptureMemory(storedScriptureMemory(restoredPreferences));
       setSavedScriptures(storedSavedScriptures());
@@ -6485,6 +6499,109 @@ export function AletheiaApp({
     setRequestedAccountSection("privacy");
     showView("account");
   }, [showView]);
+
+  const persistGuidedJourneyState = useCallback((next: GuidedJourneyState) => {
+    setGuidedJourneyState(next);
+    try {
+      window.localStorage.setItem(GUIDED_JOURNEY_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // The journey can continue in memory when local storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    const blocked =
+      !clientStateRestored ||
+      !guidedJourneyState ||
+      activeGuidedJourneyStep !== null ||
+      showWelcomeGate ||
+      welcomeAuthOpen ||
+      showOnboarding ||
+      Boolean(workflowNotice) ||
+      isWorking ||
+      isListening ||
+      isSpeaking ||
+      Boolean(selectedScripture) ||
+      Boolean(counselInviteToken) ||
+      Boolean(challengeInviteToken) ||
+      Boolean(counselRemovalPrompt) ||
+      showDeleteAccountModal ||
+      showAiConsentModal ||
+      showReportIssueModal ||
+      showStreakMilestonesModal ||
+      biometricLockState === "locked";
+    if (blocked) return;
+
+    const step = nextGuidedJourneyStep(guidedJourneyState);
+    if (!step) return;
+
+    const revealId = window.setTimeout(() => {
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLInputElement ||
+        focused instanceof HTMLTextAreaElement ||
+        focused instanceof HTMLSelectElement ||
+        focused?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
+      const presented = markGuidedJourneyPresented(guidedJourneyState);
+      persistGuidedJourneyState(presented);
+      setActiveGuidedJourneyStep(step);
+      trackClientEvent("guided_journey_presented", {
+        step,
+        gem_number: GUIDED_JOURNEY_STEPS.indexOf(step) + 1,
+      });
+    }, 1400);
+    return () => window.clearTimeout(revealId);
+  }, [
+    activeGuidedJourneyStep,
+    biometricLockState,
+    challengeInviteToken,
+    clientStateRestored,
+    counselInviteToken,
+    counselRemovalPrompt,
+    guidedJourneyState,
+    isListening,
+    isSpeaking,
+    isWorking,
+    persistGuidedJourneyState,
+    selectedScripture,
+    showAiConsentModal,
+    showDeleteAccountModal,
+    showOnboarding,
+    showReportIssueModal,
+    showStreakMilestonesModal,
+    showWelcomeGate,
+    welcomeAuthOpen,
+    workflowNotice,
+  ]);
+
+  const closeGuidedJourneyStep = useCallback((reason: "dismissed" | "actioned") => {
+    if (!activeGuidedJourneyStep || !guidedJourneyState) return;
+    trackClientEvent(reason === "actioned" ? "guided_journey_actioned" : "guided_journey_dismissed", {
+      step: activeGuidedJourneyStep,
+      gem_number: GUIDED_JOURNEY_STEPS.indexOf(activeGuidedJourneyStep) + 1,
+    });
+    persistGuidedJourneyState(advanceGuidedJourney(guidedJourneyState));
+    setActiveGuidedJourneyStep(null);
+  }, [activeGuidedJourneyStep, guidedJourneyState, persistGuidedJourneyState]);
+
+  function followGuidedJourneyStep() {
+    const step = activeGuidedJourneyStep;
+    if (!step) return;
+    closeGuidedJourneyStep("actioned");
+    if (step === "today") {
+      showView("companion");
+      setHomeSection("today", "guided_journey");
+    } else if (step === "ask") {
+      showView("companion");
+      setHomeSection("ask", "guided_journey");
+      scrollToSection("companion-ask");
+    } else if (step === "decisions" || step === "reflect" || step === "library" || step === "account") {
+      showView(step);
+    }
+  }
 
   const maybeShowSignInPrompt = useCallback((reason: AuthPromptReason, metadata: AnalyticsMetadata = {}, options?: { bypassMinEngagement?: boolean }) => {
     if (typeof window === "undefined" || user || authStatus === "signing-in" || authStatus === "signing-out" || showOnboarding) {
@@ -8712,32 +8829,25 @@ export function AletheiaApp({
   }
 
   function completeOnboarding() {
+    let existingJourney: GuidedJourneyState | null = null;
     try {
       window.localStorage.setItem("aletheia_onboarding_complete", "yes");
       window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
       window.localStorage.setItem(FIRST_RUN_GATE_COMPLETE_STORAGE_KEY, "yes");
       window.localStorage.setItem("aletheia_context_privacy_level", onboardingPrivacyLevel);
+      existingJourney = parseGuidedJourneyState(window.localStorage.getItem(GUIDED_JOURNEY_STORAGE_KEY));
     } catch {
       // Onboarding can still close if storage is unavailable.
     }
+    if (!existingJourney) {
+      const journey = startGuidedJourney();
+      persistGuidedJourneyState(journey);
+    }
     if (onboardingConcern.trim()) {
-      setQuery(
-        ts('onboardingQuestionPrompt')
-          .replace("{concern}", onboardingConcern.trim())
-          .replace("{tone}", onboardingTone)
-          .replace("{familiarity}", faithFamiliarity)
-      );
+      setQuery(onboardingConcern.trim());
       setHomeSection("ask", "onboarding_completed");
       showView("companion");
       setStatusMessage(ts('status.startingQuestionReady'));
-      announceWorkflow(ts('notifications.startingPathPrepared'), ts('notifications.startingPathPreparedBody'), "success");
-      celebrate({
-        event: "onboarding_completed",
-        tier: "whisper",
-        title: ts('notifications.startingPathPrepared'),
-        body: ts('notifications.startingPathPreparedBody'),
-        source: "onboarding",
-      });
     } else {
       setHomeSection("ask", "onboarding_completed");
       showView("companion");
@@ -8754,6 +8864,7 @@ export function AletheiaApp({
       privacyLevel: onboardingPrivacyLevel,
       focusIntentions: focusIntentions.join(","),
       hasConcern: Boolean(onboardingConcern.trim()),
+      onboardingExperience: "progressive_journey_v1",
       experiment: "activation_onboarding_v1",
       variant: (() => {
         try { return readExperimentVariant(window.localStorage, "activation_onboarding_v1") ?? "unassigned"; } catch { return "unassigned"; }
@@ -12865,6 +12976,14 @@ function startFirstRunGuestFlow() {
       />
       ) : null}
 
+      <GuidedJourneyNudge
+        step={activeGuidedJourneyStep}
+        theme={theme}
+        ts={ts}
+        onDismiss={() => closeGuidedJourneyStep("dismissed")}
+        onAction={followGuidedJourneyStep}
+      />
+
       <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-xl md:hidden" style={{
         borderColor: theme.bgNavBorder,
         backgroundColor: (() => {
@@ -12955,33 +13074,16 @@ function startFirstRunGuestFlow() {
         }}
       />
 
-      <OnboardingModal
+      <ProgressiveOnboardingModal
         open={showOnboarding}
         audience={onboardingPath}
         mode={mode}
         modeCards={activeModeCards}
-        preferences={preferences}
         ts={ts}
         concern={onboardingConcern}
         setConcern={setOnboardingConcern}
-        tone={onboardingTone}
-        setTone={setOnboardingTone}
-        faithFamiliarity={faithFamiliarity}
-        setFaithFamiliarity={setFaithFamiliarity}
-        privacyLevel={onboardingPrivacyLevel}
-        setPrivacyLevel={setOnboardingPrivacyLevel}
-        focusIntentions={focusIntentions}
-        onFocusIntentionsChange={updateFocusIntentions}
-        notificationsEnabled={notificationsEnabled}
-        signedIn={Boolean(user)}
         onModeChange={handleModeChange}
-        onPreferenceChange={updatePreferences}
         onComplete={completeOnboarding}
-        onRequestSignIn={() => {
-          setOnboardingPath("account");
-          setShowOnboarding(false);
-          startFirstRunAuthFlow("login");
-        }}
         theme={theme}
       />
       <CounselInviteModal
@@ -14084,514 +14186,135 @@ function pushSubscriptionUsesPublicKey(subscription: PushSubscription, publicKey
   return uint8ArrayToUrlBase64(options.applicationServerKey) === publicKey.replace(/=+$/, "");
 }
 
-function OnboardingModal({
+function GuidedJourneyNudge({
+  step,
+  theme,
+  ts,
+  onDismiss,
+  onAction,
+}: {
+  step: GuidedJourneyStep | null;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onDismiss: () => void;
+  onAction: () => void;
+}) {
+  if (!step || step === "welcome") return null;
+  const gemNumber = GUIDED_JOURNEY_STEPS.indexOf(step) + 1;
+  return (
+    <AnimatePresence>
+      <motion.aside
+        key={step}
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.24, ease: "easeOut" }}
+        className="fixed left-1/2 z-[39] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
+        style={{
+          bottom: "calc(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 6.9rem)",
+          borderColor: theme.borderLight,
+          background: `linear-gradient(145deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, transparent), color-mix(in srgb, ${theme.bgCard} 96%, transparent))`,
+        }}
+        aria-live="polite"
+        aria-label={ts("guidedJourney.nudgeLabel")}
+      >
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.activeBg, color: theme.accentGold }} aria-hidden="true">
+            <Sparkles size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+              {ts("guidedJourney.progress").replace("{current}", String(gemNumber)).replace("{total}", String(GUIDED_JOURNEY_STEPS.length))}
+            </p>
+            <h2 className="mt-1 text-[1.05rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>{ts(`guidedJourney.${step}.title`)}</h2>
+            <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{ts(`guidedJourney.${step}.body`)}</p>
+          </div>
+          <button type="button" onClick={onDismiss} className="grid size-9 shrink-0 place-items-center rounded-full border transition" style={{ borderColor: theme.borderLight, color: theme.textSecondary }} aria-label={ts("guidedJourney.dismiss")}>
+            <X size={15} />
+          </button>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button type="button" onClick={onAction} className="inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-sm" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+            {ts(`guidedJourney.${step}.action`)}
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      </motion.aside>
+    </AnimatePresence>
+  );
+}
+
+function ProgressiveOnboardingModal({
   open,
   audience,
   mode,
   modeCards,
-  preferences,
   ts,
   concern,
   setConcern,
-  tone,
-  setTone,
-  faithFamiliarity,
-  setFaithFamiliarity,
-  privacyLevel,
-  setPrivacyLevel,
-  focusIntentions,
-  onFocusIntentionsChange,
-  notificationsEnabled,
-  signedIn,
   onModeChange,
-  onPreferenceChange,
   onComplete,
-  onRequestSignIn,
   theme,
 }: {
   open: boolean;
   audience?: "guest" | "account" | null;
   mode: Mode;
   modeCards: ModeCard[];
-  preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
   concern: string;
   setConcern: (value: string) => void;
-  tone: string;
-  setTone: (value: string) => void;
-  faithFamiliarity: string;
-  setFaithFamiliarity: (value: string) => void;
-  privacyLevel: string;
-  setPrivacyLevel: (value: string) => void;
-  focusIntentions: string[];
-  onFocusIntentionsChange: (intentions: string[]) => void;
-  notificationsEnabled: boolean;
-  signedIn: boolean;
   onModeChange: (mode: Mode) => void;
-  onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onComplete: () => void;
-  onRequestSignIn: (mode?: AuthMode) => void;
   theme: ThemeColors;
 }) {
-  const [activeSetupStep, setActiveSetupStep] = useState("mode");
-  const [activationVariant] = useState<ExperimentVariant>(() => {
-    if (typeof window === "undefined") return "control";
-    try {
-      return assignExperimentVariant(window.localStorage, "activation_onboarding_v1");
-    } catch {
-      return "control";
-    }
-  });
-  const exposureTrackedRef = useRef(false);
-  const modalScrollRef = useRef<HTMLDivElement | null>(null);
-  const modeSectionRef = useRef<HTMLElement | null>(null);
-  const toneSectionRef = useRef<HTMLElement | null>(null);
-  const languageSectionRef = useRef<HTMLElement | null>(null);
-  const focusSectionRef = useRef<HTMLElement | null>(null);
-  const privacySectionRef = useRef<HTMLElement | null>(null);
-  const getSetupStepRef = useCallback((key: string) => {
-    switch (key) {
-      case "mode":
-        return modeSectionRef;
-      case "tone":
-        return toneSectionRef;
-      case "language":
-        return languageSectionRef;
-      case "focus":
-        return focusSectionRef;
-      case "privacy":
-        return privacySectionRef;
-      default:
-        return modeSectionRef;
-    }
-  }, []);
-  const scrollToSetupStep = useCallback((key: string, ref: RefObject<HTMLElement | null>) => {
-    setActiveSetupStep(key);
-    const target = ref.current;
-    const container = modalScrollRef.current;
-    if (!target || !container) {
-      return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-    container.scrollTo({
-      top: Math.max(0, container.scrollTop + targetRect.top - containerRect.top - 76),
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!open || exposureTrackedRef.current) return;
-    exposureTrackedRef.current = true;
-    trackClientEvent("experiment_exposed", {
-      experiment: "activation_onboarding_v1",
-      variant: activationVariant,
-      surface: "onboarding",
-    });
-  }, [activationVariant, open]);
-
-  useEffect(() => {
-    if (!open || typeof document === "undefined") {
-      return;
-    }
-
-    const { body, documentElement } = document;
-    const previousBodyOverflow = body.style.overflow;
-    const previousHtmlOverflow = documentElement.style.overflow;
-    const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
-    const previousBodyPosition = body.style.position;
-    const previousBodyTop = body.style.top;
-    const previousBodyLeft = body.style.left;
-    const previousBodyRight = body.style.right;
-    const previousBodyWidth = body.style.width;
-    const scrollY = window.scrollY;
-
-    body.style.overflow = "hidden";
-    documentElement.style.overflow = "hidden";
-    documentElement.style.overscrollBehavior = "none";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      documentElement.style.overflow = previousHtmlOverflow;
-      documentElement.style.overscrollBehavior = previousHtmlOverscroll;
-      body.style.position = previousBodyPosition;
-      body.style.top = previousBodyTop;
-      body.style.left = previousBodyLeft;
-      body.style.right = previousBodyRight;
-      body.style.width = previousBodyWidth;
-      window.scrollTo(0, scrollY);
-    };
-  }, [open]);
-
-  if (!open) {
-    return null;
-  }
-
-  const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const selectedTranslation = bibleTranslations[preferences.bibleTranslation];
-  const onboardingTitle =
-    audience === "account"
-      ? ts("labels.onboardingTitleSignedIn")
-      : ts('labels.onboardingTitle');
-  const onboardingLead =
-    audience === "account"
-      ? ts("labels.onboardingSignedInBody")
-      : ts('labels.chooseLensAndSettings');
-  const setupSteps = [
-    { key: "mode", label: ts('labels.setupStepMode') },
-    { key: "tone", label: ts('labels.setupStepTone') },
-    { key: "language", label: ts('labels.setupStepLanguage') },
-    { key: "focus", label: ts('labels.setupStepFocus') },
-    { key: "privacy", label: ts('labels.setupStepPrivacy') },
-  ];
-  const privacyOptions = [
-    {
-      key: "minimal",
-      label: ts('labels.privacyLevelMinimal'),
-      body: ts('labels.privacyLevelMinimalBody'),
-    },
-    {
-      key: "guided",
-      label: ts('labels.privacyLevelGuided'),
-      body: ts('labels.privacyLevelGuidedBody'),
-    },
-    {
-      key: "contextual",
-      label: ts('labels.privacyLevelContextual'),
-      body: ts('labels.privacyLevelContextualBody'),
-    },
-  ];
-  const onboardingHighlights = [
-    {
-      title: audience === "account" ? ts("labels.accountLinkedSetup") : ts('labels.appLikeSetup'),
-      body: ts('labels.changeLaterInAccount'),
-    },
-    {
-      title: signedIn ? ts('labels.accountNotice') : ts('labels.guestSetupReady'),
-      body: signedIn ? ts('labels.onboardingSignedInBody') : ts('labels.accountNoticeBody'),
-    },
-    {
-      title: notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn'),
-      body: ts('labels.beginQuietly'),
-    },
-  ];
-
+  useBodyScrollLock(open);
+  const modeRailRef = useRef<HTMLDivElement | null>(null);
+  const modeRailHasOverflow = useRailOverflowCue(modeRailRef, open && modeCards.length > 1, [open, modeCards.length, mode]);
+  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 grid min-w-0 place-items-end overflow-hidden overscroll-none p-3 backdrop-blur-sm sm:place-items-center"
-      style={{
-        backgroundColor: theme.primary + '75',
-        paddingTop: "calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) + 0.75rem)",
-        paddingBottom: "calc(max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) + 0.75rem)",
-      }}
-    >
-      <section
-        className="editorial-surface box-border flex max-h-[92vh] min-w-0 flex-col overflow-hidden overscroll-contain rounded-xl border p-3.5 shadow-2xl sm:p-4"
-        style={{
-          borderColor: `color-mix(in srgb, ${theme.borderLight} 82%, transparent)`,
-          backgroundColor: theme.bgCard,
-          maxHeight: "calc(100svh - max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 20px)) - max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), var(--aletheia-bottom-reserve, 12px)) - 1.5rem)",
-          width: "min(100%, calc(100vw - 1.5rem), 42rem)",
-        }}
-      >
-        <div ref={modalScrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="relative flex flex-col gap-3">
-          <div className="max-w-2xl rounded-[1.25rem] border p-4 pr-16 shadow-sm sm:p-5 sm:pr-16" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ts('labels.beginQuietly')}</p>
-            <h2 className="mt-2 text-[1.42rem] font-semibold leading-[1.02] text-balance sm:text-[1.76rem]" style={{ color: theme.textPrimary }}>
-              {onboardingTitle}
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.96rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-              {onboardingLead}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-                5 {ts('labels.setupSteps')}
-              </span>
-              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {audience === "account" ? ts("labels.accountLinkedSetup") : ts('labels.appLikeSetup')}
-              </span>
-              <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                {ts('labels.changeLaterInAccount')}
-              </span>
-            </div>
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto p-3 backdrop-blur-sm" style={{ backgroundColor: theme.primary + "6b" }}>
+      <section className="editorial-surface relative w-[min(100%,38rem)] rounded-[1.7rem] border p-4 shadow-2xl sm:p-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }} role="dialog" aria-modal="true" aria-labelledby="progressive-onboarding-title">
+        <ModalCornerCloseButton onClick={onComplete} theme={theme} ariaLabel={ts("guidedJourney.dismiss")} />
+        <div className="pr-12">
+          <div className="flex items-center gap-2">
+            <span className="grid size-9 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.activeBg, color: theme.accentGold }} aria-hidden="true"><Sparkles size={16} /></span>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ts("guidedJourney.progress").replace("{current}", "1").replace("{total}", String(GUIDED_JOURNEY_STEPS.length))}</p>
           </div>
-          <ModalCornerCloseButton onClick={onComplete} theme={theme} ariaLabel={ts('labels.closeOnboarding')} />
+          <h2 id="progressive-onboarding-title" className="mt-3 text-[1.55rem] font-semibold leading-[1.05] tracking-[-0.025em] text-balance sm:text-[1.85rem]" style={{ color: theme.textPrimary }}>
+            {audience === "account" ? ts("guidedJourney.welcome.titleSignedIn") : ts("guidedJourney.welcome.title")}
+          </h2>
+          <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("guidedJourney.welcome.body")}</p>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          <div className="rounded-[1.25rem] border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {ts('labels.changeLaterInAccount')}
-            </p>
-            <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-              {onboardingHighlights.map((item) => (
-                <div key={item.title} className="w-[17rem] shrink-0 snap-start rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                  <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{item.title}</p>
-                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>{item.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <nav
-            aria-label={ts('labels.onboardingSetupNav')}
-            className="sticky top-0 z-20 -mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 pb-2 pt-2 backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-5 sm:max-w-[calc(100%+2.5rem)] sm:px-5"
-            style={{ backgroundColor: theme.bgCard }}
-          >
-            <div className="flex min-w-max gap-1 rounded-xl border p-1 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              {setupSteps.map((step, index) => {
-                const active = activeSetupStep === step.key;
+        <div className="mt-5">
+          <p className="text-xs font-semibold" style={{ color: theme.textPrimary }}>{ts("guidedJourney.welcome.modePrompt")}</p>
+          <div className="relative mt-2 min-w-0">
+            <div ref={modeRailRef} className="flex snap-x gap-2 overflow-x-auto pb-1 pr-7 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {modeCards.map((item) => {
+                const Icon = item.icon;
+                const active = mode === item.label;
                 return (
-                  <button
-                    key={step.key}
-                    type="button"
-                    onClick={() => scrollToSetupStep(step.key, getSetupStepRef(step.key))}
-                    className="min-h-10 rounded-md px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] transition sm:text-xs"
-                    style={{
-                      backgroundColor: active ? theme.activeBg : "transparent",
-                      color: active ? theme.textPrimary : theme.textSecondary,
-                    }}
-                    aria-current={active ? "step" : undefined}
-                  >
-                    <span className="whitespace-nowrap">{index + 1}. {step.label}</span>
+                  <button key={item.label} type="button" onClick={() => onModeChange(item.label)} className="flex min-h-12 shrink-0 snap-start items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition" style={{ borderColor: active ? theme.primary : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgCardElevated, color: theme.textPrimary }} aria-pressed={active}>
+                    <Icon size={15} style={{ color: active ? theme.accentGold : theme.textSecondary }} />
+                    {item.displayLabel ?? item.label}
                   </button>
                 );
               })}
             </div>
-          </nav>
-
-          <section ref={modeSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{ts('wisdomMode')}</p>
-            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.whatBringsYou')}</p>
-            <div className="mt-2 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-              {modeCards.map((item) => (
-                <ModeLensCard
-                  key={item.label}
-                  item={item}
-                  active={mode === item.label}
-                  onClick={() => onModeChange(item.label)}
-                  theme={theme}
-                  compact
-                />
-              ))}
-            </div>
-          </section>
-
-          <section ref={toneSectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepTone')}</p>
-            <label className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-              {ts('labels.seekingWisdomFor')}
-              <textarea
-                value={concern}
-                onChange={(event) => setConcern(event.target.value)}
-                className="mt-2 min-h-20 w-full resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                placeholder={ts('placeholders.decisionExample')}
-              />
-            </label>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                {ts('labels.tone')}
-                <select
-                  value={tone}
-                  onChange={(event) => setTone(event.target.value)}
-                  className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  <option value="gentle">{ts('labels.toneGentle')}</option>
-                  <option value="direct">{ts('labels.toneDirect')}</option>
-                  <option value="strategic">{ts('labels.toneStrategic')}</option>
-                  <option value="reflective">{ts('labels.toneReflective')}</option>
-                </select>
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                {ts('labels.faithFamiliarity')}
-                <select
-                  value={faithFamiliarity}
-                  onChange={(event) => setFaithFamiliarity(event.target.value)}
-                  className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                >
-                  <option value="new">{ts('labels.familiarityNew')}</option>
-                  <option value="familiar">{ts('labels.familiarityFamiliar')}</option>
-                  <option value="deep">{ts('labels.familiarityDeep')}</option>
-                </select>
-              </label>
-            </div>
-            {activationVariant === "focused" ? (
-              <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
-                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('labels.onboardingOptionalLater')}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackClientEvent("experiment_converted", {
-                      experiment: "activation_onboarding_v1",
-                      variant: activationVariant,
-                      conversion: "onboarding_completed",
-                      has_concern: Boolean(concern.trim()),
-                    });
-                    onComplete();
-                  }}
-                  className="mt-3 h-11 w-full rounded-full px-4 text-sm font-semibold shadow-sm"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                >
-                  {concern.trim() ? ts('labels.startWithMyQuestion') : ts('labels.startWithAsk')}
-                </button>
-              </div>
-            ) : null}
-          </section>
-
-          <section ref={languageSectionRef} tabIndex={-1} className="scroll-mt-4 grid gap-3 rounded-lg border p-3 outline-none sm:grid-cols-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              {ts('language')}
-              <select
-                value={preferences.language}
-                onChange={(event) => onPreferenceChange(preferencePatchForLanguage(event.target.value as LanguageCode))}
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {Object.entries(languages).map(([code, language]) => (
-                  <option key={code} value={code}>
-                    {language.nativeName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              {ts('bible')}
-              <select
-                value={preferences.bibleTranslation}
-                onChange={(event) => onPreferenceChange({ bibleTranslation: event.target.value as BibleTranslation })}
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {bibleOptions.map((code) => {
-                  const translation = bibleTranslations[code];
-                  const languageName = languages[translation.language].nativeName;
-                  return (
-                  <option key={code} value={code}>
-                    {languageName} · {translation.label}
-                  </option>
-                  );  
-                })}
-              </select>
-              <span className="mt-1 block text-[11px] normal-case leading-4 tracking-normal" style={{ color: theme.textSecondary }}>
-                {selectedTranslation?.note}
-              </span>
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-              {ts('region')}
-              <select
-                value={preferences.region}
-                onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm normal-case tracking-normal outline-none"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-              >
-                {Object.entries(regions).map(([code]) => (
-                  <option key={code} value={code}>
-                    {localizedRegionLabel(code as RegionCode, preferences.language)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </section>
-
-          <section ref={focusSectionRef} tabIndex={-1} className="scroll-mt-4 outline-none">
-            <FocusIntentionsCard
-              theme={theme}
-              ts={ts}
-              selected={focusIntentions}
-              onChange={onFocusIntentionsChange}
-            />
-          </section>
-
-          <section ref={privacySectionRef} tabIndex={-1} className="scroll-mt-4 rounded-lg border p-3 outline-none" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.setupStepPrivacy')}</p>
-            <h3 className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.privacyLevelTitle')}</h3>
-            <div className="mt-3 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-              {privacyOptions.map((option) => {
-                const active = privacyLevel === option.key;
-                return (
-                  <SelectionRailCard
-                    key={option.key}
-                    icon={ShieldCheck}
-                    title={option.label}
-                    body={option.body}
-                    active={active}
-                    onClick={() => setPrivacyLevel(option.key)}
-                    theme={theme}
-                    status={active ? ts('labels.selected') : undefined}
-                    className="w-[16.75rem] shrink-0 snap-start"
-                  />
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-lg border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            {!signedIn ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                    {ts('labels.guestSetupReady')}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>
-                    {ts('labels.accountNotice')}
-                  </p>
-                  <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    {ts('labels.accountNoticeBody')}
-                  </p>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {ts('labels.notificationsOptionalAfterSignIn')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRequestSignIn()}
-                  className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-                >
-                  {ts('auth.signInForSync')}
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountNotice')}</p>
-                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {ts('labels.onboardingSignedInBody')}
-                </p>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {notificationsEnabled ? ts('labels.notificationsAlreadyEnabledDevice') : ts('labels.notificationsOptionalAfterSignIn')}
-                </p>
-              </>
-            )}
-          </section>
-
-          {!Capacitor.isNativePlatform() ? <InstallGuideCard theme={theme} compact ts={ts} /> : null}
+            {modeRailHasOverflow ? <RailOverflowCorner theme={theme} className="right-0 top-3" /> : null}
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onComplete}
-          className="mt-5 h-11 w-full rounded-md px-4 text-sm font-semibold shadow-lg"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-        >
-          {ts('labels.enterAletheia')}
+        <label className="mt-4 block text-xs font-semibold" style={{ color: theme.textPrimary }}>
+          {ts("guidedJourney.welcome.questionPrompt")}
+          <textarea value={concern} onChange={(event) => setConcern(event.target.value)} className="mt-2 min-h-20 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} placeholder={ts("guidedJourney.welcome.questionPlaceholder")} />
+        </label>
+
+        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts("guidedJourney.welcome.reassurance")}</p>
+        <button type="button" onClick={onComplete} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold shadow-lg" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+          {concern.trim() ? ts("guidedJourney.welcome.actionWithQuestion") : ts("guidedJourney.welcome.action")}
+          <ChevronRight size={16} />
         </button>
-        </div>
       </section>
     </div>
   );
@@ -20825,97 +20548,6 @@ function TrustCenterCard({
           </p>
         ) : null}
       </div>
-    </section>
-  );
-}
-
-function InstallGuideCard({
-  theme,
-  compact = false,
-  ts,
-}: {
-  theme: ThemeColors;
-  compact?: boolean;
-  ts: (key: string, fallback?: string) => string;
-}) {
-  const [installState, setInstallState] = useState({
-    standalone: false,
-    platform: "desktop" as "ios" | "android" | "desktop",
-  });
-  const [stepsOpen, setStepsOpen] = useState(!compact);
-
-  useEffect(() => {
-    window.setTimeout(() => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      const platform = /iphone|ipad|ipod/.test(userAgent)
-        ? "ios"
-        : /android/.test(userAgent)
-          ? "android"
-          : "desktop";
-      setInstallState({ standalone: isStandalone, platform });
-    }, 0);
-  }, []);
-
-  const steps =
-    installState.platform === "ios"
-      ? [
-          ts('labels.installIosStep1'),
-          ts('labels.installIosStep2'),
-          ts('labels.installIosStep3'),
-        ]
-      : installState.platform === "android"
-        ? [
-            ts('labels.installAndroidStep1'),
-            ts('labels.installAndroidStep2'),
-            ts('labels.installAndroidStep3'),
-          ]
-        : [
-            ts('labels.installDesktopStep1'),
-            ts('labels.installDesktopStep2'),
-            ts('labels.installDesktopStep3'),
-          ];
-
-  return (
-    <section className={`rounded-xl shadow-sm ${compact ? "p-3" : "p-4 sm:p-5"}`} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
-          <Home size={17} />
-        </div>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
-            {ts('labels.accountInstallTitle')}
-          </p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {ts('labels.accountInstallSummary')}
-          </p>
-        </div>
-      </div>
-      {!installState.standalone ? (
-        <DisclosureSection
-          title={ts('labels.accountInstallTitle')}
-          summary={ts('labels.accountInstallSummary')}
-          eyebrow={ts('labels.accountInstallEyebrow')}
-          compactCollapsed
-          isOpen={stepsOpen}
-          onOpenChange={setStepsOpen}
-          showDetailsLabel={ts('showDetails')}
-          hideDetailsLabel={ts('hideDetails')}
-          theme={theme}
-          className="mt-3"
-        >
-          <ol className={`grid gap-2 text-sm leading-6 ${compact ? "" : "sm:grid-cols-3"}`} style={{ color: theme.textSecondary }}>
-            {steps.map((step, index) => (
-              <li key={step} className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{index + 1}</span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </DisclosureSection>
-      ) : null}
     </section>
   );
 }

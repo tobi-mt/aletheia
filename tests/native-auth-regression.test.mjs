@@ -131,7 +131,7 @@ test("native API requests use the iOS HTTP cookie jar and new social users enter
   assert.match(client, /setShowOnboarding\(isNewSocialAccount\)/);
 });
 
-test("signed-in native account UX supports identity editing, push, and one onboarding step rail", async () => {
+test("signed-in native account UX supports identity editing, push, and progressive onboarding", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const profileRoute = await read("src/app/api/auth/profile/route.ts");
   const entitlements = await read("ios/App/App/App.entitlements");
@@ -143,8 +143,9 @@ test("signed-in native account UX supports identity editing, push, and one onboa
   assert.match(client, /fetch\("\/api\/notifications\/native", \{ cache: "no-store" \}\)/);
   assert.match(client, /nativeServerSetupRequiredBody/);
   assert.match(client, /invalid_input: "notifications\.apiInvalidInput"/);
-  assert.match(client, /!Capacitor\.isNativePlatform\(\) \? <InstallGuideCard/);
-  assert.equal([...client.matchAll(/aria-label=\{ts\('labels\.onboardingSetupNav'\)\}/g)].length, 1);
+  assert.match(client, /<ProgressiveOnboardingModal/);
+  assert.match(client, /<GuidedJourneyNudge/);
+  assert.doesNotMatch(client, /onboardingSetupNav/);
   assert.match(entitlements, /aps-environment/);
   assert.match(client, /nativeRegistrationFailedBody/);
 });
