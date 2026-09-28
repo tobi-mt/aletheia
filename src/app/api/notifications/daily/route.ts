@@ -3,6 +3,7 @@ import { trackEvent } from "@/lib/analytics";
 import {
   claimNotificationCronWindow,
   completeNotificationCronWindow,
+  releaseNotificationCronWindow,
   recordDailyNotificationUnauthorizedHit,
   sendChallengeReminders,
   sendDailyWisdomNotifications,
@@ -35,6 +36,7 @@ export type DailyNotificationRouteDeps = {
   trackEvent: typeof trackEvent;
   claimNotificationCronWindow: typeof claimNotificationCronWindow;
   completeNotificationCronWindow: typeof completeNotificationCronWindow;
+  releaseNotificationCronWindow: typeof releaseNotificationCronWindow;
   now: () => Date;
 };
 
@@ -46,6 +48,7 @@ export const dailyNotificationRouteDeps: DailyNotificationRouteDeps = {
   trackEvent,
   claimNotificationCronWindow,
   completeNotificationCronWindow,
+  releaseNotificationCronWindow,
   now: () => new Date(),
 };
 
@@ -69,17 +72,11 @@ export async function executeDailyNotificationPipeline(
     });
   }
 
-  const decisionResult = await deps.sendPendingDecisionNotifications(now).catch(() => ({
-    attempted: 0,
-    sent: 0,
-    failed: 0,
-    pending: 0,
-    processed: 0,
-    failureSamples: [],
-  }));
-  const result = await deps.sendDailyWisdomNotifications(now);
-  const challengeResult = await deps.sendChallengeReminders(now).catch(() => ({ attempted: 0, sent: 0, failed: 0, suggested: 0 }));
-  await deps.trackEvent({
+  try {
+    const decisionResult = await deps.sendPendingDecisionNotifications(now);
+    const result = await deps.sendDailyWisdomNotifications(now);
+    const challengeResult = await deps.sendChallengeReminders(now);
+    await deps.trackEvent({
     eventName: "notification_daily_checked",
     source: "cron",
     metadata: {
@@ -107,9 +104,13 @@ export async function executeDailyNotificationPipeline(
       challengeSuggested: challengeResult.suggested,
       ...(metadata.legacyRoute ? { legacyRoute: true } : {}),
     },
-  }).catch(() => undefined);
-  await deps.completeNotificationCronWindow(claim.windowKey, new Date());
-  return NextResponse.json({ ...result, decisionResult, challengeResult, ...metadata });
+    }).catch(() => undefined);
+    await deps.completeNotificationCronWindow(claim.windowKey, new Date());
+    return NextResponse.json({ ...result, decisionResult, challengeResult, ...metadata });
+  } catch (error) {
+    await deps.releaseNotificationCronWindow(claim.windowKey).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function runDailyNotifications(request: Request, deps: DailyNotificationRouteDeps = dailyNotificationRouteDeps) {

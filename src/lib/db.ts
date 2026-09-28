@@ -327,6 +327,7 @@ async function initializeDatabase() {
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_challenge_notified_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS badge_count INTEGER NOT NULL DEFAULT 0;
 
     CREATE TABLE IF NOT EXISTS notification_cron_runs (
@@ -847,6 +848,7 @@ async function ensurePushSubscriptionSchema() {
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_gratitude_sent_at TIMESTAMPTZ;
+    ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS last_challenge_notified_at TIMESTAMPTZ;
     ALTER TABLE native_push_devices ADD COLUMN IF NOT EXISTS badge_count INTEGER NOT NULL DEFAULT 0;
     CREATE TABLE IF NOT EXISTS notification_cron_runs (
       window_key TEXT PRIMARY KEY,

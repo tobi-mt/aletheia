@@ -50,6 +50,8 @@ export async function claimNotificationCronWindow() {
 
 export async function completeNotificationCronWindow() {}
 
+export async function releaseNotificationCronWindow() {}
+
 export async function sendPendingDecisionNotifications() {
   return {
     attempted: 0,

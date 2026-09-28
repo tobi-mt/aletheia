@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-errors";
 import { getNotificationHealthSnapshot, getVapidKeyPairStatus } from "@/lib/notifications";
+import { getNativePushConfigStatus } from "@/lib/native-push";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
 
   if (scope === "readiness") {
     const vapidStatus = getVapidKeyPairStatus();
+    const nativeStatus = getNativePushConfigStatus();
     return NextResponse.json({
       ok: true,
       configured: {
@@ -49,6 +51,8 @@ export async function GET(request: Request) {
         vapidPrivateKey: Boolean(process.env.VAPID_PRIVATE_KEY?.trim()),
         vapidSubject: Boolean((process.env.VAPID_SUBJECT || process.env.VAPID_CLAIM_EMAIL || "").trim()),
         vapidKeyPairValid: vapidStatus.keyPairValid,
+        apns: nativeStatus.apnsConfigured,
+        fcm: nativeStatus.fcmConfigured,
       },
       vapidReason: vapidStatus.reason,
       generatedAt: new Date().toISOString(),

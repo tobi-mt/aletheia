@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import webpush from "web-push";
 import { postSharedDecisionComment } from "../src/app/api/counsel/shared/[sharedDecisionId]/comments/route.ts";
@@ -298,6 +299,9 @@ test("daily notification cron sends pending decisions before the other jobs", as
     completeNotificationCronWindow: async (windowKey) => {
       sequence.push(`complete:${windowKey}`);
     },
+    releaseNotificationCronWindow: async (windowKey) => {
+      sequence.push(`release:${windowKey}`);
+    },
     now: () => new Date("2026-07-07T09:30:00.000Z"),
   };
 
@@ -360,6 +364,9 @@ test("daily notification cron skips an already claimed hourly window", async () 
     completeNotificationCronWindow: async () => {
       assert.fail("a skipped window must not be completed twice");
     },
+    releaseNotificationCronWindow: async () => {
+      assert.fail("a skipped window must not be released");
+    },
     sendPendingDecisionNotifications: async () => {
       assert.fail("duplicate cron runs must not send decision notifications");
     },
@@ -393,6 +400,56 @@ test("daily notification cron skips an already claimed hourly window", async () 
   } finally {
     process.env.NOTIFICATION_CRON_SECRET = previousSecret;
   }
+});
+
+test("daily notification cron releases a failed claim so the scheduler can retry", async () => {
+  const sequence = [];
+  const deps = {
+    recordDailyNotificationUnauthorizedHit: async () => undefined,
+    claimNotificationCronWindow: async () => ({ claimed: true, windowKey: "2026-07-07T09" }),
+    sendPendingDecisionNotifications: async () => {
+      sequence.push("decision");
+      throw new Error("temporary database failure");
+    },
+    sendDailyWisdomNotifications: async () => assert.fail("daily wisdom must wait for decision dispatch"),
+    sendChallengeReminders: async () => assert.fail("challenge reminders must wait for decision dispatch"),
+    trackEvent: async () => undefined,
+    completeNotificationCronWindow: async () => sequence.push("complete"),
+    releaseNotificationCronWindow: async (windowKey) => sequence.push(`release:${windowKey}`),
+    now: () => new Date("2026-07-07T09:30:00.000Z"),
+  };
+
+  const previousSecret = process.env.NOTIFICATION_CRON_SECRET;
+  process.env.NOTIFICATION_CRON_SECRET = "cron-secret";
+  try {
+    await assert.rejects(
+      () => runDailyNotifications(
+        new Request("http://localhost/api/notifications/daily?secret=cron-secret"),
+        deps
+      ),
+      /temporary database failure/
+    );
+    assert.deepEqual(sequence, ["decision", "release:2026-07-07T09"]);
+  } finally {
+    process.env.NOTIFICATION_CRON_SECRET = previousSecret;
+  }
+});
+
+test("native-only recipients are not blocked by Web Push configuration", async () => {
+  const source = await readFile(new URL("../src/lib/notifications.ts", import.meta.url), "utf8");
+
+  assert.doesNotMatch(
+    source,
+    /sendDailyWisdomNotifications\([^)]*\)\s*\{\s*configureWebPush\(\)/,
+    "daily native delivery must not require VAPID"
+  );
+  assert.doesNotMatch(
+    source,
+    /sendPendingDecisionNotifications\([^)]*\)[^{]*\{\s*configureWebPush\(\)/,
+    "native decision reminders must not require VAPID"
+  );
+  assert.match(source, /last_challenge_notified_at: row\.last_challenge_notified_at/);
+  assert.match(source, /UPDATE native_push_devices\s+SET last_challenge_notified_at/);
 });
 
 test("notification diagnostics exposes freshness and refresh due for active subscriptions", async () => {

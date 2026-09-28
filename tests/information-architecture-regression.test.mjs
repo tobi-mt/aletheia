@@ -62,12 +62,13 @@ test("navigation and counsel selection controls keep their full context visible"
   assert.doesNotMatch(decisionShare, /line-clamp-3|truncate/);
 });
 
-test("quiet onboarding completion does not obscure the first workspace", () => {
+test("quiet onboarding completion opens the core Ask workspace without a disruptive celebration", () => {
   const quietCompletion = app.slice(
-    app.indexOf('} else {\n      setHomeSection("today", "onboarding_completed")'),
+    app.indexOf('} else {\n      setHomeSection("ask", "onboarding_completed")'),
     app.indexOf('trackClientEvent("onboarding_completed"')
   );
   assert.match(quietCompletion, /setStatusMessage\(ts\('notifications\.setupSavedBody'\)\)/);
+  assert.match(quietCompletion, /scrollToSection\("companion-ask"\)/);
   assert.doesNotMatch(quietCompletion, /announceWorkflow/);
   assert.doesNotMatch(quietCompletion, /celebrate/);
 });

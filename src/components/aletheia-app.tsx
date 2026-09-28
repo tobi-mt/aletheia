@@ -8717,9 +8717,10 @@ export function AletheiaApp({
         source: "onboarding",
       });
     } else {
-      setHomeSection("today", "onboarding_completed");
+      setHomeSection("ask", "onboarding_completed");
       showView("companion");
       setStatusMessage(ts('notifications.setupSavedBody'));
+      scrollToSection("companion-ask");
     }
     trackClientEvent("onboarding_completed", {
       mode,

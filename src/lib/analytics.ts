@@ -346,6 +346,7 @@ function trafficFilterWhere(includeAutomation: boolean, alias = "analytics_event
     AND COALESCE(${alias}.metadata->>'traffic_environment', 'production') = 'production'
     AND COALESCE(${alias}.user_agent, '') !~* '${AUTOMATION_USER_AGENT_PATTERN}'
     AND COALESCE(${alias}.source, '') !~* '${TEST_SOURCE_PATTERN}'
+    AND COALESCE(${alias}.source, '') <> 'cron'
   `;
 }
 
@@ -446,7 +447,8 @@ export async function analyticsSummary(
        SELECT 'identified_active_users_30d', COUNT(DISTINCT user_id)::int FROM analytics_events
           WHERE user_id IS NOT NULL AND ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
-               SELECT 'events_24h', COUNT(*)::int FROM analytics_events WHERE ${selectedDateFilter} AND ${trafficFilter}
+               SELECT 'events_24h', COUNT(*)::int FROM analytics_events
+                 WHERE created_at >= now() - interval '24 hours' AND ${trafficFilter}
        UNION ALL
                SELECT 'events_30d', COUNT(*)::int FROM analytics_events WHERE ${selectedDateFilter} AND ${trafficFilter}`
     ),
@@ -533,30 +535,34 @@ export async function analyticsSummary(
     many<{ stage: string; stage_order: number; unique_people: number }>(
       `WITH recent_events AS (
          SELECT event_name,
-                COALESCE(user_id, anon_id, session_id) AS person_id
+                created_at,
+                COALESCE(anon_id, user_id, session_id) AS person_id
          FROM analytics_events
          WHERE ${selectedDateFilter}
            AND ${trafficFilter}
+           AND COALESCE(anon_id, user_id, session_id) IS NOT NULL
        ),
-       funnel(stage, event_name, stage_order) AS (
-         VALUES
-           ('opened_app', 'app_opened', 1),
-           ('authenticated', 'auth_email_login_success', 2),
-           ('authenticated', 'auth_email_register_success', 2),
-           ('authenticated', 'auth_google_success', 2),
-           ('completed_onboarding', 'onboarding_completed', 3),
-           ('asked_question', 'question_asked', 4),
-           ('saved_reflection', 'journal_entry_created', 5),
-           ('started_decision', 'decision_created', 6),
-           ('enabled_notifications', 'notification_enabled', 7),
-           ('shared_or_invited', 'app_shared', 8)
+       milestones AS (
+         SELECT person_id,
+                MIN(created_at) FILTER (WHERE event_name = 'app_opened') AS opened_at,
+                MIN(created_at) FILTER (WHERE event_name = 'onboarding_completed') AS onboarded_at,
+                MIN(created_at) FILTER (WHERE event_name IN ('question_asked', 'chat_question_sent')) AS asked_at
+         FROM recent_events
+         GROUP BY person_id
+       ),
+       ordered AS (
+         SELECT person_id,
+                opened_at,
+                CASE WHEN onboarded_at >= opened_at THEN onboarded_at END AS onboarded_at,
+                CASE WHEN asked_at >= onboarded_at
+                       AND onboarded_at >= opened_at THEN asked_at END AS asked_at
+         FROM milestones
        )
-       SELECT funnel.stage,
-              MIN(funnel.stage_order)::int AS stage_order,
-              COUNT(DISTINCT recent_events.person_id)::int AS unique_people
-       FROM recent_events
-       JOIN funnel ON funnel.event_name = recent_events.event_name
-       GROUP BY funnel.stage
+       SELECT 'opened_app' AS stage, 1::int AS stage_order, COUNT(*) FILTER (WHERE opened_at IS NOT NULL)::int AS unique_people FROM ordered
+       UNION ALL
+       SELECT 'completed_onboarding', 2, COUNT(*) FILTER (WHERE onboarded_at IS NOT NULL)::int FROM ordered
+       UNION ALL
+       SELECT 'asked_question', 3, COUNT(*) FILTER (WHERE asked_at IS NOT NULL)::int FROM ordered
        ORDER BY stage_order ASC`
     ),
     many<{ value: string; count: number }>(
@@ -622,6 +628,7 @@ export async function analyticsSummary(
                 created_at AS signup_at
          FROM users
          WHERE ${selectedDateFilter}
+           AND created_at + interval '14 days' <= LEAST(now(), (${endDateSql}::date + interval '1 day'))
        ),
        retention AS (
          SELECT signup_cohorts.cohort_week,
@@ -630,8 +637,8 @@ export async function analyticsSummary(
                   SELECT 1
                   FROM analytics_events
                   WHERE analytics_events.user_id = signup_cohorts.user_id
-                    AND analytics_events.created_at > signup_cohorts.signup_at
-                    AND analytics_events.created_at <= signup_cohorts.signup_at + interval '7 days'
+                    AND analytics_events.created_at >= signup_cohorts.signup_at + interval '7 days'
+                    AND analytics_events.created_at < signup_cohorts.signup_at + interval '14 days'
                     AND ${trafficFilter}
                 ) AS retained_7d
          FROM signup_cohorts
@@ -959,6 +966,7 @@ export async function analyticsSummary(
                 created_at AS signup_at
          FROM users
          WHERE ${selectedDateFilter}
+           AND created_at + interval '37 days' <= LEAST(now(), (${endDateSql}::date + interval '1 day'))
        ),
        retention AS (
          SELECT signup_cohorts.cohort,
@@ -967,8 +975,8 @@ export async function analyticsSummary(
                   SELECT 1
                   FROM analytics_events
                   WHERE analytics_events.user_id = signup_cohorts.user_id
-                    AND analytics_events.created_at > signup_cohorts.signup_at
-                    AND analytics_events.created_at <= signup_cohorts.signup_at + interval '30 days'
+                    AND analytics_events.created_at >= signup_cohorts.signup_at + interval '30 days'
+                    AND analytics_events.created_at < signup_cohorts.signup_at + interval '37 days'
                     AND ${trafficFilter}
                 ) AS retained
          FROM signup_cohorts

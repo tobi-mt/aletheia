@@ -68,7 +68,17 @@ function applyCorsHeaders(response: NextResponse, origin: string, request: NextR
   response.headers.set("Vary", Array.from(varyValues).join(", "));
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
+  // Aletheia uses Route Handlers for mutations and intentionally has no Server
+  // Actions. Reject forged action requests before Next's renderer logs them as
+  // application errors. Remove this guard if a real `use server` action is added.
+  if (request.headers.has("next-action")) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   const origin = request.headers.get("origin");
   if (!isAllowedOrigin(origin)) {
     return NextResponse.next();
@@ -86,5 +96,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*"],
+  matcher: [
+    "/api/:path*",
+    {
+      source: "/:path*",
+      has: [{ type: "header", key: "next-action" }],
+    },
+  ],
 };

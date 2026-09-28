@@ -73,6 +73,14 @@ export async function completeNotificationCronWindow(windowKey: string, complete
   );
 }
 
+export async function releaseNotificationCronWindow(windowKey: string) {
+  await run(
+    `DELETE FROM notification_cron_runs
+     WHERE window_key = ? AND completed_at IS NULL`,
+    windowKey
+  );
+}
+
 type ChallengeCircleNudgeTargetRow = {
   user_id: string;
 };
@@ -260,6 +268,9 @@ export type CounselCommentDeliverySummary = {
 
 export type NotificationHealthSnapshot = {
   enabledSubscriptions: number;
+  enabledWebSubscriptions: number;
+  enabledNativeDevices: number;
+  enabledRecipients: number;
   dueNow: number;
   scanned: number;
   unauthorizedHits: number;
@@ -3431,8 +3442,6 @@ async function markDecisionReminderNotified(reminder: DueDecisionReminder, deliv
 }
 
 export async function sendDailyWisdomNotifications(now = new Date()) {
-  configureWebPush();
-
   const currentHour = now.getUTCHours();
 
   // Fetch wisdom entries once for all notifications
@@ -3447,6 +3456,9 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE`,
   );
+  if (rows.length > 0) {
+    configureWebPush();
+  }
 
   const reminders = await findDueDecisionReminders();
   const remindersByUser = new Map<string, DueDecisionReminder[]>();
@@ -3551,8 +3563,6 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
 }
 
 export async function sendPendingDecisionNotifications(now = new Date()): Promise<PendingDecisionNotificationDeliverySummary> {
-  configureWebPush();
-
   const pending = await getPendingNotifications(now);
   if (pending.length === 0) {
     return {
@@ -3581,6 +3591,9 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
   for (const [userId, rowsForUser] of pendingByUser.entries()) {
     const pushRows = await pushSubscriptionsForUsers([userId]);
     const { enabledRows } = splitPushSubscriptionRows(pushRows, [userId]);
+    if (enabledRows.length > 0) {
+      configureWebPush();
+    }
 
     for (const row of rowsForUser) {
       const notificationUrl = buildNotificationUrl({
@@ -3648,8 +3661,6 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   failed: number;
   suggested: number;
 }> {
-  configureWebPush();
-
   // challengeDefinitions and getChallengeById are now statically imported at the top
 
   // ------------------------------------------------------------------
@@ -3668,15 +3679,26 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE push_subscriptions.enabled = TRUE`
   );
+  const nativeRows = isNativePushConfigured() ? await loadEnabledNativePushTargets() : [];
+  const schedulingRows: ChallengeRow[] = [
+    ...allRows,
+    ...nativeRows.map((row) => ({
+      ...asPushRow(row),
+      last_challenge_notified_at: row.last_challenge_notified_at,
+    })),
+  ];
 
-  if (allRows.length === 0) {
+  if (schedulingRows.length === 0) {
     return { attempted: 0, sent: 0, failed: 0, suggested: 0 };
+  }
+  if (allRows.length > 0) {
+    configureWebPush();
   }
 
   // ------------------------------------------------------------------
   // 2. Respect the user's preferred notification hour + dedup per day
   // ------------------------------------------------------------------
-  const dueRows = allRows.filter((row) => {
+  const dueRows = schedulingRows.filter((row) => {
     if (!formationNotificationsEnabled(row)) {
       return false;
     }
@@ -3909,6 +3931,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   }
 
   for (const [userId, userRows] of dueByUser.entries()) {
+    const webRowsForUser = userRows.filter((row) => Boolean(row.endpoint));
     const userProgress = progressByUser.get(userId) ?? [];
     const language = normalizePreferences({ language: (userRows[0]?.language ?? "en") as LanguageCode }).language;
     const userTimezone = userRows[0]?.preferred_timezone ?? "UTC";
@@ -4059,7 +4082,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
     };
 
     const nativeResult = await sendNativePushFanOut([userId], () => true, () => nativePayload);
-    for (const pushRow of userRows) {
+    for (const pushRow of webRowsForUser) {
       attempted++;
       try {
         await sendNotificationWithRetry(
@@ -4083,10 +4106,13 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 
     if (nativeResult.sent > 0) {
       const deliveredAt = now.toISOString();
-      await Promise.all(
-        userRows.map((pushRow) =>
-          run(`UPDATE push_subscriptions SET last_challenge_notified_at = ? WHERE id = ?`, deliveredAt, pushRow.id)
-        )
+      await run(
+        `UPDATE native_push_devices
+         SET last_challenge_notified_at = ?, updated_at = ?
+         WHERE user_id = ? AND enabled = TRUE`,
+        deliveredAt,
+        deliveredAt,
+        userId
       );
     }
   }
@@ -4095,8 +4121,6 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
 }
 
 export async function sendTestWisdomNotification(userId: string) {
-  configureWebPush();
-
   const rows = await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
@@ -4106,6 +4130,9 @@ export async function sendTestWisdomNotification(userId: string) {
      WHERE enabled = TRUE AND push_subscriptions.user_id = ?`,
     userId
   );
+  if (rows.length > 0) {
+    configureWebPush();
+  }
 
   const { sent, failed, failureSamples } = await sendPushRows(
     rows,
@@ -4173,22 +4200,30 @@ export async function recordDailyNotificationUnauthorizedHit() {
 
 export async function getNotificationHealthSnapshot(): Promise<NotificationHealthSnapshot> {
   const now = new Date();
-  const rows = await many<PushRow>(
+  const [rows, nativeRows] = await Promise.all([many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE`,
-  );
+  ), loadEnabledNativePushTargets()]);
 
-  const dueNow = rows.filter((row) => shouldSendAtLocalHour(row, now) || shouldSendGratitudeAtLocalHour(row, now)).length;
+  const dueWeb = rows.filter((row) => shouldSendAtLocalHour(row, now) || shouldSendGratitudeAtLocalHour(row, now));
+  const dueNative = nativeRows.filter((row) => {
+    const normalized = asPushRow(row);
+    return shouldSendAtLocalHour(normalized, now) || shouldSendGratitudeAtLocalHour(normalized, now);
+  });
+  const recipients = new Set([...rows.map((row) => row.user_id), ...nativeRows.map((row) => row.user_id)]);
   const unauthorizedHits = await notificationMetricValue(DAILY_UNAUTHORIZED_METRIC_KEY);
 
   return {
-    enabledSubscriptions: rows.length,
-    dueNow,
-    scanned: rows.length,
+    enabledSubscriptions: rows.length + nativeRows.length,
+    enabledWebSubscriptions: rows.length,
+    enabledNativeDevices: nativeRows.length,
+    enabledRecipients: recipients.size,
+    dueNow: dueWeb.length + dueNative.length,
+    scanned: rows.length + nativeRows.length,
     unauthorizedHits,
     hourUtc: now.getUTCHours(),
     generatedAt: now.toISOString(),

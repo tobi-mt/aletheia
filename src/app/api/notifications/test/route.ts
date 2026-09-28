@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { isPushConfigured, sendTestWisdomNotification } from "@/lib/notifications";
+import { isNativePushConfigured } from "@/lib/native-push";
 import { apiError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  if (!isPushConfigured()) {
+  if (!isPushConfigured() && !isNativePushConfigured()) {
     return apiError(503, "not_configured", "Notifications are not configured yet.");
   }
 

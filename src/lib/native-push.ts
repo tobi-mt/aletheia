@@ -18,6 +18,7 @@ export type NativePushTargetRow = {
   last_registered_at: string | null;
   last_sent_at: string | null;
   last_gratitude_sent_at: string | null;
+  last_challenge_notified_at: string | null;
   badge_count: number;
   language: string | null;
   region: string | null;
@@ -257,6 +258,7 @@ export async function loadNativePushTargets(userIds: string[]) {
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
             native_push_devices.last_gratitude_sent_at,
+            native_push_devices.last_challenge_notified_at,
             native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
@@ -286,6 +288,7 @@ export async function loadEnabledNativePushTargets() {
             native_push_devices.last_registered_at,
             native_push_devices.last_sent_at,
             native_push_devices.last_gratitude_sent_at,
+            native_push_devices.last_challenge_notified_at,
             native_push_devices.badge_count,
             user_preferences.language,
             user_preferences.region,
