@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
+const listenForWisdom = readFileSync(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
 
 function component(name, nextName) {
   return app.slice(app.indexOf(`function ${name}`), app.indexOf(`function ${nextName}`));
@@ -27,10 +28,12 @@ test("Library prioritizes orientation and browsing while progressively disclosin
   const header = library.indexOf("<ScreenPurposeHeader");
   const tabs = library.indexOf("<ScreenTabs");
   const explore = library.lastIndexOf('librarySection === "explore" ? (');
-  const listenDisclosure = library.lastIndexOf("<DisclosureSection");
   const listen = library.lastIndexOf("<ListenForWisdom");
   assert.ok(header > 0 && header < tabs && tabs < explore);
-  assert.ok(listenDisclosure > explore && listen > listenDisclosure);
+  assert.ok(listen > explore);
+  assert.match(listenForWisdom, /const \[open, setOpen\] = useState\(false\)/);
+  assert.match(listenForWisdom, /onClick=\{\(\) => setOpen\(true\)\}/);
+  assert.match(listenForWisdom, /\{open && typeof document !== "undefined"/);
 });
 
 test("Account keeps settings ahead of optional formation recommendations", () => {

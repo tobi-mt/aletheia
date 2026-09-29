@@ -16,7 +16,8 @@ test("Library combines Scripture memory and saved passages", () => {
   const library = app.slice(app.indexOf("function LibraryPanel"), app.indexOf("function JournalPanel"));
   assert.doesNotMatch(library, /key: "memory"/);
   assert.match(library, /librarySection === "saved" && scriptureMemory/);
-  assert.match(library, /savedScriptures\.length \|\| scriptureMemory/);
+  assert.match(library, /librarySection === "saved" && savedScriptures\.length/);
+  assert.match(library, /librarySection === "saved" && !savedScriptures\.length && !scriptureMemory/);
 });
 
 test("Account routes privacy and system workflows into Settings", () => {
@@ -24,12 +25,12 @@ test("Account routes privacy and system workflows into Settings", () => {
   assert.doesNotMatch(account, /key: "privacy"/);
   assert.doesNotMatch(account, /key: "share"/);
   assert.match(account, /key: "system"/);
-  assert.match(account, /requestedSection === "personalization" \? "personalization" : "system"/);
+  assert.match(account, /requestedSection === "personalization" \? "personalization" : requestedSection === "system" \|\| requestedSection === "privacy" \? "system" : "profile"/);
   assert.match(account, /aiConsent\.settingTitle/);
   assert.match(account, /<AccountShareCard/);
 });
 
-test("short Account and Library tab sets shrink to their content", () => {
+test("compact Account and Library tab sets remain readable without truncation", () => {
   const tabs = app.slice(app.indexOf("function ScreenTabs"), app.indexOf("function ContextualNextAction"));
   assert.match(tabs, /layout\?: "auto" \| "fit" \| "grid" \| "scroll"/);
   assert.match(tabs, /fitContentLayout \? "w-fit max-w-full"/);
@@ -37,7 +38,7 @@ test("short Account and Library tab sets shrink to their content", () => {
   assert.doesNotMatch(tabs, /truncate whitespace-nowrap/);
 
   const account = app.slice(app.indexOf("function AccountPanel"), app.indexOf("function ChallengeRecommendationCard"));
-  assert.match(account, /ariaLabel=\{ts\('labels\.accountSections'\)\}[\s\S]*?layout="fit"/);
+  assert.match(account, /ariaLabel=\{ts\('labels\.accountSections'\)\}[\s\S]*?layout="scroll"[\s\S]*?scrollItemMinWidth="6\.5rem"/);
 
   const library = app.slice(app.indexOf("function LibraryPanel"), app.indexOf("function JournalPanel"));
   assert.match(library, /ariaLabel=\{ts\('labels\.librarySections'\)\}[\s\S]*?layout="fit"/);
