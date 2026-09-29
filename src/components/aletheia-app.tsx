@@ -3503,6 +3503,20 @@ function composeResponse(question: string, mode: Mode, preferences: UserPreferen
 const STATIC_TODAY_DAY_NUMBER = 0;
 const TODAY_LOCAL_VISUAL_PREFIX = "/images/today-curated/";
 const TODAY_PREMIUM_VISUAL_PREFIX = "/images/today-premium/";
+const LIBRARY_CARD_VISUALS = [
+  "/images/today-curated/workbench-focus.svg",
+  "/images/today-curated/steady-field.svg",
+  "/images/today-curated/open-sky.svg",
+  "/images/today-curated/shared-table.svg",
+  "/images/today-curated/dawn-path.svg",
+  "/images/today-curated/open-hands.svg",
+  "/images/today-curated/warm-horizon.svg",
+  "/images/today-curated/gift-basket.svg",
+  "/images/today-curated/trusted-lantern.svg",
+  "/images/today-curated/quiet-forest.svg",
+  "/images/today-curated/calm-water.svg",
+  "/images/today-curated/gentle-reading-light.svg",
+] as const;
 
 function commonsFilePath(fileName: string) {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
@@ -31297,11 +31311,21 @@ function LibraryPanel({
                       <div
                         className="relative overflow-hidden"
                         style={{
-                          height: "calc(4.15rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
+                          height: "calc(5.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))",
                           background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)`,
                         }}
                       >
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
+                        <Image
+                          src={LIBRARY_CARD_VISUALS[index % LIBRARY_CARD_VISUALS.length]}
+                          alt=""
+                          fill
+                          sizes="(max-width: 768px) 100vw, 720px"
+                          className="object-cover opacity-90"
+                          aria-hidden="true"
+                          unoptimized
+                          loading={index === 0 ? "eager" : "lazy"}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-white/10" />
                         <div
                           className="absolute left-2.5 top-2.5 grid size-[1.55rem] place-items-center rounded-full border shadow-[0_10px_18px_rgba(0,0,0,0.18)]"
                           style={{
