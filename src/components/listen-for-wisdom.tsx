@@ -507,7 +507,6 @@ export default function ListenForWisdom(props: Props) {
       setResult(data.result);
       setLiveTranscript("");
       setLiveCandidates([]);
-      speakCompanion(spokenResult(data.result));
     } catch (recognitionError) {
       const code =
         recognitionError instanceof Error
@@ -520,12 +519,6 @@ export default function ListenForWisdom(props: Props) {
             "listen.errors.listen_failed",
             "Aletheia could not recognize this clip. Please try again."
           )
-        )
-      );
-      speakCompanion(
-        ts(
-          "listen.voiceNoMatch",
-          "I’m not confident yet. Tell me a phrase, possible book, speaker, or theme, and I’ll keep looking."
         )
       );
       setElapsed(0);
@@ -823,20 +816,6 @@ export default function ListenForWisdom(props: Props) {
       const candidates = Array.isArray(data.candidates) ? data.candidates : [];
       setHelpCandidates(candidates);
       setHelpSearched(true);
-      const first = candidates[0];
-      speakCompanion(
-        first
-          ? ts("listen.voiceFound", "I found {reference}. {confidence}.")
-              .replace(
-                "{reference}",
-                localizedScriptureReference(first.reference, language)
-              )
-              .replace("{confidence}", matchLabel(first.strength))
-          : ts(
-              "listen.voiceNoMatch",
-              "I’m not confident yet. Tell me a phrase, possible book, speaker, or theme, and I’ll keep looking."
-            )
-      );
     } catch {
       setHelpCandidates([]);
       setHelpError(
@@ -1809,15 +1788,6 @@ function ResultView({
             ? ts("listen.possibleMatches", "Possible Scripture matches")
             : ts("listen.noMatch", "No supported Scripture match")}
         </h3>
-        <p
-          className="mt-1 text-xs leading-5"
-          style={{ color: theme.textMuted }}
-        >
-          {ts(
-            "listen.verifiedNote",
-            "Every reference below came from Aletheia’s Bible corpus. Match wording describes evidence, not certainty."
-          )}
-        </p>
       </div>
       {result.matches.map((match) => (
         <VerifiedMatch
@@ -2065,7 +2035,7 @@ function VerifiedMatch({
         backgroundColor: theme.bgCardElevated,
       }}
     >
-      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+      <div className="flex items-start justify-between gap-3">
         <button
           type="button"
           onClick={onOpen}
@@ -2074,61 +2044,64 @@ function VerifiedMatch({
         >
           {localizedScriptureReference(match.reference, language)}
         </button>
-        <span
-          className="max-w-full rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase leading-4 tracking-[0.08em]"
-          style={{
-            borderColor: theme.borderMedium,
-            color: theme.textSecondary,
-          }}
-        >
-          {ts(
-            `listen.match.${match.strength}`,
-            match.strength === "strong_wording"
-              ? "Strong wording match"
-              : match.strength === "likely_paraphrase"
-              ? "Likely paraphrase"
-              : "Possible thematic echo"
-          )}
-        </span>
+        <BookOpen className="mt-1 shrink-0" size={17} style={{ color: theme.accentGold }} aria-hidden="true" />
       </div>
-      <p
-        className="mt-2 text-sm leading-6"
-        style={{ color: theme.textSecondary }}
+      <div
+        className="mt-3 space-y-2 border-l-2 pl-3 text-sm leading-6"
+        style={{ borderColor: theme.accentGold, color: theme.textSecondary }}
       >
-        {match.explanation ||
-          ts(
-            "listen.matchEvidence",
-            "Recovered directly from verified Scripture wording."
-          )}
+        {before ? <p>{before}</p> : null}
+        <p className="font-semibold" style={{ color: theme.textPrimary }}>
+          {current}
+        </p>
+        {after ? <p>{after}</p> : null}
+      </div>
+      <p className="mt-2 text-[10px]" style={{ color: theme.textMuted }}>
+        {read
+          ? ts(
+              "listen.preferredTranslation",
+              "Shown in your selected translation"
+            )
+          : ts(
+              "listen.verificationTranslation",
+              "Verified against the World English Bible"
+            )}
       </p>
-      <details className="mt-3">
+      <details className="mt-2 border-t pt-2" style={{ borderColor: theme.borderLight }}>
         <summary
           className="min-h-11 cursor-pointer content-center text-sm font-semibold"
-          style={{ color: theme.textPrimary }}
+          style={{ color: theme.textSecondary }}
         >
-          {ts("listen.context", "Read in context")}
+          {ts("listen.matchDetails", "Why this matched")}
         </summary>
-        <div
-          className="mt-1 space-y-2 border-l-2 pl-3 text-sm leading-6"
-          style={{ borderColor: theme.accentGold, color: theme.textSecondary }}
-        >
-          {before ? <p>{before}</p> : null}
-          <p className="font-semibold" style={{ color: theme.textPrimary }}>
-            {current}
-          </p>
-          {after ? <p>{after}</p> : null}
-        </div>
-        <p className="mt-2 text-[10px]" style={{ color: theme.textMuted }}>
-          {read
-            ? ts(
-                "listen.preferredTranslation",
-                "Shown in your selected translation"
-              )
-            : ts(
-                "listen.verificationTranslation",
-                "Verified against the World English Bible"
+        <div className="space-y-2 pb-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+          <span
+            className="inline-flex max-w-full rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase leading-4 tracking-[0.08em]"
+            style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}
+          >
+            {ts(
+              `listen.match.${match.strength}`,
+              match.strength === "strong_wording"
+                ? "Strong wording match"
+                : match.strength === "likely_paraphrase"
+                ? "Likely paraphrase"
+                : "Possible thematic echo"
+            )}
+          </span>
+          <p>
+            {match.explanation ||
+              ts(
+                "listen.matchEvidence",
+                "Recovered directly from verified Scripture wording."
               )}
-        </p>
+          </p>
+          <p>
+            {ts(
+              "listen.verifiedNote",
+              "Every reference below came from Aletheia’s Bible corpus. Match wording describes evidence, not certainty."
+            )}
+          </p>
+        </div>
       </details>
     </article>
   );

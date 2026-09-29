@@ -1,5 +1,6 @@
 import UIKit
 import AVFoundation
+import MediaPlayer
 import WebKit
 import Capacitor
 import AuthenticationServices
@@ -18,7 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             let session = AVAudioSession.sharedInstance()
             do {
                 // Keep spoken playback audible even when the hardware mute switch is on.
-                try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+                try session.setCategory(.playback, mode: .spokenAudio)
                 try session.setActive(true)
             } catch {
                 print("Failed to configure audio session for speech playback: \(error)")
@@ -610,19 +611,23 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
     private var player: AVAudioPlayer?
     private var progressTimer: Timer?
     private var playbackToken = UUID()
+    private var nowPlayingTitle = "Aletheia"
+    private var nowPlayingSubtitle = "Spoken wisdom"
+    private var remoteCommandsConfigured = false
     private let audioSessionQueue = DispatchQueue(label: "com.tobi.aletheia.app.managed-audio-session", qos: .userInitiated)
     private let defaultPublicAppOrigin = "https://aletheia.mirrortalkpodcast.com"
     private let publicAppOriginKey = "ALETHEIA_PUBLIC_APP_ORIGIN"
 
     @objc override public func load() {
         configureAudioSessionForSpeech()
+        configureRemoteCommands()
     }
 
     private func configureAudioSessionForSpeech() {
         audioSessionQueue.async {
             let session = AVAudioSession.sharedInstance()
             do {
-                try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+                try session.setCategory(.playback, mode: .spokenAudio)
                 try session.setActive(true)
             } catch {
                 print("Failed to configure audio session for speech playback: \(error)")
@@ -640,6 +645,53 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         }
         let progress = Int((player.currentTime / player.duration) * 100)
         notifyListeners("progress", data: ["progress": max(0, min(100, progress))])
+        updateNowPlaying(playbackRate: player.isPlaying ? 1 : 0)
+    }
+
+    private func configureRemoteCommands() {
+        guard !remoteCommandsConfigured else { return }
+        remoteCommandsConfigured = true
+        let commands = MPRemoteCommandCenter.shared()
+        commands.playCommand.isEnabled = true
+        commands.pauseCommand.isEnabled = true
+        commands.stopCommand.isEnabled = true
+        commands.playCommand.addTarget { [weak self] _ in
+            guard let self, let player = self.player, !player.isPlaying else { return .commandFailed }
+            self.configureAudioSessionForSpeech()
+            guard player.play() else { return .commandFailed }
+            self.startProgressTimer()
+            self.updateNowPlaying(playbackRate: 1)
+            self.emitState("playing")
+            return .success
+        }
+        commands.pauseCommand.addTarget { [weak self] _ in
+            guard let self, let player = self.player, player.isPlaying else { return .commandFailed }
+            player.pause()
+            self.stopProgressTimer()
+            self.updateNowPlaying(playbackRate: 0)
+            self.emitState("paused")
+            return .success
+        }
+        commands.stopCommand.addTarget { [weak self] _ in
+            guard let self else { return .commandFailed }
+            self.resetPlayer()
+            self.emitState("stopped")
+            return .success
+        }
+    }
+
+    private func updateNowPlaying(playbackRate: Float) {
+        guard let player else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            return
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+            MPMediaItemPropertyTitle: nowPlayingTitle,
+            MPMediaItemPropertyArtist: nowPlayingSubtitle,
+            MPMediaItemPropertyPlaybackDuration: player.duration,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime,
+            MPNowPlayingInfoPropertyPlaybackRate: playbackRate
+        ]
     }
 
     private func startProgressTimer() {
@@ -659,6 +711,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         stopProgressTimer()
         player?.stop()
         player = nil
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         if !keepToken {
             playbackToken = UUID()
         }
@@ -703,6 +756,8 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
         let language = call.getString("language") ?? "en"
         let speed = call.getDouble("speed") ?? 1.0
         let cacheScope = call.getString("cacheScope")
+        nowPlayingTitle = call.getString("label") ?? "Aletheia"
+        nowPlayingSubtitle = call.getString("notice") ?? "Spoken wisdom"
         let thirdPartyAiConsent = call.getBool("thirdPartyAiConsent") ?? false
         let token = UUID()
         playbackToken = token
@@ -750,8 +805,6 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
             do {
                 self.configureAudioSessionForSpeech()
                 let player = try AVAudioPlayer(data: data)
-                player.enableRate = true
-                player.rate = Float(max(0.25, min(4.0, speed)))
                 player.volume = 1.0
                 player.delegate = self
                 player.prepareToPlay()
@@ -762,6 +815,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
                     }
                     self.player = player
                     self.startProgressTimer()
+                    self.updateNowPlaying(playbackRate: 1)
                     self.emitState("playing")
                     if !player.play() {
                         self.resetPlayer(keepToken: true)
@@ -784,6 +838,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
             }
             player.pause()
             self.stopProgressTimer()
+            self.updateNowPlaying(playbackRate: 0)
             self.emitState("paused")
             call.resolve()
         }
@@ -798,6 +853,7 @@ public class ManagedAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDeleg
             self.configureAudioSessionForSpeech()
             if player.play() {
                 self.startProgressTimer()
+                self.updateNowPlaying(playbackRate: 1)
                 self.emitState("playing")
                 call.resolve()
             } else {

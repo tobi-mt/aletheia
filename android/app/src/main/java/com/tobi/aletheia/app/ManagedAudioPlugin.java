@@ -289,6 +289,22 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
     private void ensureMediaSession() {
         if (mediaSession == null) {
             mediaSession = new MediaSession(getContext(), "AletheiaAudio");
+            mediaSession.setCallback(new MediaSession.Callback() {
+                @Override
+                public void onPlay() {
+                    audioActionCallback.onResume();
+                }
+
+                @Override
+                public void onPause() {
+                    audioActionCallback.onPause();
+                }
+
+                @Override
+                public void onStop() {
+                    audioActionCallback.onStop();
+                }
+            });
             mediaSession.setActive(true);
         }
     }
@@ -436,6 +452,8 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
         final String language = call.getString("language", "en");
         final double speed = call.getDouble("speed", 1.0);
         final String label = call.getString("label", "");
+        final boolean thirdPartyAiConsent = call.getBoolean("thirdPartyAiConsent", false);
+        final String cacheScope = call.getString("cacheScope", "");
         final int generation = playbackGeneration.incrementAndGet();
 
         // Create the data source immediately.
@@ -460,6 +478,10 @@ public class ManagedAudioPlugin extends Plugin implements MediaPlayer.OnCompleti
                 body.put("voice", voice);
                 body.put("language", language);
                 body.put("speed", speed);
+                body.put("thirdPartyAiConsent", thirdPartyAiConsent);
+                if ("scripture".equals(cacheScope)) {
+                    body.put("cacheScope", "scripture");
+                }
 
                 try (OutputStream out = connection.getOutputStream()) {
                     out.write(body.toString().getBytes(StandardCharsets.UTF_8));

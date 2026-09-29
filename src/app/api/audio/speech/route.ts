@@ -46,7 +46,7 @@ function cacheScriptureSpeech(key: string, bytes: Buffer) {
 }
 
 function managedVoiceInstructions(language: string) {
-  const base = "Use a natural, human-like narrator voice at a calm, conversational speed. Prioritize audibility, intelligibility, crisp consonants, full word endings, and steady pacing with brief natural pauses. Avoid a robotic, breathy, whispery, rushed, overly dramatic, or sing-song delivery.";
+  const base = "Use a warm, natural, human-like narrator voice at an engaging conversational pace. Sound present, clear, and reassuring. Prioritize audibility, crisp consonants, full word endings, and brief natural pauses. Never sound sluggish, robotic, breathy, whispery, rushed, overly dramatic, or sing-song.";
   switch (language) {
     case "en":
       return `${base} Use clear English pronunciation.`;
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
     const voice = MANAGED_TTS_VOICES.has(requestedVoice) ? requestedVoice : "marin";
     const language = body.language?.trim().toLowerCase() || "en";
     const requestedSpeed = typeof body.speed === "number" && Number.isFinite(body.speed) ? body.speed : 1;
-    const speed = Math.max(0.75, Math.min(0.9, requestedSpeed));
+    const speed = Math.max(0.9, Math.min(1.1, requestedSpeed));
     const cacheKey = body.cacheScope === "scripture"
       ? scriptureCacheKey(text, voice, language, speed)
       : null;

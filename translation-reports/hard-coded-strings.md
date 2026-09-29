@@ -1,6 +1,6 @@
 # Hard-Coded Strings Report
 
-Generated: 2026-09-28T19:07:39.358Z
+Generated: 2026-09-28T21:00:40.944Z
 
 Total hard-coded strings found: 46
 
@@ -29,30 +29,30 @@ Total hard-coded strings found: 46
 | 9081 | `Possible application` | `possibleApplication: ts("listen.notes.possibleApplication", ` |
 | 9082 | `Listen for Wisdom found` | `recognitionNote: ts("listen.notes.recognitionNote", "Listen ` |
 | 9409 | `Continue` | `const visibleLabel = continuationLabel(continuation.directio` |
-| 24271 | `Not set` | `value={parsed.mode ?? modeLabel ?? ts("labels.notSet", "Not ` |
-| 24276 | `Initial emotion` | `label={ts("labels.initialEmotion", "Initial emotion")}` |
-| 24277 | `Not set` | `value={parsed.initialEmotion ?? ts("labels.notSet", "Not set` |
-| 24283 | `Not set` | `value={typeof readiness === "number" ? `${readiness}/100` : ` |
-| 24291 | `Initial pressure` | `{ts("labels.initialPressure", "Initial pressure")}` |
-| 24294 | `Not set` | `{pressureLabel ?? parsed.initialPressure ?? ts("labels.notSe` |
-| 24302 | `Wisdom lens` | `{ts("labels.wisdomLens", "Wisdom lens")}` |
-| 24313 | `Scripture anchors` | `{ts("labels.scriptureAnchors", "Scripture anchors")}` |
-| 24347 | `Questions to ask` | `{ts("labels.questionsToAsk", "Questions to ask")}` |
-| 24586 | `No wait` | `{ value: "", label: ts("labels.notYet", "No wait") },` |
-| 24728 | `Readiness details` | `{ts("labels.readinessDetails", "Readiness details")}` |
-| 24736 | `Counsel` | `label={ts("labels.counsel", "Counsel")}` |
-| 24737 | `Did you seek counsel yet?` | `body={ts("labels.counselSoughtPrompt", "Did you seek counsel` |
-| 24741 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
-| 24747 | `Have you counted the real cost?` | `body={ts("labels.costCountedPrompt", "Have you counted the r` |
-| 24750 | `Counted` | `onLabel={ts("labels.counted", "Counted")}` |
-| 24751 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
-| 24757 | `Is peace leading over urgency?` | `body={ts("labels.peaceOverUrgencyPrompt", "Is peace leading ` |
-| 24761 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
-| 24769 | `Choose the next waiting period for this ` | `{ts("labels.waitingPeriodPrompt", "Choose the next waiting p` |
-| 24807 | `Save changes` | `{saving ? ts("labels.working") : ts("labels.saveChanges", "S` |
-| 25039 | `No private messages yet.` | `{ts("labels.noSharedDecisionsYet", "No private messages yet.` |
-| 25281 | `No private messages yet.` | `{ts("labels.noSharedDecisionsYet", "No private messages yet.` |
-| 28345 | `Continue` | `{ts("challenges.continueChallenge", "Continue")}` |
+| 24270 | `Not set` | `value={parsed.mode ?? modeLabel ?? ts("labels.notSet", "Not ` |
+| 24275 | `Initial emotion` | `label={ts("labels.initialEmotion", "Initial emotion")}` |
+| 24276 | `Not set` | `value={parsed.initialEmotion ?? ts("labels.notSet", "Not set` |
+| 24282 | `Not set` | `value={typeof readiness === "number" ? `${readiness}/100` : ` |
+| 24290 | `Initial pressure` | `{ts("labels.initialPressure", "Initial pressure")}` |
+| 24293 | `Not set` | `{pressureLabel ?? parsed.initialPressure ?? ts("labels.notSe` |
+| 24301 | `Wisdom lens` | `{ts("labels.wisdomLens", "Wisdom lens")}` |
+| 24312 | `Scripture anchors` | `{ts("labels.scriptureAnchors", "Scripture anchors")}` |
+| 24346 | `Questions to ask` | `{ts("labels.questionsToAsk", "Questions to ask")}` |
+| 24585 | `No wait` | `{ value: "", label: ts("labels.notYet", "No wait") },` |
+| 24727 | `Readiness details` | `{ts("labels.readinessDetails", "Readiness details")}` |
+| 24735 | `Counsel` | `label={ts("labels.counsel", "Counsel")}` |
+| 24736 | `Did you seek counsel yet?` | `body={ts("labels.counselSoughtPrompt", "Did you seek counsel` |
+| 24740 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
+| 24746 | `Have you counted the real cost?` | `body={ts("labels.costCountedPrompt", "Have you counted the r` |
+| 24749 | `Counted` | `onLabel={ts("labels.counted", "Counted")}` |
+| 24750 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
+| 24756 | `Is peace leading over urgency?` | `body={ts("labels.peaceOverUrgencyPrompt", "Is peace leading ` |
+| 24760 | `Not yet` | `offLabel={ts("labels.notYet", "Not yet")}` |
+| 24768 | `Choose the next waiting period for this ` | `{ts("labels.waitingPeriodPrompt", "Choose the next waiting p` |
+| 24806 | `Save changes` | `{saving ? ts("labels.working") : ts("labels.saveChanges", "S` |
+| 25038 | `No private messages yet.` | `{ts("labels.noSharedDecisionsYet", "No private messages yet.` |
+| 25280 | `No private messages yet.` | `{ts("labels.noSharedDecisionsYet", "No private messages yet.` |
+| 28344 | `Continue` | `{ts("challenges.continueChallenge", "Continue")}` |
 
 ## Error (1)
 

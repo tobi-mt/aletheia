@@ -109,6 +109,8 @@ test("native biometric lock uses system biometrics and protects sensitive accoun
   assert.match(client, /if \(biometricLockRequestRef\.current\) return/);
   assert.match(client, /else if \(biometricAppWasBackgroundedRef\.current\)/);
   assert.match(client, /shouldLockAfterBackground/);
+  assert.match(client, /flushSync\(\(\) => setBiometricLockState\("locked"\)\)/);
+  assert.match(client, /document\.addEventListener\("visibilitychange", lockBeforeSuspension\)/);
   assert.doesNotMatch(client, /else if \(biometricAppWasBackgroundedRef\.current\)[\s\S]{0,500}authenticateBiometricLock/);
 });
 
@@ -269,7 +271,12 @@ test("successful sign-in defaults to Home and retains Account only for an explic
 });
 
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {
-  const client = await read("src/components/aletheia-app.tsx");
+  const [client, swift, info, androidAudio] = await Promise.all([
+    read("src/components/aletheia-app.tsx"),
+    read("ios/App/App/AppDelegate.swift"),
+    read("ios/App/App/Info.plist"),
+    read("android/app/src/main/java/com/tobi/aletheia/app/ManagedAudioPlugin.java"),
+  ]);
   const nativePush = await read("src/lib/native-push.ts");
   const route = await read("src/app/api/notifications/native/route.ts");
   const nativeAudioIndex = client.indexOf("if (Capacitor.isNativePlatform() && preferences.thirdPartyAiConsent) {", client.indexOf("async function speakText"));
@@ -277,6 +284,12 @@ test("native uses ManagedAudio before browser speech and verifies push configura
   assert.ok(nativeAudioIndex >= 0 && nativeAudioIndex < browserSpeechIndex);
   assert.match(client, /await ManagedAudio\.speak/);
   assert.match(client, /thirdPartyAiConsent: preferences\.thirdPartyAiConsent/);
+  assert.match(info, /<key>UIBackgroundModes<\/key>[\s\S]*?<string>audio<\/string>/);
+  assert.match(swift, /MPNowPlayingInfoCenter/);
+  assert.match(swift, /MPRemoteCommandCenter/);
+  assert.doesNotMatch(swift, /player\.rate = Float/);
+  assert.match(androidAudio, /body\.put\("thirdPartyAiConsent", thirdPartyAiConsent\)/);
+  assert.match(androidAudio, /mediaSession\.setCallback/);
   assert.match(nativePush, /isNativePushPlatformConfigured/);
   assert.match(nativePush, /apnsConfigured/);
   assert.match(route, /isNativePushPlatformConfigured\(platform\)/);

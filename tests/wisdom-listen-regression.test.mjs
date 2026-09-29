@@ -152,6 +152,11 @@ test("Listen behaves as a localized voice companion without speaking over captur
   assert.match(recorder, /listen\.voiceFound/);
   assert.match(recorder, /listen\.voiceNoMatch/);
   assert.match(recorder, /listen\.hearResponse/);
+  assert.equal(
+    (recorder.match(/speakCompanion\(/g) ?? []).length,
+    2,
+    "speech must only be available through the explicit Hear Aletheia action"
+  );
   assert.match(recorder, /resultToSpeak\.language !== language/);
   assert.match(recorder, /localizedScriptureReference\(\s*firstMatch\.reference,\s*language\s*\)/);
   assert.match(recorder, /capture\.language === language\s*&&\s*capture\.bibleTranslation === bibleTranslation/);
@@ -163,6 +168,26 @@ test("Listen behaves as a localized voice companion without speaking over captur
   assert.match(app, /language: preferences\.language/);
   const launcher = recorder.slice(recorder.indexOf("premium-tap-card"), recorder.indexOf("premium-tap-card") + 1200);
   assert.doesNotMatch(launcher, /speakCompanion/);
+});
+
+test("Listen shows Scripture immediately and collapses matching diagnostics", async () => {
+  const recorder = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
+  const matchView = recorder.slice(recorder.indexOf("function VerifiedMatch"), recorder.indexOf("function ActionButton"));
+  assert.ok(matchView.indexOf("{current}") < matchView.indexOf("<details"));
+  assert.match(matchView, /listen\.matchDetails/);
+  assert.doesNotMatch(matchView, /listen\.context/);
+});
+
+test("generated voices use natural pacing without double-slowing native audio", async () => {
+  const [client, route, swift] = await Promise.all([
+    readFile(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/audio/speech/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../ios/App/App/AppDelegate.swift", import.meta.url), "utf8"),
+  ]);
+  assert.match(client, /en: \{ rate: 0\.98, pitch: 1 \}/);
+  assert.match(route, /Never sound sluggish/);
+  assert.match(route, /Math\.max\(0\.9, Math\.min\(1\.1, requestedSpeed\)\)/);
+  assert.doesNotMatch(swift, /player\.rate =/);
 });
 
 test("interpretation failure preserves verified candidates", async () => {

@@ -2579,6 +2579,7 @@
     "noMatch": "No supported Scripture match",
     "verifiedNote": "Every reference below came from Aletheia’s Bible corpus. Match wording describes evidence, not certainty.",
     "context": "Read in context",
+    "matchDetails": "Why this matched",
     "preferredTranslation": "Shown in your selected translation",
     "verificationTranslation": "Verified against the World English Bible",
     "matchEvidence": "Recovered directly from verified Scripture wording.",

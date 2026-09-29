@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import type { ThemeColors } from "@/components/surfaces/surface-contracts";
 import { englishText, type UiText } from "@/components/surfaces/ui-copy";
 import { runtimeCopyFor } from "@/components/surfaces/runtime-panel-copy";
@@ -1872,17 +1872,17 @@ function installSelectedChallengePostcardDebugApi({
 
 
 const speechPacingProfiles: Partial<Record<LanguageCode, { rate: number; pitch: number }>> = {
-  en: { rate: 0.86, pitch: 1 },
-  es: { rate: 0.86, pitch: 0.98 },
-  fr: { rate: 0.84, pitch: 0.98 },
-  pt: { rate: 0.86, pitch: 0.98 },
-  de: { rate: 0.82, pitch: 0.98 },
-  yo: { rate: 0.78, pitch: 1.02 },
-  ig: { rate: 0.8, pitch: 1.02 },
-  ha: { rate: 0.82, pitch: 1 },
-  tl: { rate: 0.86, pitch: 0.98 },
-  ar: { rate: 0.82, pitch: 0.98 },
-  hi: { rate: 0.84, pitch: 0.98 },
+  en: { rate: 0.98, pitch: 1 },
+  es: { rate: 0.98, pitch: 0.98 },
+  fr: { rate: 0.96, pitch: 0.98 },
+  pt: { rate: 0.98, pitch: 0.98 },
+  de: { rate: 0.96, pitch: 0.98 },
+  yo: { rate: 0.94, pitch: 1.02 },
+  ig: { rate: 0.95, pitch: 1.02 },
+  ha: { rate: 0.96, pitch: 1 },
+  tl: { rate: 0.98, pitch: 0.98 },
+  ar: { rate: 0.96, pitch: 0.98 },
+  hi: { rate: 0.96, pitch: 0.98 },
 };
 
 function speechPacingForLanguage(languageCode: LanguageCode) {
@@ -6340,7 +6340,9 @@ export function AletheiaApp({
       if (!isActive) {
         biometricAppWasBackgroundedRef.current = true;
         biometricBackgroundedAtRef.current = Date.now();
-        setBiometricLockState("locked");
+        // Commit the privacy overlay before the native web view is suspended;
+        // otherwise the previous interactive frame can briefly reappear.
+        flushSync(() => setBiometricLockState("locked"));
       } else if (biometricAppWasBackgroundedRef.current) {
         biometricAppWasBackgroundedRef.current = false;
         const shouldRemainLocked = shouldLockAfterBackground(
@@ -6353,8 +6355,16 @@ export function AletheiaApp({
         }
       }
     }).then((handle) => { appStateHandle = handle; }).catch(() => undefined);
+    const lockBeforeSuspension = () => {
+      if (document.visibilityState !== "hidden" || !biometricLockEnabledRef.current || biometricLockRequestRef.current) return;
+      biometricAppWasBackgroundedRef.current = true;
+      biometricBackgroundedAtRef.current = Date.now();
+      flushSync(() => setBiometricLockState("locked"));
+    };
+    document.addEventListener("visibilitychange", lockBeforeSuspension);
     return () => {
       active = false;
+      document.removeEventListener("visibilitychange", lockBeforeSuspension);
       void appStateHandle?.remove().catch(() => undefined);
     };
   }, [authenticateBiometricLock]);
