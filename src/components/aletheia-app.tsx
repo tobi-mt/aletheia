@@ -5218,7 +5218,7 @@ function TodayVisualPanel({
               sizes="(max-width: 768px) 100vw, 240px"
               className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
               style={{ objectPosition: placement.objectPosition }}
-              onLoadingComplete={() => {
+              onLoad={() => {
                 setImageLoaded(true);
                 setImageFailed(false);
               }}
@@ -5242,7 +5242,7 @@ function TodayVisualPanel({
               sizes="(max-width: 768px) 100vw, 240px"
               className={`object-cover transition-[opacity,filter,transform] duration-700 ease-out will-change-[opacity,filter,transform] ${placement.imageClassName} ${imageLoaded ? "scale-[1.06] opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-[1px]"}`}
               style={{ objectPosition: placement.objectPosition }}
-              onLoadingComplete={() => {
+              onLoad={() => {
                 setImageLoaded(true);
                 setImageFailed(false);
               }}
