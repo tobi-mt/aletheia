@@ -14476,6 +14476,27 @@ function ScreenPurposeHeader({ eyebrow, title, body, icon: Icon, theme }: { eyeb
   );
 }
 
+function SectionVisualBanner({ src, theme, position = "center" }: { src: string; theme: ThemeColors; position?: string }) {
+  return (
+    <div
+      className="relative min-h-28 overflow-hidden rounded-[1.35rem] border shadow-[0_14px_32px_rgba(7,10,8,0.08)] sm:min-h-32"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+      aria-hidden="true"
+    >
+      <Image
+        src={src}
+        alt=""
+        fill
+        sizes="(max-width: 768px) 100vw, 960px"
+        className="object-cover"
+        style={{ objectPosition: position }}
+        loading="eager"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-white/5" />
+    </div>
+  );
+}
+
 function HomeDashboard({
   daily,
   dailyEntry,
@@ -15962,6 +15983,7 @@ function AccountPanel({
 
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
+      <SectionVisualBanner src="/images/section-visuals/account-continuity.jpg" theme={theme} position="center 58%" />
       <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col items-center gap-3.5 p-3.5 text-center sm:p-4">
           <div className="grid place-items-center">
@@ -29278,6 +29300,7 @@ function DecisionCompanionPanel({
         onClose={() => setWisdomTimelineOpen(false)}
       />
       <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
+      <SectionVisualBanner src="/images/section-visuals/decisions-discernment.jpg" theme={theme} position="center 62%" />
       <ScreenTabs
         value={decisionSection}
         onChange={(section) => {
@@ -30083,6 +30106,7 @@ function ReflectPanel({
         icon={Feather}
         theme={theme}
       />
+      <SectionVisualBanner src="/images/section-visuals/reflect-stillness.jpg" theme={theme} position="center 60%" />
       <ScreenTabs
         value={reflectSection}
         onChange={openReflectSection}
