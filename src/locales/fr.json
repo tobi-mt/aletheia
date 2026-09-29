@@ -2388,7 +2388,7 @@
     "shareDayProgress": "Jour {day} sur {totalDays}",
     "inactive": "Inactif",
     "inProgress": "En cours",
-    "inactiveReentryBody": "Vous avez manqué {missedDays} jour(s) dans cette pratique de {total} jours. Reprenez au jour {nextDay}.",
+    "inactiveReentryBody": "Votre pratique de {total} jours vous attend. Continuez avec le jour {nextDay} lorsque vous serez prêt ; rien n’est perdu.",
     "completedTodayBody": "Le jour {nextDay} sur {total} attend demain.",
     "inProgressBody": "Continue avec le jour {nextDay} sur {total}.",
     "continueCurrentPractice": "Continue ta pratique actuelle",

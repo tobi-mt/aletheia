@@ -2388,7 +2388,7 @@
     "shareDayProgress": "اليوم {day} من {totalDays}",
     "inactive": "غير نشط",
     "inProgress": "في تَقَدم",
-    "inactiveReentryBody": "فاتك {missedDays} يومًا في هذه الممارسة ذات {total} يومًا. واصل من اليوم {nextDay}.",
+    "inactiveReentryBody": "ممارستك الممتدة {total} يومًا بانتظارك. واصل من اليوم {nextDay} عندما تكون مستعدًا؛ لم يَضِع شيء.",
     "completedTodayBody": "اليوم {nextDay} من {total} ينتظر الغد.",
     "inProgressBody": "واصل مع اليوم {nextDay} من {total}.",
     "continueCurrentPractice": "واصل ممارستك الحالية",

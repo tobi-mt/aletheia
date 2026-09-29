@@ -12745,6 +12745,7 @@ function startFirstRunGuestFlow() {
                       onFeedback={(value) => recordAnswerFeedback(value, "answer")}
                       onMeaningfulOutcome={recordMeaningfulOutcome}
                       onReturnLater={createGentleReturnPath}
+                      onRequestSignIn={() => startWelcomeAuthFlow("login")}
                       voiceTranscriptPreview={voiceTranscriptPreview}
                       signedIn={Boolean(user)}
                       theme={theme}
@@ -26703,6 +26704,7 @@ function CompanionPanel({
   onFeedback,
   onMeaningfulOutcome,
   onReturnLater,
+  onRequestSignIn,
   isWorking,
   isListening,
   voiceTranscriptPreview,
@@ -26746,6 +26748,7 @@ function CompanionPanel({
   onFeedback: (value: string) => void;
   onMeaningfulOutcome: (value: string) => void;
   onReturnLater: (exchange: ConversationExchange) => void;
+  onRequestSignIn: () => void;
   isWorking: boolean;
   isListening: boolean;
   voiceTranscriptPreview: string;
@@ -26955,6 +26958,11 @@ function CompanionPanel({
               </button>
             </div>
 
+            <div className="flex items-start gap-2 px-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+              <ShieldCheck size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <p>{signedIn ? ts('labels.syncActiveFull') : ts('labels.accountGuestSummary')}</p>
+            </div>
+
             {isListening || voiceDraft ? (
               <DisclosureSection
                 title={isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
@@ -27075,6 +27083,7 @@ function CompanionPanel({
                 onFeedback={onFeedback}
                 onMeaningfulOutcome={onMeaningfulOutcome}
                 onReturnLater={onReturnLater}
+                onRequestSignIn={onRequestSignIn}
                 signedIn={signedIn}
                 isWorking={isWorking}
               />
@@ -28261,6 +28270,7 @@ function CurrentCounselCard({
   onFeedback,
   onMeaningfulOutcome,
   onReturnLater,
+  onRequestSignIn,
   signedIn,
   isWorking,
 }: {
@@ -28287,6 +28297,7 @@ function CurrentCounselCard({
   onFeedback: (value: string) => void;
   onMeaningfulOutcome: (value: string) => void;
   onReturnLater: (exchange: ConversationExchange) => void;
+  onRequestSignIn: () => void;
   signedIn: boolean;
   isWorking: boolean;
 }) {
@@ -28389,13 +28400,19 @@ function CurrentCounselCard({
         </div>
         <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
+      {!isThinking ? (
+        <div className="flex items-start gap-2 px-1 text-xs leading-5" style={{ color: theme.textMuted }}>
+          <ShieldCheck size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p>{ui.trustBoundaryBody}</p>
+        </div>
+      ) : null}
       {continuation ? (
         <button
           type="button"
           onClick={() => onContinue(exchange, continuation)}
           disabled={isWorking}
           className="flex min-h-12 w-full items-start justify-between gap-3 rounded-[1.1rem] border px-4 py-3.5 text-left transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
-          style={{ borderColor: theme.primary, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
           aria-busy={isWorking}
         >
           <span className="min-w-0">
@@ -28426,6 +28443,7 @@ function CurrentCounselCard({
               </div>
               <button
                 type="button"
+                onClick={onRequestSignIn}
                 className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
