@@ -32,6 +32,8 @@ test("dashboard exposes privacy-safe audience and product-health dimensions", ()
   assert.match(analytics, /'acquisition', COALESCE\(NULLIF\(source/);
   assert.match(analytics, /'returning_rate' AS metric/);
   assert.match(analytics, /'activation_rate'/);
+  assert.match(analytics, /'impact_rate'/);
+  assert.match(analytics, /feature_destinations.*feature_destination_opened/);
   assert.match(analytics, /audienceBreakdowns: audienceBreakdownRows/);
   assert.match(analytics, /growthMetrics: growthMetricRows/);
 });

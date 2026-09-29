@@ -279,6 +279,16 @@ button, [role="button"] {
   .formation-card-home-glow {
     animation: none;
   }
+
+  .app-shell,
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .editorial-surface {

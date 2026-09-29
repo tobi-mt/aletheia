@@ -58,7 +58,7 @@ const markers = {
   Decisions: journeyFixtures.decisionCounsel.marker,
   Reflect: 'Reflection Journal',
   Library: 'Search one wisdom theme',
-  Account: 'Sign in or continue as guest',
+  Account: 'Sign in to keep your work synced',
 };
 
 function color(code, text) {
@@ -502,6 +502,11 @@ async function checkTapTargets(page, enforce44) {
 
 async function checkHome(page, mobile) {
   await clickTab(page, 'Home', mobile);
+  const askTab = page.getByRole('tab', { name: 'Ask Aletheia', exact: true });
+  if (await askTab.count() === 1) {
+    await askTab.click();
+    await page.waitForTimeout(120);
+  }
   const askSurfaceFound = await page.locator('#companion-ask').count() === 1;
   const initial = await page.evaluate((marker) => {
     const markerVisible = document.body.innerText.includes(marker);
@@ -568,6 +573,19 @@ async function checkHome(page, mobile) {
 async function checkFeatureDiscovery(page, mobile) {
   const failures = [];
 
+  await clickTab(page, 'Home', mobile);
+  for (const label of ['Today', 'Ask Aletheia']) {
+    const tab = page.getByRole('tab', { name: label, exact: true });
+    if (await tab.count() !== 1) {
+      failures.push(`home destination missing: ${label}`);
+      continue;
+    }
+    await tab.click();
+    if (await tab.getAttribute('aria-selected') !== 'true') {
+      failures.push(`home destination did not activate: ${label}`);
+    }
+  }
+
   await clickTab(page, mobile ? 'Decide' : 'Decisions', mobile);
   for (const label of ['Decisions', 'Counsel Circle', 'Rhythm']) {
     const tab = page.getByRole('tab', { name: label, exact: true });
@@ -593,7 +611,7 @@ async function checkFeatureDiscovery(page, mobile) {
   }
 
   await clickTab(page, 'Library', mobile);
-  const listenTab = page.getByRole('tab', { name: 'Listen for Scripture', exact: true });
+  const listenTab = page.getByRole('tab', { name: 'Listening', exact: true });
   if (await listenTab.count() !== 1) {
     failures.push('listen-for-scripture destination missing');
   } else {
@@ -602,6 +620,55 @@ async function checkFeatureDiscovery(page, mobile) {
     await listenTrigger.waitFor({ state: 'visible', timeout: 2500 }).catch(() => undefined);
     if (!await listenTrigger.isVisible()) failures.push('listen-for-scripture action is not visible');
   }
+  const savedTab = page.getByRole('tab', { name: 'Saved', exact: true });
+  if (await savedTab.count() !== 1) {
+    failures.push('saved-scripture destination missing');
+  } else {
+    await savedTab.click();
+    if (!await page.getByRole('heading', { name: 'Saved', exact: true }).isVisible()) {
+      failures.push('saved-scripture empty state is not visible');
+    }
+  }
+
+  await clickTab(page, 'Account', mobile);
+  for (const label of ['Profile', 'Personalize', 'Notifications', 'System']) {
+    const tab = page.getByRole('tab', { name: label, exact: true });
+    if (await tab.count() !== 1) {
+      failures.push(`account destination missing: ${label}`);
+      continue;
+    }
+    await tab.click();
+    if (await tab.getAttribute('aria-selected') !== 'true') {
+      failures.push(`account destination did not activate: ${label}`);
+    }
+  }
+
+  return { pass: failures.length === 0, failures };
+}
+
+async function checkResilienceStates(page) {
+  const failures = [];
+  await page.context().setOffline(true);
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+  await page.waitForTimeout(80);
+  const offlineStatus = page.getByRole('status').filter({ hasText: 'Offline' });
+  if (!await offlineStatus.isVisible()) failures.push('offline status is not visible');
+  await page.context().setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedMotionApplied = await page.evaluate(() => {
+    const control = document.querySelector('.app-shell button');
+    if (!(control instanceof HTMLElement)) return false;
+    const style = window.getComputedStyle(control);
+    const durations = style.transitionDuration.split(',').map((value) => {
+      const duration = value.trim();
+      return duration.endsWith('ms') ? Number.parseFloat(duration) : Number.parseFloat(duration) * 1000;
+    });
+    return durations.length > 0 && durations.every((duration) => Number.isFinite(duration) && duration <= 0.011);
+  });
+  if (!reducedMotionApplied) failures.push('reduced-motion preference is not applied');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   return { pass: failures.length === 0, failures };
 }
@@ -804,6 +871,11 @@ async function checkConversationHistoryChrome(page, viewport, colorScheme) {
 
 async function checkAccount(page, mobile) {
   await clickTab(page, 'Account', mobile);
+  const profileTab = page.getByRole('tab', { name: 'Profile', exact: true });
+  if (await profileTab.count() === 1) {
+    await profileTab.click();
+    await page.waitForTimeout(100);
+  }
   let initial = { markerVisible: false, canToggle: false, before: '' };
   for (let attempt = 0; attempt < 10; attempt += 1) {
     initial = await page.evaluate((marker) => {
@@ -1024,6 +1096,7 @@ async function run() {
       const library = await checkSimpleMarker(page, 'Library', viewport.mobile, 'library');
       const account = await checkSimpleMarker(page, 'Account', viewport.mobile, 'account');
       const featureDiscovery = await checkFeatureDiscovery(page, viewport.mobile);
+      const resilienceStates = await checkResilienceStates(page);
       await clickTab(page, 'Home', viewport.mobile);
       const inputStress = await checkPrimaryInputStress(page);
       const navStressFailures = RUN_NAV_STRESS ? await runNavigationFlowStress(page, viewport) : [];
@@ -1044,6 +1117,7 @@ async function run() {
         library,
         account,
         featureDiscovery,
+        resilienceStates,
         inputStress,
         navStressFailures,
         expandableStress,
@@ -1096,6 +1170,9 @@ async function run() {
       }
       if (!result.featureDiscovery.pass) {
         failures.push(...result.featureDiscovery.failures);
+      }
+      if (!result.resilienceStates.pass) {
+        failures.push(...result.resilienceStates.failures);
       }
       if (!result.inputStress.hasTextarea || !result.inputStress.grewToExpectedLines) {
         failures.push('primary input stress behavior regression');

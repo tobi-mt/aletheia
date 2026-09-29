@@ -46,6 +46,7 @@ const ALLOWED_EVENTS = new Set([
   "decision_updated",
   "disclosure_section_toggled",
   "error_seen",
+  "feature_destination_opened",
   "gratitude_entry_created",
   "gratitude_entry_deleted",
   "gratitude_postcard_shared",
@@ -172,6 +173,7 @@ const CORE_FEATURE_MAP = [
   { feature: "counsel_contacts", event_name: "counsel_contact_created" },
   { feature: "notifications_enabled", event_name: "notification_enabled" },
   { feature: "app_shares", event_name: "app_shared" },
+  { feature: "feature_destinations", event_name: "feature_destination_opened" },
 ] as const;
 
 export type AnalyticsEventInput = {
@@ -1056,6 +1058,10 @@ export async function analyticsSummary(
                   'question_asked', 'chat_question_sent', 'decision_created',
                   'journal_entry_created', 'gratitude_entry_created', 'scripture_opened'
                 )) AS activated,
+                BOOL_OR(
+                  event_name = 'meaningful_outcome_recorded'
+                  OR (event_name = 'answer_feedback' AND metadata->>'value' IN ('helpful', 'mildly_helpful'))
+                ) AS impactful,
                 BOOL_OR(event_name IN ('app_shared', 'share_started')) AS shared
          FROM analytics_events
          WHERE ${selectedDateFilter}
@@ -1068,6 +1074,7 @@ export async function analyticsSummary(
            COUNT(*) FILTER (WHERE active_days >= 2)::int AS returning_people,
            COUNT(*) FILTER (WHERE active_days >= 3)::int AS engaged_people,
            COUNT(*) FILTER (WHERE activated)::int AS activated_people,
+           COUNT(*) FILTER (WHERE impactful)::int AS impactful_people,
            COUNT(*) FILTER (WHERE shared)::int AS sharing_people
          FROM person_days
        )
@@ -1079,6 +1086,9 @@ export async function analyticsSummary(
        UNION ALL
        SELECT 'activation_rate', activated_people, active_people,
               COALESCE(ROUND((100.0 * activated_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'impact_rate', impactful_people, active_people,
+              COALESCE(ROUND((100.0 * impactful_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
        UNION ALL
        SELECT 'sharing_rate', sharing_people, active_people,
               COALESCE(ROUND((100.0 * sharing_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity`

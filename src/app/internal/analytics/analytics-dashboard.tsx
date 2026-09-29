@@ -72,7 +72,7 @@ type AudienceBreakdownRow = {
 };
 
 type GrowthMetricRow = {
-  metric: "returning_rate" | "engaged_rate" | "activation_rate" | "sharing_rate";
+  metric: "returning_rate" | "engaged_rate" | "activation_rate" | "impact_rate" | "sharing_rate";
   numerator: number;
   denominator: number;
   rate: number;
@@ -1066,8 +1066,9 @@ export default function AnalyticsDashboard() {
             <h2 className="text-lg font-semibold">Growth and product health</h2>
             <p className="text-sm text-slate-600">Behavioral rates for the selected range, using unique people as the denominator.</p>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-5">
             <MetricCard label="Activated" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="teal" />
+            <MetricCard label="Reported meaningful value" value={`${growthMetrics.impact_rate?.rate ?? 0}%`} tone="teal" />
             <MetricCard label="Returned on 2+ days" value={`${growthMetrics.returning_rate?.rate ?? 0}%`} tone="blue" />
             <MetricCard label="Active on 3+ days" value={`${growthMetrics.engaged_rate?.rate ?? 0}%`} tone="amber" />
             <MetricCard label="Shared" value={`${growthMetrics.sharing_rate?.rate ?? 0}%`} tone="slate" />

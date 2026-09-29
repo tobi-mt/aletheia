@@ -26,6 +26,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
 import {
   BookOpen,
+  Bookmark,
   BriefcaseBusiness,
   Camera,
   Check,
@@ -5232,7 +5233,7 @@ function TodayVisualPanel({
                 setImageFailed(true);
               }}
               unoptimized
-              priority={false}
+              loading="eager"
             />
           ) : (
             <Image
@@ -5267,7 +5268,7 @@ function TodayVisualPanel({
                 setImageFailed(true);
               }}
               unoptimized
-              priority={false}
+              loading="eager"
             />
           )
         ) : null}
@@ -7683,6 +7684,10 @@ export function AletheiaApp({
     trackClientEvent("app_opened", {
       standalone: window.matchMedia("(display-mode: standalone)").matches,
     });
+    trackClientEvent("experiment_exposed", {
+      experiment: "whole_product_refinement_v1",
+      variant: "refined_information_architecture",
+    });
   }, []);
 
   useEffect(() => {
@@ -9287,6 +9292,11 @@ function startFirstRunGuestFlow() {
       language: preferences.language,
       experiment: "impact_prompt_v1",
       variant: "focused",
+    });
+    trackClientEvent("experiment_converted", {
+      experiment: "whole_product_refinement_v1",
+      variant: "refined_information_architecture",
+      conversion: "meaningful_outcome",
     });
     setStatusMessage(ts('status.feedbackReceived'));
   }
@@ -12610,6 +12620,20 @@ function startFirstRunGuestFlow() {
         </div>
       </nav>
 
+      {!isOnline ? (
+        <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4" role="status" aria-live="polite">
+          <div className="flex items-start gap-3 rounded-2xl border px-3.5 py-3 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
+            <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+              <WifiOff size={16} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{ui.offline}</p>
+              <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts('notifications.offlineAnswerReadyBody')}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
@@ -12654,7 +12678,20 @@ function startFirstRunGuestFlow() {
                         theme={theme}
                       />
                     </div>
-                    <CompanionPanel
+                    <ScreenTabs
+                      value={homeSection}
+                      onChange={(section) => setHomeSection(section, "home_tabs")}
+                      ariaLabel={ts('labels.homeSections')}
+                      theme={theme}
+                      layout="grid"
+                      tabs={[
+                        { key: "ask", label: ui.askTitle },
+                        { key: "today", label: ts('labels.today') },
+                      ]}
+                    />
+                    {homeSection === "ask" ? (
+                      <div className="mt-4">
+                      <CompanionPanel
                       ts={ts}
                       messages={messages}
                       mode={mode}
@@ -12698,12 +12735,9 @@ function startFirstRunGuestFlow() {
                       signedIn={Boolean(user)}
                       theme={theme}
                     />
-                    <div className="my-5 flex items-center gap-3" aria-hidden="true">
-                      <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
-                      <Sparkles size={15} style={{ color: theme.accentGold }} />
-                      <span className="h-px flex-1" style={{ backgroundColor: theme.borderLight }} />
-                    </div>
-                    <div>
+                      </div>
+                    ) : (
+                    <div className="mt-4">
                       <HomeDashboard
                         daily={daily}
                         dailyEntry={dailyEntry}
@@ -12759,6 +12793,7 @@ function startFirstRunGuestFlow() {
                         />
                       </div>
                     </div>
+                    )}
                   </ViewIdentityFrame>
                 </Screen>
               ) : activeView === "decisions" ? (
@@ -15849,8 +15884,8 @@ function AccountPanel({
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
-  const [accountSection, setAccountSection] = useState<"personalization" | "system">(
-    requestedSection === "personalization" ? "personalization" : "system"
+  const [accountSection, setAccountSection] = useState<"profile" | "personalization" | "notifications" | "system">(
+    requestedSection === "personalization" ? "personalization" : requestedSection === "system" || requestedSection === "privacy" ? "system" : "profile"
   );
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
@@ -15969,6 +16004,25 @@ function AccountPanel({
         </div>
       </section>
 
+      <ScreenTabs
+        value={accountSection}
+        onChange={(section) => {
+          setAccountSection(section);
+          trackClientEvent("feature_destination_opened", { surface: "account", destination: section });
+        }}
+        ariaLabel={ts('labels.accountSections')}
+        theme={theme}
+        layout="scroll"
+        scrollItemMinWidth="6.5rem"
+        tabs={[
+          { key: "profile", label: ts('labels.profileTitle') },
+          { key: "personalization", label: ts('labels.accountPersonalizationTab') },
+          { key: "notifications", label: ts('labels.notifications') },
+          { key: "system", label: ts('labels.accountSystemTab') },
+        ]}
+      />
+
+      {accountSection === "profile" ? (
       <DisclosureSection
         title={user ? ts('labels.accountControls') : ts('labels.accountSignInOrGuest')}
         summary={user ? accountManageSummary : profileSummary}
@@ -16024,19 +16078,7 @@ function AccountPanel({
             />
           </div>
       </DisclosureSection>
-
-      <ScreenTabs
-        value={accountSection}
-        onChange={setAccountSection}
-        ariaLabel={ts('labels.accountSections')}
-        theme={theme}
-        layout="fit"
-        cuePaddingClassName=""
-        tabs={[
-          { key: "personalization", label: ts('labels.accountPersonalizationTab') },
-          { key: "system", label: ts('labels.accountSystemTab') },
-        ]}
-      />
+      ) : null}
 
       {accountSection === "personalization" ? (
         <div className="flex flex-col gap-4">
@@ -16069,37 +16111,30 @@ function AccountPanel({
             />
           </DisclosureSection>
 
-          <DisclosureSection
-            title={ts('labels.dailyWisdomNotifications')}
-            summary={notificationsEnabled ? ts('notifications.deviceSubscribed') : notificationStatus}
-            eyebrow={ts('labels.notifications')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            theme={theme}
-          >
-            <NotificationPanel
-              theme={theme}
-              ts={ts}
-              language={preferences.language}
-              user={user}
-              preferences={preferences}
-              enabled={notificationsEnabled}
-              accountEnabled={notificationAccountEnabled}
-              deviceSubscribed={notificationDeviceSubscribed}
-              configured={notificationsConfigured}
-              permission={getBrowserNotificationPermission()}
-              busy={notificationBusy}
-              timing={notificationTiming}
-              diagnostics={notificationDiagnostics}
-              onPreferenceChange={onPreferenceChange}
-              onTimingChange={onNotificationTimingChange}
-              onEnable={onEnableNotifications}
-              onDisable={onDisableNotifications}
-              onRequestSignIn={onRequestSignInForNotifications}
-            />
-          </DisclosureSection>
         </div>
+      ) : null}
+
+      {accountSection === "notifications" ? (
+        <NotificationPanel
+          theme={theme}
+          ts={ts}
+          language={preferences.language}
+          user={user}
+          preferences={preferences}
+          enabled={notificationsEnabled}
+          accountEnabled={notificationAccountEnabled}
+          deviceSubscribed={notificationDeviceSubscribed}
+          configured={notificationsConfigured}
+          permission={getBrowserNotificationPermission()}
+          busy={notificationBusy}
+          timing={notificationTiming}
+          diagnostics={notificationDiagnostics}
+          onPreferenceChange={onPreferenceChange}
+          onTimingChange={onNotificationTimingChange}
+          onEnable={onEnableNotifications}
+          onDisable={onDisableNotifications}
+          onRequestSignIn={onRequestSignInForNotifications}
+        />
       ) : null}
 
       {accountSection === "system" ? (
@@ -21927,7 +21962,7 @@ function WelcomeAuthModal({
               </p>
             ) : null}
             {authError ? (
-              <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+              <p role="alert" aria-live="assertive" className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
                 {authError}
               </p>
             ) : null}
@@ -25801,7 +25836,7 @@ function CounselInviteModal({
                       </p>
                     ) : null}
                     {authError ? (
-                      <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+                      <p role="alert" aria-live="assertive" className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
                         {authError}
                       </p>
                     ) : null}
@@ -26441,7 +26476,7 @@ function ChallengeInviteModal({
                     </p>
                   ) : null}
                   {authError ? (
-                    <p className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
+                    <p role="alert" aria-live="assertive" className="rounded-2xl border px-3 py-2 text-sm" style={{ borderColor: "#e0c3b7", backgroundColor: "#fff6f1", color: "#8c3f28" }}>
                       {authError}
                     </p>
                   ) : null}
@@ -29213,7 +29248,10 @@ function DecisionCompanionPanel({
       <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
       <ScreenTabs
         value={decisionSection}
-        onChange={setDecisionSection}
+        onChange={(section) => {
+          setDecisionSection(section);
+          trackClientEvent("feature_destination_opened", { surface: "decisions", destination: section });
+        }}
         ariaLabel={ts('labels.decisionSections')}
         theme={theme}
         layout="grid"
@@ -29997,6 +30035,7 @@ function ReflectPanel({
 
   const openReflectSection = (section: "gratitude" | "journal") => {
     setReflectSection(section);
+    trackClientEvent("feature_destination_opened", { surface: "reflect", destination: section });
     const target = document.getElementById(`reflect-${section}`);
     if (target) {
       scrollTargetBelowTopChrome(target);
@@ -31048,7 +31087,10 @@ function LibraryPanel({
       <ScreenPurposeHeader eyebrow={libraryPurpose.eyebrow} title={libraryPurpose.title} body={libraryPurpose.body} icon={librarySection === "listen" ? Mic : BookOpen} theme={theme} />
       <ScreenTabs
           value={librarySection}
-          onChange={(v) => setLibrarySection(v as typeof librarySection)}
+          onChange={(section) => {
+            setLibrarySection(section as typeof librarySection);
+            trackClientEvent("feature_destination_opened", { surface: "library", destination: section });
+          }}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
           layout="fit"
@@ -31056,9 +31098,10 @@ function LibraryPanel({
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
             { key: "bible", label: ts('labels.bibleLibrary') },
-            { key: "listen", label: ts('listen.compactTitle') },
-            ...(savedScriptures.length || scriptureMemory ? [{ key: "saved", label: ts('labels.savedScriptures') }] : []),
+            { key: "listen", label: ts('labels.listening') },
+            { key: "saved", label: ts('labels.savedScriptures') },
           ]}
+          scrollItemMinWidth="5rem"
         />
 
       {librarySection === "saved" && scriptureMemory ? (
@@ -31151,6 +31194,37 @@ function LibraryPanel({
                 <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{saved.text}</p>
               </article>
             ))}
+          </div>
+        </section>
+      ) : null}
+
+      {librarySection === "saved" && !savedScriptures.length && !scriptureMemory ? (
+        <section className="overflow-hidden rounded-[1.35rem] border text-center" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+          <div className="relative aspect-[16/7] min-h-32 overflow-hidden">
+            <Image
+              src="/images/library/saved-scripture-first-use.jpg"
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 720px"
+              className="object-cover"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" aria-hidden="true" />
+          </div>
+          <div className="p-5">
+            <span className="mx-auto grid size-11 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+              <Bookmark size={18} />
+            </span>
+            <h2 className="mt-3 text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedScriptures')}</h2>
+            <p className="mx-auto mt-1.5 max-w-md text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.scriptureMemorySummary')}</p>
+            <button
+              type="button"
+              onClick={() => setLibrarySection("bible")}
+              className="mt-4 min-h-11 rounded-full px-4 text-sm font-semibold"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {ts('labels.bibleLibrary')}
+            </button>
           </div>
         </section>
       ) : null}
