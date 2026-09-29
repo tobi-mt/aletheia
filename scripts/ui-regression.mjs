@@ -572,6 +572,26 @@ async function checkHome(page, mobile) {
 
 async function checkFeatureDiscovery(page, mobile) {
   const failures = [];
+  const imageHasLoaded = async (image) => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const loaded = await image.evaluate((element) => (
+        element instanceof HTMLImageElement && element.complete && element.naturalWidth > 0
+      )).catch(() => false);
+      if (loaded) return true;
+      await page.waitForTimeout(50);
+    }
+    return false;
+  };
+  const expectSectionVisual = async (label, expectedSource) => {
+    const visual = page.locator('[data-testid="section-visual"]');
+    if (await visual.count() !== 1) {
+      failures.push(`${label} contextual visual missing or duplicated`);
+      return;
+    }
+    const sourceMatches = await visual.getAttribute('data-visual-src') === expectedSource;
+    if (!sourceMatches) failures.push(`${label} contextual visual source is incorrect`);
+    if (!await imageHasLoaded(visual.locator('img'))) failures.push(`${label} contextual visual did not load`);
+  };
 
   await clickTab(page, 'Home', mobile);
   for (const label of ['Today', 'Ask Aletheia']) {
@@ -587,7 +607,11 @@ async function checkFeatureDiscovery(page, mobile) {
   }
 
   await clickTab(page, mobile ? 'Decide' : 'Decisions', mobile);
-  for (const label of ['Decisions', 'Counsel Circle', 'Rhythm']) {
+  for (const [label, source] of [
+    ['Decisions', '/images/section-visuals/decisions-discernment.jpg'],
+    ['Counsel Circle', '/images/today-premium/counsel-table.jpg'],
+    ['Rhythm', '/images/section-visuals/rhythm-steady-practice.jpg'],
+  ]) {
     const tab = page.getByRole('tab', { name: label, exact: true });
     if (await tab.count() !== 1) {
       failures.push(`decision destination missing: ${label}`);
@@ -598,19 +622,38 @@ async function checkFeatureDiscovery(page, mobile) {
     if (await tab.getAttribute('aria-selected') !== 'true') {
       failures.push(`decision destination did not activate: ${label}`);
     }
+    await expectSectionVisual(`decision ${label}`, source);
   }
 
   await clickTab(page, 'Reflect', mobile);
-  const journalTab = page.getByRole('tab', { name: 'Reflection Journal', exact: true });
-  if (await journalTab.count() !== 1) {
-    failures.push('reflection journal destination missing');
-  } else {
-    await journalTab.click();
-    const journal = page.locator('#reflect-journal');
-    if (!await journal.isVisible()) failures.push('reflection journal destination is not visible');
+  for (const [label, source] of [
+    ['Gratitude Lens', '/images/section-visuals/gratitude-noticing.jpg'],
+    ['Reflection Journal', '/images/section-visuals/reflect-stillness.jpg'],
+  ]) {
+    const tab = page.getByRole('tab', { name: label, exact: true });
+    if (await tab.count() !== 1) {
+      failures.push(`reflection destination missing: ${label}`);
+      continue;
+    }
+    await tab.click();
+    if (label === 'Reflection Journal' && !await page.locator('#reflect-journal').isVisible()) {
+      failures.push('reflection journal destination is not visible');
+    }
+    await expectSectionVisual(`reflection ${label}`, source);
   }
 
   await clickTab(page, 'Library', mobile);
+  const exploreVisualLoaded = await imageHasLoaded(page.locator('[aria-label="Wisdom Library"] article img').first());
+  if (!exploreVisualLoaded) failures.push('library Explore visual did not load');
+
+  const bibleTab = page.getByRole('tab', { name: 'Bible', exact: true });
+  if (await bibleTab.count() !== 1) {
+    failures.push('Bible destination missing');
+  } else {
+    await bibleTab.click();
+    await expectSectionVisual('library Bible', '/images/library/saved-scripture-first-use.jpg');
+  }
+
   const listenTab = page.getByRole('tab', { name: 'Listening', exact: true });
   if (await listenTab.count() !== 1) {
     failures.push('listen-for-scripture destination missing');
@@ -619,6 +662,7 @@ async function checkFeatureDiscovery(page, mobile) {
     const listenTrigger = page.getByRole('button', { name: /Listen for Scripture Recognize a verse/i });
     await listenTrigger.waitFor({ state: 'visible', timeout: 2500 }).catch(() => undefined);
     if (!await listenTrigger.isVisible()) failures.push('listen-for-scripture action is not visible');
+    await expectSectionVisual('library Listening', '/images/section-visuals/listening-scripture.jpg');
   }
   const savedTab = page.getByRole('tab', { name: 'Saved', exact: true });
   if (await savedTab.count() !== 1) {
@@ -628,10 +672,17 @@ async function checkFeatureDiscovery(page, mobile) {
     if (!await page.getByRole('heading', { name: 'Saved', exact: true }).isVisible()) {
       failures.push('saved-scripture empty state is not visible');
     }
+    const savedEmptyVisualLoaded = await imageHasLoaded(page.locator('img[src*="saved-scripture-first-use"]').first());
+    if (!savedEmptyVisualLoaded) failures.push('saved-scripture empty-state visual did not load');
   }
 
   await clickTab(page, 'Account', mobile);
-  for (const label of ['Profile', 'Personalize', 'Notifications', 'System']) {
+  for (const [label, source] of [
+    ['Profile', '/images/section-visuals/account-continuity.jpg'],
+    ['Personalize', '/images/section-visuals/personalization-choice.jpg'],
+    ['Notifications', '/images/section-visuals/notifications-gentle-return.jpg'],
+    ['System', '/images/section-visuals/account-continuity.jpg'],
+  ]) {
     const tab = page.getByRole('tab', { name: label, exact: true });
     if (await tab.count() !== 1) {
       failures.push(`account destination missing: ${label}`);
@@ -641,6 +692,7 @@ async function checkFeatureDiscovery(page, mobile) {
     if (await tab.getAttribute('aria-selected') !== 'true') {
       failures.push(`account destination did not activate: ${label}`);
     }
+    await expectSectionVisual(`account ${label}`, source);
   }
 
   return { pass: failures.length === 0, failures };

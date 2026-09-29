@@ -14481,6 +14481,8 @@ function SectionVisualBanner({ src, theme, position = "center" }: { src: string;
     <div
       className="relative min-h-28 overflow-hidden rounded-[1.35rem] border shadow-[0_14px_32px_rgba(7,10,8,0.08)] sm:min-h-32"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+      data-testid="section-visual"
+      data-visual-src={src}
       aria-hidden="true"
     >
       <Image
@@ -15983,7 +15985,6 @@ function AccountPanel({
 
   return (
     <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
-      <SectionVisualBanner src="/images/section-visuals/account-continuity.jpg" theme={theme} position="center 58%" />
       <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex flex-col items-center gap-3.5 p-3.5 text-center sm:p-4">
           <div className="grid place-items-center">
@@ -16057,6 +16058,16 @@ function AccountPanel({
           { key: "notifications", label: ts('labels.notifications') },
           { key: "system", label: ts('labels.accountSystemTab') },
         ]}
+      />
+
+      <SectionVisualBanner
+        src={accountSection === "personalization"
+          ? "/images/section-visuals/personalization-choice.jpg"
+          : accountSection === "notifications"
+            ? "/images/section-visuals/notifications-gentle-return.jpg"
+            : "/images/section-visuals/account-continuity.jpg"}
+        theme={theme}
+        position={accountSection === "profile" ? "center 58%" : "center"}
       />
 
       {accountSection === "profile" ? (
@@ -29300,7 +29311,6 @@ function DecisionCompanionPanel({
         onClose={() => setWisdomTimelineOpen(false)}
       />
       <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
-      <SectionVisualBanner src="/images/section-visuals/decisions-discernment.jpg" theme={theme} position="center 62%" />
       <ScreenTabs
         value={decisionSection}
         onChange={(section) => {
@@ -29315,6 +29325,15 @@ function DecisionCompanionPanel({
           { key: "counsel", label: ts('labels.counselCircle') },
           { key: "rhythm", label: ts('labels.rhythm') },
         ]}
+      />
+      <SectionVisualBanner
+        src={decisionSection === "counsel"
+          ? "/images/today-premium/counsel-table.jpg"
+          : decisionSection === "rhythm"
+            ? "/images/section-visuals/rhythm-steady-practice.jpg"
+            : "/images/section-visuals/decisions-discernment.jpg"}
+        theme={theme}
+        position={decisionSection === "decisions" ? "center 62%" : "center"}
       />
 
       <section className="space-y-4">
@@ -30106,7 +30125,6 @@ function ReflectPanel({
         icon={Feather}
         theme={theme}
       />
-      <SectionVisualBanner src="/images/section-visuals/reflect-stillness.jpg" theme={theme} position="center 60%" />
       <ScreenTabs
         value={reflectSection}
         onChange={openReflectSection}
@@ -30120,6 +30138,11 @@ function ReflectPanel({
       />
       <section id="reflect-gratitude" tabIndex={-1} className="scroll-mt-24 outline-none">
         <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
+        {reflectSection === "gratitude" ? (
+          <div className="mb-4">
+            <SectionVisualBanner src="/images/section-visuals/gratitude-noticing.jpg" theme={theme} />
+          </div>
+        ) : null}
         <GratitudeLensPanel
           entries={gratitudeEntries}
           syncStatus={gratitudeSyncStatus}
@@ -30137,6 +30160,11 @@ function ReflectPanel({
 
       <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
         <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
+        {reflectSection === "journal" ? (
+          <div className="mb-4">
+            <SectionVisualBanner src="/images/section-visuals/reflect-stillness.jpg" theme={theme} position="center 60%" />
+          </div>
+        ) : null}
         <JournalPanel
           entries={entries}
           title={title}
@@ -31159,6 +31187,16 @@ function LibraryPanel({
           ]}
           scrollItemMinWidth="5rem"
         />
+
+      {librarySection !== "explore" && !(librarySection === "saved" && !savedScriptures.length && !scriptureMemory) ? (
+        <SectionVisualBanner
+          src={librarySection === "listen"
+            ? "/images/section-visuals/listening-scripture.jpg"
+            : "/images/library/saved-scripture-first-use.jpg"}
+          theme={theme}
+          position={librarySection === "listen" ? "center" : "center 58%"}
+        />
+      ) : null}
 
       {librarySection === "saved" && scriptureMemory ? (
         <DisclosureSection
