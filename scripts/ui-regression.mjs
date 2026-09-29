@@ -565,6 +565,47 @@ async function checkHome(page, mobile) {
   };
 }
 
+async function checkFeatureDiscovery(page, mobile) {
+  const failures = [];
+
+  await clickTab(page, mobile ? 'Decide' : 'Decisions', mobile);
+  for (const label of ['Decisions', 'Counsel Circle', 'Rhythm']) {
+    const tab = page.getByRole('tab', { name: label, exact: true });
+    if (await tab.count() !== 1) {
+      failures.push(`decision destination missing: ${label}`);
+      continue;
+    }
+    await tab.click();
+    await page.waitForTimeout(80);
+    if (await tab.getAttribute('aria-selected') !== 'true') {
+      failures.push(`decision destination did not activate: ${label}`);
+    }
+  }
+
+  await clickTab(page, 'Reflect', mobile);
+  const journalTab = page.getByRole('tab', { name: 'Reflection Journal', exact: true });
+  if (await journalTab.count() !== 1) {
+    failures.push('reflection journal destination missing');
+  } else {
+    await journalTab.click();
+    const journal = page.locator('#reflect-journal');
+    if (!await journal.isVisible()) failures.push('reflection journal destination is not visible');
+  }
+
+  await clickTab(page, 'Library', mobile);
+  const listenTab = page.getByRole('tab', { name: 'Listen for Scripture', exact: true });
+  if (await listenTab.count() !== 1) {
+    failures.push('listen-for-scripture destination missing');
+  } else {
+    await listenTab.click();
+    const listenTrigger = page.getByRole('button', { name: /Listen for Scripture Recognize a verse/i });
+    await listenTrigger.waitFor({ state: 'visible', timeout: 2500 }).catch(() => undefined);
+    if (!await listenTrigger.isVisible()) failures.push('listen-for-scripture action is not visible');
+  }
+
+  return { pass: failures.length === 0, failures };
+}
+
 const modalScreenshotDir = path.join(os.tmpdir(), 'aletheia-modal-chrome');
 
 function boxesOverlap(left, right) {
@@ -982,6 +1023,7 @@ async function run() {
       const reflect = await checkSimpleMarker(page, 'Reflect', viewport.mobile, 'reflect');
       const library = await checkSimpleMarker(page, 'Library', viewport.mobile, 'library');
       const account = await checkSimpleMarker(page, 'Account', viewport.mobile, 'account');
+      const featureDiscovery = await checkFeatureDiscovery(page, viewport.mobile);
       await clickTab(page, 'Home', viewport.mobile);
       const inputStress = await checkPrimaryInputStress(page);
       const navStressFailures = RUN_NAV_STRESS ? await runNavigationFlowStress(page, viewport) : [];
@@ -1001,6 +1043,7 @@ async function run() {
         reflect,
         library,
         account,
+        featureDiscovery,
         inputStress,
         navStressFailures,
         expandableStress,
@@ -1050,6 +1093,9 @@ async function run() {
         if (!check.pass) {
           failures.push(`${name} regression`);
         }
+      }
+      if (!result.featureDiscovery.pass) {
+        failures.push(...result.featureDiscovery.failures);
       }
       if (!result.inputStress.hasTextarea || !result.inputStress.grewToExpectedLines) {
         failures.push('primary input stress behavior regression');

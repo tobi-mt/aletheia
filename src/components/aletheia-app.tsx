@@ -29211,9 +29211,21 @@ function DecisionCompanionPanel({
         onClose={() => setWisdomTimelineOpen(false)}
       />
       <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
+      <ScreenTabs
+        value={decisionSection}
+        onChange={setDecisionSection}
+        ariaLabel={ts('labels.decisionSections')}
+        theme={theme}
+        layout="grid"
+        tabs={[
+          { key: "decisions", label: ts('nav.decisions') },
+          { key: "counsel", label: ts('labels.counselCircle') },
+          { key: "rhythm", label: ts('labels.rhythm') },
+        ]}
+      />
 
       <section className="space-y-4">
-        {true ? (
+        {decisionSection === "decisions" ? (
           <>
             <section id="decision-companion-card" ref={decisionCompanionCardRef} className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -29329,7 +29341,7 @@ function DecisionCompanionPanel({
           </>
         ) : null}
 
-        {true ? (
+        {decisionSection === "counsel" ? (
           <div className="space-y-4">
             {incomingSharedDecisionItems.length ? (
               <section className="relative overflow-hidden rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
@@ -29830,7 +29842,7 @@ function DecisionCompanionPanel({
           </div>
         ) : null}
 
-        {true ? (
+        {decisionSection === "rhythm" ? (
           <div className="space-y-4">
             <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -29981,6 +29993,17 @@ function ReflectPanel({
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   theme: ThemeColors;
 }) {
+  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal">("gratitude");
+
+  const openReflectSection = (section: "gratitude" | "journal") => {
+    setReflectSection(section);
+    const target = document.getElementById(`reflect-${section}`);
+    if (target) {
+      scrollTargetBelowTopChrome(target);
+      target.focus({ preventScroll: true });
+    }
+  };
+
   return (
     <div className="min-w-0 space-y-4">
       <ScreenPurposeHeader
@@ -29989,7 +30012,18 @@ function ReflectPanel({
         icon={Feather}
         theme={theme}
       />
-      <section id="reflect-gratitude" className="scroll-mt-24">
+      <ScreenTabs
+        value={reflectSection}
+        onChange={openReflectSection}
+        ariaLabel={ts('nav.reflect')}
+        theme={theme}
+        layout="grid"
+        tabs={[
+          { key: "gratitude", label: ts('labels.gratitudeLens') },
+          { key: "journal", label: ts('labels.reflectionJournal') },
+        ]}
+      />
+      <section id="reflect-gratitude" tabIndex={-1} className="scroll-mt-24 outline-none">
         <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
         <GratitudeLensPanel
           entries={gratitudeEntries}
@@ -30006,7 +30040,7 @@ function ReflectPanel({
         />
       </section>
 
-      <section id="reflect-journal" className="scroll-mt-24">
+      <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
         <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
         <JournalPanel
           entries={entries}
@@ -30975,7 +31009,7 @@ function LibraryPanel({
   const runtime = runtimeCopyFor(preferences.language);
   const railText = railTextColors(theme);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
-  const [librarySection, setLibrarySection] = useState<"explore" | "bible" | "saved">("explore");
+  const [librarySection, setLibrarySection] = useState<"explore" | "bible" | "listen" | "saved">("explore");
   const [savedPassage, setSavedPassage] = useState<SavedScripture | null>(null);
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
   const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
@@ -30996,11 +31030,22 @@ function LibraryPanel({
         THEME_KEYS.PROVISION_AND_ANXIETY,
         THEME_KEYS.DILIGENCE,
       ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
+  const libraryPurpose = librarySection === "listen"
+    ? {
+        eyebrow: ts('listen.eyebrow'),
+        title: ts('listen.compactTitle'),
+        body: ts('listen.compactBody'),
+      }
+    : {
+        eyebrow: runtime.nextInLibrary,
+        title: libraryNextTitle,
+        body: libraryNextBody,
+      };
   const railEntries = entries;
 
   return (
     <div className="min-w-0 space-y-4">
-      <ScreenPurposeHeader eyebrow={runtime.nextInLibrary} title={libraryNextTitle} body={libraryNextBody} icon={BookOpen} theme={theme} />
+      <ScreenPurposeHeader eyebrow={libraryPurpose.eyebrow} title={libraryPurpose.title} body={libraryPurpose.body} icon={librarySection === "listen" ? Mic : BookOpen} theme={theme} />
       <ScreenTabs
           value={librarySection}
           onChange={(v) => setLibrarySection(v as typeof librarySection)}
@@ -31011,6 +31056,7 @@ function LibraryPanel({
           tabs={[
             { key: "explore", label: ts('labels.libraryExplore') },
             { key: "bible", label: ts('labels.bibleLibrary') },
+            { key: "listen", label: ts('listen.compactTitle') },
             ...(savedScriptures.length || scriptureMemory ? [{ key: "saved", label: ts('labels.savedScriptures') }] : []),
           ]}
         />
@@ -31242,15 +31288,7 @@ function LibraryPanel({
         </section>
       ) : null}
 
-      <DisclosureSection
-        title={ts('listen.compactTitle')}
-        summary={ts('listen.compactBody')}
-        eyebrow={ts('listen.eyebrow')}
-        compactCollapsed
-        showDetailsLabel={ts('showDetails')}
-        hideDetailsLabel={ts('hideDetails')}
-        theme={theme}
-      >
+      {librarySection === "listen" ? (
         <ListenForWisdom
           mode={mode}
           language={preferences.language}
@@ -31270,7 +31308,7 @@ function LibraryPanel({
           onAttach={onAttachFromListen}
           onShare={onShareFromListen}
         />
-      </DisclosureSection>
+      ) : null}
     </div>
   );
 }
