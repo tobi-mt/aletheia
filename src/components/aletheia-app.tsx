@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
-import { ChangeEvent, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, createElement, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ThemeColors } from "@/components/surfaces/surface-contracts";
 import { englishText, type UiText } from "@/components/surfaces/ui-copy";
@@ -240,6 +240,25 @@ async function traceAppUrlOpenListener(
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
 type ViewIdentity = HomeSection | "decisions" | "reflect" | "library" | "account";
+type JourneyDestination =
+  | { view: "decisions"; section: "decisions"; entryId?: string }
+  | { view: "decisions"; section: "counsel"; entryId?: string }
+  | { view: "decisions"; section: "rhythm"; entryId?: string }
+  | { view: "reflect"; section: "journal"; entryId?: string }
+  | { view: "reflect"; section: "gratitude"; entryId?: string }
+  | { view: "library"; section: "saved" | "explore"; entryId?: string };
+type JourneyItem = {
+  id: string;
+  kind: "decision" | "reflection" | "counsel" | "reminder" | "gratitude" | "scripture" | "rule";
+  eyebrow: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+  reason?: string;
+  destination: JourneyDestination;
+  createdAt: string;
+  priority: number;
+};
 type AuthMode = "login" | "register";
 type AuthStatus = "checking" | "guest" | "signing-in" | "signed-in" | "signing-out";
 type AuthProvider = "email" | "google" | "apple" | null;
@@ -2437,9 +2456,13 @@ type ConversationExchange = {
 
 type CounselSummaryDraft = {
   id: string;
+  sourceExchangeId: string | null;
   title: string;
   body: string;
   createdAt: string;
+  status: "ready" | "kept" | "reminder_scheduled";
+  remindAt: string | null;
+  lastSharedAt: string | null;
 };
 
 type CarryToday = {
@@ -2495,13 +2518,22 @@ type WeeklyWisdomReview = {
   pattern: string;
   scripture: string;
   nextStep: string;
+  observations: string[];
 };
 
 type JournalEntry = {
   id: string;
   title: string;
   body: string;
+  messages?: JournalMessage[];
   mode: Mode;
+  createdAt: string;
+};
+
+type JournalMessage = {
+  id: string;
+  role: "prompt" | "counsel" | "reflection";
+  body: string;
   createdAt: string;
 };
 
@@ -5770,6 +5802,7 @@ export function AletheiaApp({
   const [journalTitle, setJournalTitle] = useState("");
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal">("gratitude");
   const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(() => storedGratitudeEntries());
   const [gratitudeSyncStatus, setGratitudeSyncStatus] = useState<GratitudeSyncStatus>("local");
   const [isOnline, setIsOnline] = useState(true);
@@ -5793,6 +5826,8 @@ export function AletheiaApp({
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
   const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
+  const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | null>(null);
+  const [pendingLibraryEntryFocusId, setPendingLibraryEntryFocusId] = useState<string | null>(null);
   const [clientStateRestored, setClientStateRestored] = useState(false);
   const bootReadyReportedRef = useRef(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
@@ -5944,13 +5979,12 @@ export function AletheiaApp({
   const celebrationOptions = useMemo(() => ({ onTriggered: handleCelebrationTriggered }), [handleCelebrationTriggered]);
   const { celebration, celebrate } = useMilestoneCelebration(celebrationOptions);
   
-  const [counselSummaryDraft, setCounselSummaryDraftState] = useState<CounselSummaryDraft | null>(null);
-  
-  // Wrapper function that persists to localStorage
-  const setCounselSummaryDraft = (value: CounselSummaryDraft | null) => {
-    setCounselSummaryDraftState(value);
+  const [counselSummaries, setCounselSummariesState] = useState<CounselSummaryDraft[]>([]);
+
+  const setCounselSummaries = (value: CounselSummaryDraft[]) => {
+    setCounselSummariesState(value);
     if (typeof window !== "undefined") {
-      if (value) {
+      if (value.length > 0) {
         window.localStorage.setItem("aletheia-counsel-summary-draft", JSON.stringify(value));
       } else {
         window.localStorage.removeItem("aletheia-counsel-summary-draft");
@@ -5964,6 +5998,10 @@ export function AletheiaApp({
   const [pendingGratitudeNotificationFocus, setPendingGratitudeNotificationFocus] = useState(false);
   const [pendingDecisionNotificationFocus, setPendingDecisionNotificationFocus] = useState<string | null>(null);
   const [pendingDecisionComposerFocus, setPendingDecisionComposerFocus] = useState<"title" | "pressure" | null>(null);
+  const [pendingDecisionSection, setPendingDecisionSection] = useState<"decisions" | "counsel" | "rhythm" | null>(null);
+  const [pendingCounselSummaryFocusId, setPendingCounselSummaryFocusId] = useState<string | null>(null);
+  const [pendingJournalEntryFocusId, setPendingJournalEntryFocusId] = useState<string | null>(null);
+  const [pendingGratitudeEntryFocusId, setPendingGratitudeEntryFocusId] = useState<string | null>(null);
   const [pendingDecisionShareSurfaceFocusContactId, setPendingDecisionShareSurfaceFocusContactId] = useState<string | null>(null);
   const [pendingCounselThreadTarget, setPendingCounselThreadTarget] = useState<{
     sharedDecisionId: string;
@@ -6098,6 +6136,7 @@ export function AletheiaApp({
     }
 
     if (notificationRoute.focus === "reflect") {
+      setReflectSection("journal");
       setActiveView("reflect", "notification_click");
       setStatusMessage(ts('status.reflectionReminderReady'));
       announceWorkflow(
@@ -6109,6 +6148,7 @@ export function AletheiaApp({
     }
 
     if (notificationRoute.focus === "gratitude") {
+      setReflectSection("gratitude");
       setActiveView("reflect", "notification_click");
       setStatusMessage(ts('status.gratitudeReminderReady'));
       announceWorkflow(
@@ -6175,6 +6215,31 @@ export function AletheiaApp({
       setScriptureHighlights(storedScriptureHighlights());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
+      try {
+        const storedSummaryValue = JSON.parse(window.localStorage.getItem("aletheia-counsel-summary-draft") || "[]") as unknown;
+        const storedSummaries = Array.isArray(storedSummaryValue) ? storedSummaryValue : storedSummaryValue ? [storedSummaryValue] : [];
+        const restoredSummaries = storedSummaries.flatMap((candidate) => {
+          if (!candidate || typeof candidate !== "object") return [];
+          const summary = candidate as Partial<CounselSummaryDraft>;
+          if (typeof summary.id !== "string" || typeof summary.title !== "string" || typeof summary.body !== "string" || typeof summary.createdAt !== "string") {
+            return [];
+          }
+          const status = summary.status === "kept" || summary.status === "reminder_scheduled" ? summary.status : "ready";
+          return [{
+            id: summary.id,
+            sourceExchangeId: typeof summary.sourceExchangeId === "string" ? summary.sourceExchangeId : null,
+            title: summary.title,
+            body: summary.body,
+            createdAt: summary.createdAt,
+            status,
+            remindAt: typeof summary.remindAt === "string" ? summary.remindAt : null,
+            lastSharedAt: typeof summary.lastSharedAt === "string" ? summary.lastSharedAt : null,
+          } satisfies CounselSummaryDraft];
+        });
+        setCounselSummariesState(restoredSummaries);
+      } catch {
+        setCounselSummariesState([]);
+      }
       const now = new Date();
       setCurrentLocalDayNumber(Math.floor(now.getTime() / 86400000));
       setCurrentLocalHour(now.getHours());
@@ -6467,6 +6532,51 @@ export function AletheiaApp({
     return id;
   }, []);
 
+  useEffect(() => {
+    if (!clientStateRestored) return;
+    const scheduled = counselSummaries
+      .filter((summary) => summary.status === "reminder_scheduled" && summary.remindAt)
+      .sort((left, right) => Date.parse(left.remindAt ?? "") - Date.parse(right.remindAt ?? ""));
+    const nextReminder = scheduled[0];
+    if (!nextReminder?.remindAt) return;
+
+    const deliverReminder = () => {
+      const now = Date.now();
+      const dueSummary = counselSummaries.find((summary) =>
+        summary.status === "reminder_scheduled" && summary.remindAt && Date.parse(summary.remindAt) <= now
+      );
+      if (!dueSummary) return;
+      setCounselSummaries(counselSummaries.map((summary) =>
+        summary.id === dueSummary.id
+          ? { ...summary, status: "ready", remindAt: null }
+          : summary
+      ));
+      announceWorkflow(
+        ts('notifications.counselSummaryReminderDue'),
+        ts('notifications.counselSummaryReminderDueBody'),
+        "info",
+        {
+          label: ts('labels.openCounselSummary'),
+          onClick: () => {
+            setPendingCounselSummaryFocusId(dueSummary.id);
+            setActiveView("decisions", "counsel_summary_reminder");
+          },
+        }
+      );
+    };
+
+    const delay = Math.max(0, Math.min(Date.parse(nextReminder.remindAt) - Date.now(), 2_147_000_000));
+    const reminderTimer = window.setTimeout(deliverReminder, delay);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") deliverReminder();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearTimeout(reminderTimer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [announceWorkflow, clientStateRestored, counselSummaries, setActiveView, ts]);
+
   const updateAuthPromptState = useCallback((updater: (current: AuthPromptState) => AuthPromptState) => {
     setAuthPromptState((current) => {
       const next = updater(current);
@@ -6511,6 +6621,34 @@ export function AletheiaApp({
 
   const showView = useCallback((view: View) => {
     setActiveView(view, "show_view");
+  }, [setActiveView]);
+
+  const openJourneyDestination = useCallback((destination: JourneyDestination, source = "journey") => {
+    if (destination.view === "decisions") {
+      setPendingDecisionSection(destination.section);
+      if (destination.section === "decisions" && destination.entryId) {
+        setPendingDecisionNotificationFocus(destination.entryId);
+      }
+      if (destination.section === "counsel" && destination.entryId) {
+        setPendingCounselSummaryFocusId(destination.entryId);
+      }
+    } else if (destination.view === "reflect") {
+      setReflectSection(destination.section);
+      if (destination.section === "journal") {
+        setPendingJournalEntryFocusId(destination.entryId ?? null);
+      } else {
+        setPendingGratitudeEntryFocusId(destination.entryId ?? null);
+      }
+    } else if (destination.view === "library") {
+      setRequestedLibrarySection(destination.section);
+      setPendingLibraryEntryFocusId(destination.entryId ?? null);
+    }
+    trackClientEvent("feature_destination_opened", {
+      surface: source,
+      destination: `${destination.view}:${destination.section}`,
+      entry_id: destination.entryId ?? null,
+    });
+    setActiveView(destination.view, source);
   }, [setActiveView]);
 
   const openAccountFlow = useCallback((nextAuthMode?: AuthMode) => {
@@ -8652,6 +8790,16 @@ export function AletheiaApp({
     const decisions = countInRange(wisdomDecisions, currentStartMs, currentEndMs);
     const previousDecisions = countInRange(wisdomDecisions, previousStartMs, previousEndMs);
     const pattern = todayPattern || daily.theme;
+    const unresolvedDecisions = wisdomDecisions.filter((decision) => decision.status !== "closed").length;
+    const decisionsAwaitingCounsel = wisdomDecisions.filter((decision) => decision.status !== "closed" && !decision.counselSought).length;
+    const outcomesAwaitingLearning = wisdomDecisions.filter((decision) => decision.status === "closed" && decision.finalDecision && !decision.learning).length;
+    const continuedReflections = journalEntries.filter((entry) => (entry.messages?.filter((message) => message.role === "reflection").length ?? 1) > 1).length;
+    const observations = [
+      unresolvedDecisions ? ts('journey.weeklyUnresolved').replace('{count}', String(unresolvedDecisions)) : "",
+      decisionsAwaitingCounsel ? ts('journey.weeklyAwaitingCounsel').replace('{count}', String(decisionsAwaitingCounsel)) : "",
+      continuedReflections ? ts('journey.weeklyReflectionGrowth').replace('{count}', String(continuedReflections)) : "",
+      outcomesAwaitingLearning ? ts('journey.weeklyOutcomeLearning').replace('{count}', String(outcomesAwaitingLearning)) : "",
+    ].filter(Boolean).slice(0, 3);
     const nextStep = activeDecision
       ? ts('labels.weeklyReviewDecisionStep')
       : reflections || gratitudeMoments
@@ -8669,8 +8817,184 @@ export function AletheiaApp({
       pattern,
       scripture: dailyEntry.scripture,
       nextStep,
+      observations,
     };
   }, [activeDecision, daily.theme, dailyEntry.scripture, gratitudeEntries, journalEntries, messages, todayPattern, ts, wisdomDecisions]);
+
+  const journeyItems = useMemo<JourneyItem[]>(() => {
+    const items: JourneyItem[] = [];
+    const now = Date.now();
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    counselSummaries.forEach((summary) => {
+      const reminderAt = summary.remindAt ? Date.parse(summary.remindAt) : Number.NaN;
+      if (summary.status === "reminder_scheduled" && Number.isFinite(reminderAt) && reminderAt <= endOfToday.getTime()) {
+        items.push({
+          id: `reminder:${summary.id}`,
+          kind: "reminder",
+          eyebrow: ts('journey.reminderDue'),
+          title: summary.title,
+          body: ts('journey.reminderDueBody'),
+          actionLabel: ts('journey.revisitNow'),
+          reason: ts('journey.reasonReminder'),
+          destination: { view: "decisions", section: "counsel", entryId: summary.id },
+          createdAt: summary.remindAt ?? summary.createdAt,
+          priority: reminderAt <= now ? 100 : 94,
+        });
+      } else if (!summary.lastSharedAt) {
+        items.push({
+          id: `counsel:${summary.id}`,
+          kind: "counsel",
+          eyebrow: ts('journey.counselReady'),
+          title: summary.title,
+          body: ts('journey.counselReadyBody'),
+          actionLabel: ts('journey.shareOrKeep'),
+          reason: ts('journey.reasonCounselReady'),
+          destination: { view: "decisions", section: "counsel", entryId: summary.id },
+          createdAt: summary.createdAt,
+          priority: 82,
+        });
+      }
+    });
+
+    wisdomDecisions.forEach((decision) => {
+      if (decision.status !== "closed") {
+        const awaitingCounsel = !decision.counselSought;
+        const needsReversibleStep = !decision.reversibleStep;
+        items.push({
+          id: `decision:${decision.id}`,
+          kind: "decision",
+          eyebrow: awaitingCounsel ? ts('journey.awaitingCounsel') : ts('journey.activeDecision'),
+          title: decision.title,
+          body: awaitingCounsel
+            ? ts('journey.awaitingCounselBody')
+            : needsReversibleStep
+              ? ts('journey.reversibleStepBody')
+              : ts('journey.activeDecisionBody'),
+          actionLabel: awaitingCounsel
+            ? ts('journey.askTrustedPerson')
+            : needsReversibleStep
+              ? ts('journey.nameReversibleStep')
+              : ts('journey.revisitDecision'),
+          reason: awaitingCounsel
+            ? ts('journey.reasonMissingCounsel')
+            : needsReversibleStep
+              ? ts('journey.reasonReversible')
+              : ts('journey.reasonActiveDecision'),
+          destination: { view: "decisions", section: awaitingCounsel ? "counsel" : "decisions", entryId: awaitingCounsel ? undefined : decision.id },
+          createdAt: decision.updatedAt || decision.createdAt,
+          priority: awaitingCounsel ? 92 : needsReversibleStep ? 76 : 64,
+        });
+      } else if (decision.finalDecision && !decision.learning) {
+        items.push({
+          id: `outcome:${decision.id}`,
+          kind: "decision",
+          eyebrow: ts('journey.outcomeReview'),
+          title: decision.title,
+          body: ts('journey.outcomeReviewBody'),
+          actionLabel: ts('journey.recordLearning'),
+          reason: ts('journey.reasonOutcome'),
+          destination: { view: "decisions", section: "decisions", entryId: decision.id },
+          createdAt: decision.updatedAt || decision.createdAt,
+          priority: 72,
+        });
+      }
+    });
+
+    journalEntries.forEach((entry) => {
+      const hasPersonalReflection = entry.messages?.some((message) => message.role === "reflection") ?? entry.body.trim().length > 0;
+      if (!hasPersonalReflection || entry.messages?.some((message) => message.role === "counsel")) {
+        items.push({
+          id: `reflection:${entry.id}`,
+          kind: "reflection",
+          eyebrow: ts('journey.reflectionWaiting'),
+          title: entry.title,
+          body: hasPersonalReflection ? ts('journey.journalContinueBody') : ts('journey.reflectionWaitingBody'),
+          actionLabel: hasPersonalReflection ? ts('journey.continueJournal') : ts('journey.writeReflection'),
+          reason: ts('journey.reasonReflection'),
+          destination: { view: "reflect", section: "journal", entryId: entry.id },
+          createdAt: entry.createdAt,
+          priority: hasPersonalReflection ? 58 : 86,
+        });
+      }
+    });
+
+    return items
+      .sort((left, right) => right.priority - left.priority || Date.parse(right.createdAt) - Date.parse(left.createdAt))
+      .slice(0, 8);
+  }, [counselSummaries, journalEntries, ts, wisdomDecisions]);
+
+  const journeySearchItems = useMemo<JourneyItem[]>(() => {
+    const decisionItems = wisdomDecisions.map<JourneyItem>((decision) => ({
+      id: `search-decision:${decision.id}`,
+      kind: "decision",
+      eyebrow: ts('journey.decision'),
+      title: decision.title,
+      body: decision.summary || decision.pressure,
+      actionLabel: ts('journey.open'),
+      destination: { view: "decisions", section: "decisions", entryId: decision.id },
+      createdAt: decision.updatedAt || decision.createdAt,
+      priority: 0,
+    }));
+    const reflectionItems = journalEntries.map<JourneyItem>((entry) => ({
+      id: `search-reflection:${entry.id}`,
+      kind: "reflection",
+      eyebrow: ts('journey.reflection'),
+      title: entry.title,
+      body: entry.body,
+      actionLabel: ts('journey.open'),
+      destination: { view: "reflect", section: "journal", entryId: entry.id },
+      createdAt: entry.createdAt,
+      priority: 0,
+    }));
+    const counselItems = counselSummaries.map<JourneyItem>((summary) => ({
+      id: `search-counsel:${summary.id}`,
+      kind: "counsel",
+      eyebrow: ts('journey.counselSummary'),
+      title: summary.title,
+      body: summary.body,
+      actionLabel: ts('journey.open'),
+      destination: { view: "decisions", section: "counsel", entryId: summary.id },
+      createdAt: summary.createdAt,
+      priority: 0,
+    }));
+    const gratitudeItems = gratitudeEntries.map<JourneyItem>((entry) => ({
+      id: `search-gratitude:${entry.id}`,
+      kind: "gratitude",
+      eyebrow: ts('journey.gratitude'),
+      title: entry.note || entry.place || ts('journey.gratitudeMoment'),
+      body: [entry.note, entry.place].filter(Boolean).join(" · "),
+      actionLabel: ts('journey.open'),
+      destination: { view: "reflect", section: "gratitude", entryId: entry.id },
+      createdAt: entry.createdAt,
+      priority: 0,
+    }));
+    const scriptureItems = savedScriptures.map<JourneyItem>((entry) => ({
+      id: `search-scripture:${entry.id}`,
+      kind: "scripture",
+      eyebrow: ts('journey.savedScripture'),
+      title: `${entry.book} ${entry.chapter}:${entry.verse}`,
+      body: entry.text,
+      actionLabel: ts('journey.open'),
+      destination: { view: "library", section: "saved", entryId: entry.id },
+      createdAt: entry.savedAt,
+      priority: 0,
+    }));
+    const ruleItems = rulesOfLife.map<JourneyItem>((rule) => ({
+      id: `search-rule:${rule.id}`,
+      kind: "rule",
+      eyebrow: ts('journey.ruleOfLife'),
+      title: rule.principle,
+      body: localizedModeLabel(rule.mode, preferences.language),
+      actionLabel: ts('journey.open'),
+      destination: { view: "decisions", section: "rhythm", entryId: rule.id },
+      createdAt: rule.createdAt,
+      priority: 0,
+    }));
+    return [...decisionItems, ...reflectionItems, ...counselItems, ...gratitudeItems, ...scriptureItems, ...ruleItems]
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  }, [counselSummaries, gratitudeEntries, journalEntries, preferences.language, rulesOfLife, savedScriptures, ts, wisdomDecisions]);
 
   // Get translated mode-specific content
   const modeKey = mode.toLowerCase();
@@ -9087,6 +9411,7 @@ function startFirstRunGuestFlow() {
       possibleApplication: ts("listen.notes.possibleApplication", "Possible application"),
       reflectionPrompt: ts("listen.notes.reflectionPrompt", "What do I want to test carefully before acting?"),
     }));
+    setReflectSection("journal");
     setActiveView("reflect", "wisdom_listen");
     announceWorkflow(ts("listen.reflectionReady", "Reflection ready"), ts("listen.reflectionReadyBody", "Your recognized Scripture and counsel are ready to reflect on."), "success");
   }
@@ -9200,6 +9525,7 @@ function startFirstRunGuestFlow() {
     setJournalBody(
       `${card.opening}\n\n${ui.wisdomPrinciple ?? ""}:\n${card.principle}\n\n${ui.context ?? ""}:\n${dailyEntry.context}\n\n${ui.application ?? ""}:\n${dailyEntry.application}\n\n${ts('labels.tinyPractice')}:\n${card.practice}\n\n${ts('labels.reflectionQuestion')}:\n${card.question}\n\n${ui.whatINotice ?? ""}:\n`
     );
+    setReflectSection("journal");
     showView("reflect");
     announceWorkflow(ts('notifications.reflectionPrepared'), ts('notifications.reflectionPreparedBody'), "success");
   }
@@ -9334,7 +9660,7 @@ function startFirstRunGuestFlow() {
     setDecisionTitle((current) => current || prefill.title);
     setDecisionPressure((current) => current || prefill.pressure);
     setDecisionEmotion(prefill.emotion);
-    setPendingDecisionComposerFocus("title");
+    setPendingDecisionComposerFocus(prefill.pressure ? "title" : "pressure");
     trackClientEvent("answer_saved_or_acted", { action: "track_decision", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
       scheduleSignInPrompt("post_answer_action", {
@@ -9347,12 +9673,23 @@ function startFirstRunGuestFlow() {
     announceWorkflow(ts('notifications.decisionDraftStarted'), ts('notifications.decisionDraftStartedBody'), "success");
   }
 
-  function draftReflectionFromExchange(exchange: ConversationExchange) {
+  async function draftReflectionFromExchange(exchange: ConversationExchange) {
     const question = cleanDisplayText(exchange.question?.text ?? "");
     const answer = cleanDisplayText(exchange.answer.text);
-    setJournalTitle(englishText.reflectionDraftTitle.replace("{question}", question.slice(0, 70)));
-    setJournalBody(`${ts('labels.reflectionQuestion')}:\n${question}\n\n${ui.currentCounsel ?? ""}:\n${answer}\n\n${ui.whatINotice ?? ""}:\n`);
-    trackClientEvent("answer_saved_or_acted", { action: "draft_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
+    if (!question || !answer) return;
+    const createdAt = new Date().toISOString();
+    const entry = await persistJournalEntry({
+      title: `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`,
+      body: `${question}\n\n${answer}`,
+      messages: [
+        { id: crypto.randomUUID(), role: "prompt", body: question, createdAt },
+        { id: crypto.randomUUID(), role: "counsel", body: answer, createdAt },
+      ],
+      source: "answer_action",
+    });
+    if (!entry) return;
+    setReflectSection("journal");
+    trackClientEvent("answer_saved_or_acted", { action: "save_reflection", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
       scheduleSignInPrompt("post_answer_action", {
         action: "draft_reflection",
@@ -9361,20 +9698,20 @@ function startFirstRunGuestFlow() {
       });
     }
     showView("reflect");
-    announceWorkflow(ts('notifications.reflectionDraftPrepared'), ts('notifications.reflectionDraftPreparedBody'), "success");
+    announceWorkflow(ts('notifications.reflectionSaved'), ts(user ? 'notifications.reflectionSavedBody' : 'notifications.reflectionSavedLocallyBody'), "success");
   }
 
   function draftCounselSummaryFromExchange(exchange: ConversationExchange) {
-    // Check if a summary draft already exists for this exchange
-    if (counselSummaryDraft) {
+    const existingSummary = counselSummaries.find((summary) => summary.sourceExchangeId === exchange.id);
+    if (existingSummary) {
       trackClientEvent("counsel_summary_created", { mode, duplicate: true });
+      setPendingCounselSummaryFocusId(existingSummary.id);
       announceWorkflow(
         ts('notifications.counselSummaryExists'),
         ts('notifications.counselSummaryExistsBody'),
         "info"
       );
       showView("decisions");
-      scrollToSection("counsel-circle");
       return;
     }
 
@@ -9404,16 +9741,18 @@ function startFirstRunGuestFlow() {
       signals,
       preferences,
     });
-    setCounselSummaryDraft({
+    const summary: CounselSummaryDraft = {
       id: crypto.randomUUID(),
+      sourceExchangeId: exchange.id,
       title: prefill.title,
       body,
       createdAt: new Date().toISOString(),
-    });
-    setDecisionTitle((current) => current || prefill.title);
-    setDecisionPressure((current) => current || prefill.pressure);
-    setDecisionEmotion(prefill.emotion);
-    setPendingDecisionComposerFocus("title");
+      status: "ready",
+      remindAt: null,
+      lastSharedAt: null,
+    };
+    setCounselSummaries([summary, ...counselSummaries]);
+    setPendingCounselSummaryFocusId(summary.id);
     trackClientEvent("counsel_summary_created", { mode, ...analyticsQuestionMetadata(question, mode) });
     trackClientEvent("answer_saved_or_acted", { action: "create_counsel_summary", mode, ...analyticsQuestionMetadata(question, mode) });
     if (!user) {
@@ -9425,6 +9764,53 @@ function startFirstRunGuestFlow() {
     }
     showView("decisions");
     announceWorkflow(ts('notifications.counselSummaryCreated'), ts('notifications.counselSummaryCreatedBody'), "success");
+  }
+
+  function keepCounselSummaryForLater(summaryId: string) {
+    setCounselSummaries(counselSummaries.map((summary) =>
+      summary.id === summaryId
+        ? { ...summary, status: "kept", remindAt: null }
+        : summary
+    ));
+    trackClientEvent("counsel_summary_next_action", { action: "keep_for_later" });
+    announceWorkflow(ts('notifications.counselSummaryKept'), ts('notifications.counselSummaryKeptBody'), "success");
+  }
+
+  function remindAboutCounselSummary(summaryId: string, days: number) {
+    const remindAt = new Date(Date.now() + days * 86400000).toISOString();
+    setCounselSummaries(counselSummaries.map((summary) =>
+      summary.id === summaryId
+        ? { ...summary, status: "reminder_scheduled", remindAt }
+        : summary
+    ));
+    trackClientEvent("counsel_summary_next_action", { action: "remind_later", days });
+    announceWorkflow(ts('notifications.counselSummaryReminderSet'), ts('notifications.counselSummaryReminderSetBody'), "success");
+  }
+
+  async function shareCounselSummary(summaryId: string) {
+    const summary = counselSummaries.find((candidate) => candidate.id === summaryId);
+    if (!summary) return;
+    const text = `${summary.title}\n\n${summary.body}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: summary.title, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      announceWorkflow(ts('notifications.counselSummaryShareFailed'), ts('notifications.counselSummaryShareFailedBody'), "warning");
+      return;
+    }
+    setCounselSummaries(counselSummaries.map((candidate) =>
+      candidate.id === summaryId
+        ? { ...candidate, lastSharedAt: new Date().toISOString() }
+        : candidate
+    ));
+    trackClientEvent("counsel_summary_next_action", { action: "share" });
+    announceWorkflow(ts('notifications.counselSummaryShared'), ts('notifications.counselSummarySharedBody'), "success");
   }
 
   function goDeeperFromExchange(exchange: ConversationExchange) {
@@ -9591,7 +9977,7 @@ function startFirstRunGuestFlow() {
     setSavedScriptures([]);
     setScriptureHighlights({});
     setManualContext(defaultManualContext);
-    setCounselSummaryDraft(null);
+    setCounselSummaries([]);
     try {
       window.localStorage.removeItem(FOCUS_INTENTIONS_STORAGE_KEY);
       window.localStorage.removeItem(VOICE_STORAGE_KEY);
@@ -9624,7 +10010,7 @@ function startFirstRunGuestFlow() {
     setReceivedCounselInvites([]);
     setCounselInviteContactId(null);
     setRulesOfLife([]);
-    setCounselSummaryDraft(null);
+    setCounselSummaries([]);
     try {
       window.localStorage.removeItem("aletheia-counsel-summary-draft");
     } catch {
@@ -11387,6 +11773,33 @@ function startFirstRunGuestFlow() {
     void updateNotificationTiming(patch);
   });
 
+  async function persistJournalEntry({ title, body, messages, source }: {
+    title: string;
+    body: string;
+    messages: JournalMessage[];
+    source: "reflect_tab" | "answer_action";
+  }): Promise<JournalEntry | null> {
+    if (user) {
+      const response = await fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body, messages, mode }),
+      });
+      const data = (await response.json()) as { entry?: JournalEntry };
+      if (data.entry) {
+        setJournalEntries((current) => [data.entry!, ...current]);
+        trackClientEvent("journal_entry_created", { mode, source });
+        return data.entry;
+      }
+      return null;
+    }
+    trackClientEvent("journal_entry_created_local", { mode, source });
+    const entry: JournalEntry = { id: crypto.randomUUID(), title, body, messages, mode, createdAt: new Date().toISOString() };
+    setJournalEntries((current) => [entry, ...current]);
+    setStatusMessage(ts('status.reflectionSavedSession'));
+    return entry;
+  }
+
   async function saveReflection() {
     const title = journalTitle.trim() || `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`;
     const body = journalBody.trim();
@@ -11395,68 +11808,56 @@ function startFirstRunGuestFlow() {
       return;
     }
     const isFirstReflection = journalEntries.length === 0;
+    const entry = await persistJournalEntry({
+      title,
+      body,
+      messages: [{ id: crypto.randomUUID(), role: "reflection", body, createdAt: new Date().toISOString() }],
+      source: "reflect_tab",
+    });
+    if (!entry) return;
 
-    if (user) {
-      const response = await fetch("/api/journal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, mode }),
-      });
-      const data = (await response.json()) as { entry?: JournalEntry };
-      if (data.entry) {
-        setJournalEntries((current) => [data.entry!, ...current]);
-        trackClientEvent("journal_entry_created", { mode, source: "reflect_tab" });
-        announceWorkflow(
-          isFirstReflection ? ts('notifications.firstReflectionMilestone') : ts('notifications.reflectionSaved'),
-          isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts('notifications.reflectionSavedBody'),
-          "success"
-        );
-        if (isFirstReflection) {
-          celebrate({
-            event: "first_reflection_saved",
-            tier: "milestone",
-            title: ts('notifications.firstReflectionMilestone'),
-            body: ts('notifications.firstReflectionMilestoneBody'),
-            source: "reflect",
-          });
-        }
-      }
-    } else {
-      trackClientEvent("journal_entry_created_local", { mode });
-      setJournalEntries((current) => [
-        {
-          id: crypto.randomUUID(),
-          title,
-          body,
-          mode,
-          createdAt: new Date().toISOString(),
-        },
-        ...current,
-      ]);
-      setStatusMessage(ts('status.reflectionSavedSession'));
-      announceWorkflow(
-        isFirstReflection ? ts('notifications.firstReflectionMilestone') : ts('notifications.reflectionSavedLocally'),
-        isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts('notifications.reflectionSavedLocallyBody'),
-        "success"
-      );
-      if (isFirstReflection) {
-        celebrate({
-          event: "first_reflection_saved",
-          tier: "milestone",
-          title: ts('notifications.firstReflectionMilestone'),
-          body: ts('notifications.firstReflectionMilestoneBody'),
-          source: "reflect",
-        });
-      }
-      scheduleSignInPrompt("guest_saved_reflection", {
-        location: "reflect_tab",
-        mode,
-        first_reflection: isFirstReflection,
-      });
+    announceWorkflow(
+      isFirstReflection ? ts('notifications.firstReflectionMilestone') : ts(user ? 'notifications.reflectionSaved' : 'notifications.reflectionSavedLocally'),
+      isFirstReflection ? ts('notifications.firstReflectionMilestoneBody') : ts(user ? 'notifications.reflectionSavedBody' : 'notifications.reflectionSavedLocallyBody'),
+      "success"
+    );
+    if (isFirstReflection) {
+      celebrate({ event: "first_reflection_saved", tier: "milestone", title: ts('notifications.firstReflectionMilestone'), body: ts('notifications.firstReflectionMilestoneBody'), source: "reflect" });
+    }
+    if (!user) {
+      scheduleSignInPrompt("guest_saved_reflection", { location: "reflect_tab", mode, first_reflection: isFirstReflection });
     }
 
     setJournalTitle("");
     setJournalBody("");
+  }
+
+  async function appendJournalReflection(id: string, body: string) {
+    const cleanBody = body.trim();
+    if (!cleanBody) return;
+    let message: JournalMessage = { id: crypto.randomUUID(), role: "reflection", body: cleanBody, createdAt: new Date().toISOString() };
+    let updatedBody: string | undefined;
+    if (user) {
+      const response = await fetch(`/api/journal/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: cleanBody }),
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { message?: JournalMessage; body?: string };
+      message = data.message ?? message;
+      updatedBody = data.body;
+    }
+    setJournalEntries((current) => current.map((entry) => entry.id === id ? {
+      ...entry,
+      body: updatedBody ?? `${entry.body.trim()}\n\n${cleanBody}`.trim(),
+      messages: [
+        ...(entry.messages?.length ? entry.messages : [{ id: `${entry.id}-legacy`, role: "reflection" as const, body: entry.body, createdAt: entry.createdAt }]),
+        message,
+      ],
+    } : entry));
+    trackClientEvent("journal_reflection_added", { mode, source: "journal_detail" });
+    announceWorkflow(ts('notifications.reflectionSaved'), ts(user ? 'notifications.reflectionSavedBody' : 'notifications.reflectionSavedLocallyBody'), "success");
   }
 
   async function deleteJournalEntry(id: string) {
@@ -11580,6 +11981,7 @@ function startFirstRunGuestFlow() {
     setJournalBody(
       `${ts('labels.gratitudeMoment')}: ${entry.note}\n${formationLine}${placeLine}${ts('labels.date')}: ${created}\n\n${ts('labels.gratitudeReflectionQuestion')}\n\n`
     );
+    setReflectSection("journal");
     updateGratitudeEntry(entry.id, { reflectedAt: new Date().toISOString() });
     trackClientEvent("gratitude_reflection_prompt_used", {
       has_place: Boolean(entry.place.trim()),
@@ -12765,6 +13167,8 @@ function startFirstRunGuestFlow() {
                         ui={ui}
                         companionCard={todayCompanionCard}
                         weeklyReview={weeklyReview}
+                        journeyItems={journeyItems}
+                        journeySearchItems={journeySearchItems}
                         personalizationContextEmpty={!manualContextHasContent(manualContext)}
                         prioritizeToday={pendingNotificationFocus}
                         challengeRecommendation={featuredChallengeRecommendation.primary}
@@ -12778,6 +13182,7 @@ function startFirstRunGuestFlow() {
                         onAskAboutCard={askAboutCompanionCard}
                         onSaveCardAsRule={saveCompanionRule}
                         onOpenRecommendedChallenge={openRecommendedChallenge}
+                        onOpenJourneyItem={(item) => openJourneyDestination(item.destination, "home_journey")}
                         theme={theme}
                       />
                       <div id="home-formation" className="mt-5 scroll-mt-24">
@@ -12824,8 +13229,11 @@ function startFirstRunGuestFlow() {
                       discernmentResult={decisionResult}
                       counselContacts={counselContacts}
                       receivedCounselInvites={receivedCounselInvites}
-                      counselSummaryDraft={counselSummaryDraft}
-                      setCounselSummaryDraft={setCounselSummaryDraft}
+                      counselSummaries={counselSummaries}
+                      setCounselSummaries={setCounselSummaries}
+                      onShareCounselSummary={shareCounselSummary}
+                      onKeepCounselSummary={keepCounselSummaryForLater}
+                      onRemindCounselSummary={remindAboutCounselSummary}
                       announceWorkflow={announceWorkflow}
                       ts={ts}
                       rules={rulesOfLife}
@@ -12863,6 +13271,10 @@ function startFirstRunGuestFlow() {
                       onUpdateDecision={updateDecision}
                       pendingDecisionComposerFocus={pendingDecisionComposerFocus}
                       onPendingDecisionComposerFocusHandled={() => setPendingDecisionComposerFocus(null)}
+                      pendingDecisionSection={pendingDecisionSection}
+                      onPendingDecisionSectionHandled={() => setPendingDecisionSection(null)}
+                      pendingCounselSummaryFocusId={pendingCounselSummaryFocusId}
+                      onPendingCounselSummaryFocusHandled={() => setPendingCounselSummaryFocusId(null)}
                       pendingDecisionShareSurfaceFocusContactId={pendingDecisionShareSurfaceFocusContactId}
                       onPendingDecisionShareSurfaceFocusHandled={() => setPendingDecisionShareSurfaceFocusContactId(null)}
                       pendingCounselThreadTarget={pendingCounselThreadTarget}
@@ -12881,6 +13293,8 @@ function startFirstRunGuestFlow() {
                         language={preferences.language}
                         mode={mode}
                         ts={ts}
+                        reflectSection={reflectSection}
+                        setReflectSection={setReflectSection}
                         entries={journalEntries}
                         gratitudeEntries={gratitudeEntries}
                         gratitudeSyncStatus={gratitudeSyncStatus}
@@ -12890,6 +13304,11 @@ function startFirstRunGuestFlow() {
                         setTitle={setJournalTitle}
                         setBody={setJournalBody}
                         onSave={saveReflection}
+                        onAddReflection={appendJournalReflection}
+                        pendingJournalEntryFocusId={pendingJournalEntryFocusId}
+                        onPendingJournalEntryFocusHandled={() => setPendingJournalEntryFocusId(null)}
+                        pendingGratitudeEntryFocusId={pendingGratitudeEntryFocusId}
+                        onPendingGratitudeEntryFocusHandled={() => setPendingGratitudeEntryFocusId(null)}
                         onDelete={deleteJournalEntry}
                         onSaveGratitude={saveGratitudeEntry}
                         onUpdateGratitude={updateGratitudeEntry}
@@ -12911,6 +13330,10 @@ function startFirstRunGuestFlow() {
                       mode={mode}
                       preferences={preferences}
                       ts={ts}
+                      requestedSection={requestedLibrarySection}
+                      onRequestedSectionHandled={() => setRequestedLibrarySection(null)}
+                      pendingEntryFocusId={pendingLibraryEntryFocusId}
+                      onPendingEntryFocusHandled={() => setPendingLibraryEntryFocusId(null)}
                       onScriptureOpen={openScripture}
                       scriptureMemory={scriptureMemory}
                       savedScriptures={savedScriptures}
@@ -14511,6 +14934,8 @@ function HomeDashboard({
   ui,
   companionCard,
   weeklyReview,
+  journeyItems,
+  journeySearchItems,
   personalizationContextEmpty,
   prioritizeToday,
   ts,
@@ -14524,6 +14949,7 @@ function HomeDashboard({
   onAskAboutCard,
   onSaveCardAsRule,
   onOpenRecommendedChallenge,
+  onOpenJourneyItem,
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
@@ -14538,6 +14964,8 @@ function HomeDashboard({
   ui: UiText;
   companionCard: TodayCompanionCard;
   weeklyReview: WeeklyWisdomReview;
+  journeyItems: JourneyItem[];
+  journeySearchItems: JourneyItem[];
   personalizationContextEmpty: boolean;
   prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
@@ -14550,14 +14978,35 @@ function HomeDashboard({
   onSaveCardAsRule: (card: TodayCompanionCard) => void;
   challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
+  onOpenJourneyItem: (item: JourneyItem) => void;
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
   const accentText = accessibleAccentText(theme);
-
-  const primaryAction = activeDecision
-    ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
-    : { label: text.askOneQuestion!, body: text.askOneQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle };
+  const [journeySearch, setJourneySearch] = useState("");
+  const nextWiseStep = journeyItems[0] ?? null;
+  const journeyIcon = (kind: JourneyItem["kind"]) =>
+    kind === "decision" ? Compass
+      : kind === "reflection" ? Feather
+        : kind === "counsel" ? Users
+          : kind === "reminder" ? Bell
+            : kind === "gratitude" ? HandHeart
+              : kind === "scripture" ? BookOpen
+                : Sprout;
+  const primaryAction = nextWiseStep
+    ? {
+        label: nextWiseStep.actionLabel,
+        body: nextWiseStep.title,
+        onClick: () => onOpenJourneyItem(nextWiseStep),
+        icon: journeyIcon(nextWiseStep.kind),
+      }
+    : activeDecision
+      ? { label: text.continueDecision!, body: activeDecision.title, onClick: onContinueDecision, icon: Compass }
+      : { label: text.askOneQuestion!, body: text.askOneQuestionBody!, onClick: onAskOneQuestion, icon: MessageCircle };
+  const normalizedJourneySearch = journeySearch.trim().toLocaleLowerCase(preferences.language);
+  const filteredJourneySearchItems = normalizedJourneySearch
+    ? journeySearchItems.filter((item) => `${item.eyebrow} ${item.title} ${item.body}`.toLocaleLowerCase(preferences.language).includes(normalizedJourneySearch)).slice(0, 8)
+    : [];
   const todayVisualTheme = dailyEntry.theme;
   const todayVisualMood = resolveTodayVisualMood({
     month: currentLocalMonth,
@@ -14583,6 +15032,10 @@ function HomeDashboard({
     : { label: text.askNewQuestion!, onClick: onAskOneQuestion };
   const todayActionsRailRef = useRef<HTMLDivElement | null>(null);
   const todayActionsRailHasOverflow = useRailOverflowCue(todayActionsRailRef, visibleTodayActions.length > 2, [visibleTodayActions.length]);
+  const continueJourneyRailRef = useRef<HTMLDivElement | null>(null);
+  const continueJourneyRailHasOverflow = useRailOverflowCue(continueJourneyRailRef, journeyItems.length > 2, [journeyItems.length, preferences.language]);
+  const weeklyReviewRailRef = useRef<HTMLDivElement | null>(null);
+  const weeklyReviewRailHasOverflow = useRailOverflowCue(weeklyReviewRailRef, true, [preferences.language, weeklyReview.questions, weeklyReview.reflections, weeklyReview.gratitudeMoments, weeklyReview.decisions]);
 
   return (
     <div className="grid gap-5 sm:gap-6">
@@ -14708,22 +15161,29 @@ function HomeDashboard({
         <div className="space-y-4">
           <div className="relative rounded-[1.25rem] border p-3.5 pr-16 sm:p-4 sm:pr-20" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
-              {text.whatNext}
+              {ts('journey.nextWiseStep')}
             </p>
             <h2 className="mt-2 text-[1.72rem] font-semibold leading-[1.02] text-balance sm:text-[2.1rem]" style={{ color: theme.textPrimary }}>
-              {text.askOneQuestion}
+              {nextWiseStep?.title ?? text.askOneQuestion}
             </h2>
             <p className="mt-2 max-w-2xl text-[0.94rem] leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>
-              {(text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
+              {nextWiseStep?.body ?? (text as { whatNextBodyShort?: string }).whatNextBodyShort ?? text.whatNextBody ?? ""}
             </p>
             <CardCornerBadge
               className="rounded-[1rem] border"
               style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
               aria-hidden="true"
             >
-              <MessageCircle size={14} />
+              {createElement(nextWiseStep ? journeyIcon(nextWiseStep.kind) : MessageCircle, { size: 14 })}
             </CardCornerBadge>
           </div>
+
+          {nextWiseStep?.reason ? (
+            <p className="px-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              <span className="font-semibold" style={{ color: theme.textPrimary }}>{ts('journey.whyThisStep')}:</span>{" "}
+              {nextWiseStep.reason}
+            </p>
+          ) : null}
 
           <DashboardAction
             icon={primaryAction.icon}
@@ -14734,6 +15194,90 @@ function HomeDashboard({
             onClick={primaryAction.onClick}
             theme={theme}
           />
+
+          {journeyItems.length > 1 ? (
+            <section className="border-t pt-4" style={{ borderColor: theme.borderLight }} aria-labelledby="continue-journey-title">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                    {ts('journey.continueEyebrow')}
+                  </p>
+                  <h3 id="continue-journey-title" className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>
+                    {ts('journey.continueTitle')}
+                  </h3>
+                </div>
+                <span className="text-xs" style={{ color: theme.textMuted }}>{Math.min(journeyItems.length - 1, 4)}</span>
+              </div>
+              <div className="relative mt-3 min-w-0">
+              <div ref={continueJourneyRailRef} className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {journeyItems.slice(1, 5).map((item) => {
+                  const Icon = journeyIcon(item.kind);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onOpenJourneyItem(item)}
+                      className="premium-tap-card flex w-[15rem] shrink-0 snap-start items-start gap-3 rounded-[1.15rem] border p-3 text-left transition active:scale-[0.99]"
+                      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                    >
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                        <Icon size={15} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{item.eyebrow}</span>
+                        <span className="mt-1 block text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{item.title}</span>
+                        <span className="mt-1.5 block text-xs font-semibold" style={{ color: theme.textSecondary }}>{item.actionLabel}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {continueJourneyRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="border-t pt-4" style={{ borderColor: theme.borderLight }} aria-labelledby="journey-search-title">
+            <label id="journey-search-title" className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }} htmlFor="journey-search">
+              {ts('journey.searchTitle')}
+            </label>
+            <div className="relative mt-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: theme.textMuted }} aria-hidden="true" />
+              <input
+                id="journey-search"
+                type="search"
+                value={journeySearch}
+                onChange={(event) => setJourneySearch(event.target.value)}
+                placeholder={ts('journey.searchPlaceholder')}
+                className="h-11 w-full rounded-full border pl-10 pr-4 text-sm outline-none"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+              />
+            </div>
+            {normalizedJourneySearch ? (
+              <div className="mt-3 divide-y" style={{ borderColor: theme.borderLight }} aria-label={ts('journey.searchResults')}>
+                {filteredJourneySearchItems.length ? filteredJourneySearchItems.map((item) => {
+                  const Icon = journeyIcon(item.kind);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onOpenJourneyItem(item)}
+                      className="flex w-full items-center gap-3 py-3 text-left"
+                    >
+                      <Icon size={16} className="shrink-0" style={{ color: theme.accentGold }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.textMuted }}>{item.eyebrow}</span>
+                        <span className="mt-0.5 block text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{item.title}</span>
+                      </span>
+                      <ChevronRight size={16} className="shrink-0" style={{ color: theme.textMuted }} />
+                    </button>
+                  );
+                }) : (
+                  <p className="py-3 text-sm" style={{ color: theme.textSecondary }}>{ts('journey.noSearchResults')}</p>
+                )}
+              </div>
+            ) : null}
+          </section>
 
           <section
             className="overflow-hidden rounded-[1.55rem] border p-4 shadow-[0_10px_24px_rgba(7,10,8,0.06)] sm:p-4.5"
@@ -14807,13 +15351,26 @@ function HomeDashboard({
               <p className="text-[0.98rem] leading-7 sm:text-[1.03rem] sm:leading-8" style={{ color: theme.textSecondary }}>
                 {(text.weeklyReviewBody ?? "").replace("{pattern}", weeklyReview.pattern)}
               </p>
+              {weeklyReview.observations.length ? (
+                <div className="mt-3 space-y-2" aria-label={text.weeklyReviewHeading ?? ""}>
+                  {weeklyReview.observations.map((observation) => (
+                    <p key={observation} className="flex items-start gap-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                      <Sprout size={15} className="mt-1 shrink-0" style={{ color: theme.accentGold }} aria-hidden="true" />
+                      <span>{observation}</span>
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
-          <div className="mt-2 flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
-            <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+          <div className="relative mt-2 min-w-0">
+            <div ref={weeklyReviewRailRef} className="flex min-w-0 snap-x gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.questionsThisWeek ?? ""} current={weeklyReview.questions} previous={weeklyReview.previousQuestions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+              <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.reflectionsThisWeek ?? ""} current={weeklyReview.reflections} previous={weeklyReview.previousReflections} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+              <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.gratitudeThisWeek ?? ""} current={weeklyReview.gratitudeMoments} previous={weeklyReview.previousGratitudeMoments} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+              <WeeklyReviewRailStat className="w-[9.75rem] shrink-0 snap-start" label={text.decisionsThisWeek ?? ""} current={weeklyReview.decisions} previous={weeklyReview.previousDecisions} lastWeekLabel={text.weeklyReviewLastWeekLabel ?? ""} theme={theme} />
+            </div>
+            {weeklyReviewRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
           </div>
           <p className="rounded-[1.15rem] border p-3.5 text-[0.94rem] leading-7" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
             <span className="font-semibold" style={{ color: theme.textPrimary }}>{text.nextFaithfulStep ?? ""}:</span>{" "}
@@ -28913,6 +29470,71 @@ function ConversationHistoryModal({
   );
 }
 
+function CounselSummaryBody({
+  title,
+  body,
+  theme,
+}: {
+  title: string;
+  body: string;
+  theme: ThemeColors;
+}) {
+  const sections = body
+    .split(/\n{2,}/)
+    .map((section) => section.trim())
+    .filter(Boolean)
+    .filter((section, index) => index !== 0 || section.toLocaleLowerCase() !== title.trim().toLocaleLowerCase());
+
+  return (
+    <div className="mt-3 space-y-4 text-sm leading-6" style={{ color: theme.textSecondary }}>
+      {sections.map((section, sectionIndex) => {
+        const lines = section.split("\n").map((line) => line.trim()).filter(Boolean);
+        const firstLine = lines[0] ?? "";
+        const hasHeading = lines.length > 1 && firstLine.length <= 64 && !firstLine.startsWith("-") && !firstLine.includes(":");
+        const contentLines = hasHeading ? lines.slice(1) : lines;
+        const bulletLines = contentLines.filter((line) => line.startsWith("-"));
+        const proseLines = contentLines.filter((line) => !line.startsWith("-"));
+
+        return (
+          <section key={`${sectionIndex}:${firstLine}`} className={sectionIndex ? "border-t pt-4" : ""} style={{ borderColor: theme.borderLight }}>
+            {hasHeading ? (
+              <h5 className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                {firstLine}
+              </h5>
+            ) : null}
+            {proseLines.length ? (
+              <div className={hasHeading ? "mt-2 space-y-1.5" : "space-y-1.5"}>
+                {proseLines.map((line, lineIndex) => {
+                  const scriptureAnchor = /\b\d{1,3}:\d{1,3}(?:-\d{1,3})?\b/.test(line);
+                  return (
+                    <p
+                      key={`${lineIndex}:${line}`}
+                      className={`break-words whitespace-pre-wrap ${scriptureAnchor ? "border-l-2 pl-3" : ""}`}
+                      style={{ borderColor: scriptureAnchor ? theme.accentGold : undefined, color: scriptureAnchor ? theme.textPrimary : theme.textSecondary }}
+                    >
+                      {line}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : null}
+            {bulletLines.length ? (
+              <ul className={`${hasHeading || proseLines.length ? "mt-2" : ""} space-y-2`}>
+                {bulletLines.map((line, lineIndex) => (
+                  <li key={`${lineIndex}:${line}`} className="flex items-start gap-2">
+                    <span className="mt-2 size-1.5 shrink-0 rounded-full" style={{ backgroundColor: theme.accentGold }} aria-hidden="true" />
+                    <span className="break-words">{line.replace(/^-\s*/, "")}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function DecisionCompanionPanel({
   language,
   mode,
@@ -28923,8 +29545,11 @@ function DecisionCompanionPanel({
   discernmentResult,
   counselContacts,
   receivedCounselInvites,
-  counselSummaryDraft,
-  setCounselSummaryDraft,
+  counselSummaries,
+  setCounselSummaries,
+  onShareCounselSummary,
+  onKeepCounselSummary,
+  onRemindCounselSummary,
   announceWorkflow,
   ts,
   rules,
@@ -28962,6 +29587,10 @@ function DecisionCompanionPanel({
   onUpdateDecision,
   pendingDecisionComposerFocus,
   onPendingDecisionComposerFocusHandled,
+  pendingDecisionSection,
+  onPendingDecisionSectionHandled,
+  pendingCounselSummaryFocusId,
+  onPendingCounselSummaryFocusHandled,
   pendingDecisionShareSurfaceFocusContactId,
   onPendingDecisionShareSurfaceFocusHandled,
   pendingCounselThreadTarget,
@@ -28979,8 +29608,11 @@ function DecisionCompanionPanel({
   discernmentResult: { sources: WisdomEntry[]; readiness: number; hasUrgency: boolean; hasCounsel: boolean } | null;
   counselContacts: CounselContact[];
   receivedCounselInvites: CounselInvitePreview[];
-  counselSummaryDraft: CounselSummaryDraft | null;
-  setCounselSummaryDraft: (value: CounselSummaryDraft | null) => void;
+  counselSummaries: CounselSummaryDraft[];
+  setCounselSummaries: (value: CounselSummaryDraft[]) => void;
+  onShareCounselSummary: (summaryId: string) => Promise<void>;
+  onKeepCounselSummary: (summaryId: string) => void;
+  onRemindCounselSummary: (summaryId: string, days: number) => void;
   announceWorkflow: (title: string, body: string, tone?: WorkflowTone, action?: { label: string; onClick: () => void }) => void;
   ts: (key: string, fallback?: string) => string;
   rules: RuleOfLife[];
@@ -29018,6 +29650,10 @@ function DecisionCompanionPanel({
   onUpdateDecision: (id: string, patch: Partial<WisdomDecision> & { waitingDays?: number | null; revisitDays?: number | null; outcomeReviewDays?: number | null; event?: string; }) => Promise<void> | void;
   pendingDecisionComposerFocus: "title" | "pressure" | null;
   onPendingDecisionComposerFocusHandled: () => void;
+  pendingDecisionSection: "decisions" | "counsel" | "rhythm" | null;
+  onPendingDecisionSectionHandled: () => void;
+  pendingCounselSummaryFocusId: string | null;
+  onPendingCounselSummaryFocusHandled: () => void;
   pendingDecisionShareSurfaceFocusContactId: string | null;
   onPendingDecisionShareSurfaceFocusHandled: () => void;
   pendingCounselThreadTarget: {
@@ -29051,12 +29687,16 @@ function DecisionCompanionPanel({
   const incomingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const outgoingSharedDecisionRailRef = useRef<HTMLDivElement | null>(null);
   const shareDecisionSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const counselSummaryRefs = useRef(new Map<string, HTMLElement>());
   const decisionCompanionCardRef = useRef<HTMLElement | null>(null);
   const decisionTitleInputRef = useRef<HTMLInputElement | null>(null);
   const decisionPressureInputRef = useRef<HTMLInputElement | null>(null);
   const activeDecisions = decisions.filter((decision) => decision.status !== "closed");
   const selectedDecision = decisions[0];
   const [decisionSection, setDecisionSection] = useState<"decisions" | "counsel" | "rhythm">("decisions");
+  const [reminderPickerSummaryId, setReminderPickerSummaryId] = useState<string | null>(null);
+  const [counselSummarySearch, setCounselSummarySearch] = useState("");
+  const [counselSummaryFilter, setCounselSummaryFilter] = useState<"all" | "ready" | "reminded" | "kept" | "shared">("all");
   const modeRules = rules.filter((rule) => rule.mode === mode);
   const decisionNextTitle = selectedDecision ? formatNextDecisionTitle(selectedDecision.title, ts('challenges.continueChallenge')) : runtime.decisionNextTitleDefault;
   const decisionFocusPrompt = focusIntentionPrompt(focusIntentions, "decisions");
@@ -29096,6 +29736,16 @@ function DecisionCompanionPanel({
     : null;
   const visibleDecisionMemoryEntries = decisions.length > 0 ? decisions : process.env.NODE_ENV !== "production" ? buildQaRailSampleDecisionSeeds() : decisions;
   const rhythmRailHasOverflow = useRailOverflowCue(rhythmRailRef, decisionSection === "rhythm", [modeRules.length]);
+  const normalizedCounselSummarySearch = counselSummarySearch.trim().toLocaleLowerCase(language);
+  const visibleCounselSummaries = counselSummaries.filter((summary) => {
+    const matchesSearch = !normalizedCounselSummarySearch || `${summary.title} ${summary.body}`.toLocaleLowerCase(language).includes(normalizedCounselSummarySearch);
+    const matchesFilter = counselSummaryFilter === "all"
+      || (counselSummaryFilter === "shared" ? Boolean(summary.lastSharedAt) : false)
+      || (counselSummaryFilter === "reminded" ? summary.status === "reminder_scheduled" : false)
+      || (counselSummaryFilter === "kept" ? summary.status === "kept" : false)
+      || (counselSummaryFilter === "ready" ? summary.status === "ready" && !summary.lastSharedAt : false);
+    return matchesSearch && matchesFilter;
+  });
   const decisionShareDateFormatter = new Intl.DateTimeFormat(language, {
     month: "short",
     day: "numeric",
@@ -29105,6 +29755,18 @@ function DecisionCompanionPanel({
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : decisionShareDateFormatter.format(date);
   };
+
+  useEffect(() => {
+    if (!pendingDecisionSection) return;
+    const handle = window.requestAnimationFrame(() => {
+      if (decisionSection !== pendingDecisionSection) {
+        setDecisionSection(pendingDecisionSection);
+        return;
+      }
+      onPendingDecisionSectionHandled();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [decisionSection, onPendingDecisionSectionHandled, pendingDecisionSection]);
 
   useEffect(() => {
     if (!pendingDecisionComposerFocus) {
@@ -29137,6 +29799,22 @@ function DecisionCompanionPanel({
     onPendingDecisionComposerFocusHandled,
     pendingDecisionComposerFocus,
   ]);
+
+  useEffect(() => {
+    if (!pendingCounselSummaryFocusId) return;
+    if (decisionSection !== "counsel") {
+      const openTabHandle = window.requestAnimationFrame(() => setDecisionSection("counsel"));
+      return () => window.cancelAnimationFrame(openTabHandle);
+    }
+    const target = counselSummaryRefs.current.get(pendingCounselSummaryFocusId);
+    if (!target) return;
+    const focusHandle = window.requestAnimationFrame(() => {
+      target.focus({ preventScroll: true });
+      scrollTargetBelowTopChrome(target);
+      onPendingCounselSummaryFocusHandled();
+    });
+    return () => window.cancelAnimationFrame(focusHandle);
+  }, [decisionSection, onPendingCounselSummaryFocusHandled, pendingCounselSummaryFocusId, counselSummaries]);
 
   async function optimizeCounselAvatarFile(file: File): Promise<string> {
     const imageBitmap = await createImageBitmap(file);
@@ -29352,14 +30030,14 @@ function DecisionCompanionPanel({
 
               {discernmentResult ? (
                 <section className="mt-4 rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }} aria-live="polite">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                  <div className="grid min-w-0 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                    <div className="min-w-0 break-words">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts("labels.discernmentReadout")}</p>
                       <p className="mt-1 text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("labels.readinessSignal")}: {discernmentResult.readiness}%</p>
                     </div>
-                    <div className="flex shrink-0 gap-1.5" aria-label={ts("labels.discernmentReadout")}>
-                      <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>{discernmentResult.hasUrgency ? ts("runtimePanel.wisdomCheckUrgency") : ts("runtimePanel.wisdomCheckSlower")}</span>
-                      <span className="rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>{discernmentResult.hasCounsel ? ts("labels.counselIsVisible") : ts("labels.counselStillNeeded")}</span>
+                    <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-0.5 sm:justify-end" aria-label={ts("labels.discernmentReadout")}>
+                      <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>{discernmentResult.hasUrgency ? ts("runtimePanel.wisdomCheckUrgency") : ts("runtimePanel.wisdomCheckSlower")}</span>
+                      <span className="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>{discernmentResult.hasCounsel ? ts("labels.counselIsVisible") : ts("labels.counselStillNeeded")}</span>
                     </div>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.borderLight }}><div className="h-full rounded-full" style={{ width: `${discernmentResult.readiness}%`, backgroundColor: theme.primary }} /></div>
@@ -29635,7 +30313,7 @@ function DecisionCompanionPanel({
               focusComposer={pendingCounselThreadFocusComposer}
             />
 
-            {!incomingSharedDecisionItems.length && !outgoingSharedDecisionItems.length ? (
+            {!incomingSharedDecisionItems.length && !outgoingSharedDecisionItems.length && counselSummaries.length === 0 ? (
               <p className="rounded-[1rem] border border-dashed p-3 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
                 {ts('labels.noSharedDecisionsYet')}
               </p>
@@ -29648,39 +30326,160 @@ function DecisionCompanionPanel({
                   <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.inviteTrustedPeoplePrivate')}</h3>
                 </div>
               </div>
-              {counselSummaryDraft ? (
-                <div className="mt-3 rounded-[1rem] border p-2.5" style={{ borderColor: theme.accentGold, backgroundColor: theme.bgCardElevated }}>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.summaryReady')}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm(ts('confirm.deleteCounselSummary'))) {
-                          setCounselSummaryDraft(null);
-                          announceWorkflow(
-                            ts('notifications.counselSummaryCleared'),
-                            ts('notifications.counselSummaryClearedBody'),
-                            "info"
-                          );
-                        }
-                      }}
-                      className="grid size-9 shrink-0 place-items-center rounded-full border-2 transition"
-                      style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
-                      aria-label={ts('labels.deleteCounselSummary')}
-                      title={ts('labels.deleteSummary')}
-                    >
-                      <X size={18} />
-                    </button>
+              {counselSummaries.length > 0 ? (
+                <div className="mt-4 border-t" style={{ borderColor: theme.borderLight }}>
+                  <div className="space-y-2 py-3">
+                    <label className="relative block">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" size={15} style={{ color: theme.textMuted }} aria-hidden="true" />
+                      <span className="sr-only">{ts('journey.searchCounselSummaries')}</span>
+                      <input
+                        type="search"
+                        value={counselSummarySearch}
+                        onChange={(event) => setCounselSummarySearch(event.target.value)}
+                        placeholder={ts('journey.searchCounselSummaries')}
+                        className="h-10 w-full rounded-full border pl-9 pr-3 text-sm outline-none"
+                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                      />
+                    </label>
+                    <RailButtonTray theme={theme} label={ts('journey.filterCounselSummaries')} dense>
+                      {([
+                        ["all", ts('journey.filterAll')],
+                        ["ready", ts('journey.filterReady')],
+                        ["reminded", ts('journey.filterReminded')],
+                        ["kept", ts('journey.filterKept')],
+                        ["shared", ts('journey.filterShared')],
+                      ] as const).map(([filter, label]) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          aria-pressed={counselSummaryFilter === filter}
+                          onClick={() => setCounselSummaryFilter(filter)}
+                          className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                          style={{
+                            borderColor: counselSummaryFilter === filter ? theme.primary : theme.borderMedium,
+                            backgroundColor: counselSummaryFilter === filter ? theme.activeBg : theme.bgInput,
+                            color: counselSummaryFilter === filter ? theme.textPrimary : theme.textSecondary,
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </RailButtonTray>
                   </div>
-                  <p className="mt-2 text-sm font-semibold" style={{ color: theme.textPrimary }}>{counselSummaryDraft.title}</p>
-                  <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-[1rem] border p-3 text-xs leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                    {counselSummaryDraft.body}
-                  </pre>
-                  <p className="mt-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {ts('labels.summaryPrivateUntilShared')}
-                  </p>
+                  {visibleCounselSummaries.map((summary) => {
+                    const reminderDate = summary.remindAt ? new Date(summary.remindAt) : null;
+                    const reminderLabel = reminderDate && !Number.isNaN(reminderDate.getTime())
+                      ? new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short" }).format(reminderDate)
+                      : null;
+                    return (
+                      <article
+                        key={summary.id}
+                        ref={(node) => {
+                          if (node) counselSummaryRefs.current.set(summary.id, node);
+                          else counselSummaryRefs.current.delete(summary.id);
+                        }}
+                        tabIndex={-1}
+                        className="border-b py-4 outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        style={{ borderColor: theme.borderLight, '--tw-ring-color': theme.accentGold, '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('labels.summaryReady')}</p>
+                            <h4 className="mt-1 text-base font-semibold leading-6" style={{ color: theme.textPrimary }}>{summary.title}</h4>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(ts('confirm.deleteCounselSummary'))) {
+                                setCounselSummaries(counselSummaries.filter((candidate) => candidate.id !== summary.id));
+                                announceWorkflow(
+                                  ts('notifications.counselSummaryCleared'),
+                                  ts('notifications.counselSummaryClearedBody'),
+                                  "info"
+                                );
+                              }
+                            }}
+                            className="grid size-10 shrink-0 place-items-center rounded-full border transition"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: '#cc4444' }}
+                            aria-label={ts('labels.deleteCounselSummary')}
+                            title={ts('labels.deleteSummary')}
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <CounselSummaryBody title={summary.title} body={summary.body} theme={theme} />
+                        <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                          {summary.status === "kept"
+                            ? ts('labels.counselSummaryKeptStatus')
+                            : summary.status === "reminder_scheduled" && reminderLabel
+                              ? `${ts('labels.counselSummaryReminderStatus')} ${reminderLabel}`
+                              : ts('labels.summaryPrivateUntilShared')}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void onShareCounselSummary(summary.id)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                          >
+                            <Share2 size={16} />
+                            {ts('listen.shareNow')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onKeepCounselSummary(summary.id)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                          >
+                            <Bookmark size={16} />
+                            {ts('labels.keepCounselSummaryForLater')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReminderPickerSummaryId((current) => current === summary.id ? null : summary.id)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold"
+                            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                            aria-expanded={reminderPickerSummaryId === summary.id}
+                          >
+                            <Bell size={16} />
+                            {ts('labels.remindAboutCounselSummary')}
+                          </button>
+                        </div>
+                        {reminderPickerSummaryId === summary.id ? (
+                          <div className="mt-3">
+                            <RailButtonTray theme={theme} label={ts('labels.chooseReminderTime')} dense>
+                              {([1, 3, 7] as const).map((days) => (
+                                <button
+                                  key={days}
+                                  type="button"
+                                  onClick={() => {
+                                    onRemindCounselSummary(summary.id, days);
+                                    setReminderPickerSummaryId(null);
+                                  }}
+                                  className="h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                                >
+                                  {days === 1 ? ts('labels.inOneDay') : days === 3 ? ts('labels.inThreeDays') : ts('labels.inOneWeek')}
+                                </button>
+                              ))}
+                            </RailButtonTray>
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })}
+                  {!visibleCounselSummaries.length ? (
+                    <p className="border-t py-4 text-sm leading-6" style={{ borderColor: theme.borderLight, color: theme.textSecondary }}>
+                      {ts('journey.noCounselSummaryResults')}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
+              <details className="group mt-4 border-t pt-3" style={{ borderColor: theme.borderLight }}>
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-full border px-4 text-sm font-semibold [&::-webkit-details-marker]:hidden" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
+                  <span>{ts('labels.inviteTrustedPeoplePrivate')}</span>
+                  <Plus size={16} className="shrink-0 transition-transform group-open:rotate-45" aria-hidden="true" />
+                </summary>
               <form onSubmit={onAddCounsel} className="mt-3 grid gap-2">
                 <input
                   value={counselName}
@@ -29858,6 +30657,7 @@ function DecisionCompanionPanel({
                   </div>
                 ) : null}
               </form>
+              </details>
               <AvatarPickerModal
                 theme={theme}
                 ts={ts}
@@ -30068,6 +30868,8 @@ function ReflectPanel({
   language,
   mode,
   ts,
+  reflectSection,
+  setReflectSection,
   entries,
   gratitudeEntries,
   gratitudeSyncStatus,
@@ -30077,6 +30879,11 @@ function ReflectPanel({
   setTitle,
   setBody,
   onSave,
+  onAddReflection,
+  pendingJournalEntryFocusId,
+  onPendingJournalEntryFocusHandled,
+  pendingGratitudeEntryFocusId,
+  onPendingGratitudeEntryFocusHandled,
   onDelete,
   onSaveGratitude,
   onUpdateGratitude,
@@ -30088,6 +30895,8 @@ function ReflectPanel({
   language: LanguageCode;
   mode: Mode;
   ts: (key: string, fallback?: string) => string;
+  reflectSection: "gratitude" | "journal";
+  setReflectSection: (section: "gratitude" | "journal") => void;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
   gratitudeSyncStatus: GratitudeSyncStatus;
@@ -30097,6 +30906,11 @@ function ReflectPanel({
   setTitle: (value: string) => void;
   setBody: (value: string) => void;
   onSave: () => void;
+  onAddReflection: (id: string, body: string) => Promise<void> | void;
+  pendingJournalEntryFocusId: string | null;
+  onPendingJournalEntryFocusHandled: () => void;
+  pendingGratitudeEntryFocusId: string | null;
+  onPendingGratitudeEntryFocusHandled: () => void;
   onDelete: (id: string) => void;
   onSaveGratitude: (file: File | null, note: string, place: string, visual?: GratitudeVisualSettings, formation?: GratitudeFormation) => void;
   onUpdateGratitude: (id: string, patch: Partial<GratitudeEntry>) => void;
@@ -30105,16 +30919,9 @@ function ReflectPanel({
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   theme: ThemeColors;
 }) {
-  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal">("gratitude");
-
   const openReflectSection = (section: "gratitude" | "journal") => {
     setReflectSection(section);
     trackClientEvent("feature_destination_opened", { surface: "reflect", destination: section });
-    const target = document.getElementById(`reflect-${section}`);
-    if (target) {
-      scrollTargetBelowTopChrome(target);
-      target.focus({ preventScroll: true });
-    }
   };
 
   return (
@@ -30136,49 +30943,52 @@ function ReflectPanel({
           { key: "journal", label: ts('labels.reflectionJournal') },
         ]}
       />
-      <section id="reflect-gratitude" tabIndex={-1} className="scroll-mt-24 outline-none">
-        <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
-        {reflectSection === "gratitude" ? (
+      {reflectSection === "gratitude" ? (
+        <section id="reflect-gratitude" tabIndex={-1} className="scroll-mt-24 outline-none">
+          <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
           <div className="mb-4">
             <SectionVisualBanner src="/images/section-visuals/gratitude-noticing.jpg" theme={theme} />
           </div>
-        ) : null}
-        <GratitudeLensPanel
-          entries={gratitudeEntries}
-          syncStatus={gratitudeSyncStatus}
-          signedIn={signedIn}
-          language={language}
-          ts={ts}
-          theme={theme}
-          onSave={onSaveGratitude}
-          onUpdateGratitude={onUpdateGratitude}
-          onDeleteGratitude={onDeleteGratitude}
-          onShareGratitudePostcard={onShareGratitudePostcard}
-          onUseGratitudeAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
-        />
-      </section>
-
-      <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
-        <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
-        {reflectSection === "journal" ? (
+          <GratitudeLensPanel
+            entries={gratitudeEntries}
+            syncStatus={gratitudeSyncStatus}
+            signedIn={signedIn}
+            language={language}
+            ts={ts}
+            theme={theme}
+            onSave={onSaveGratitude}
+            onUpdateGratitude={onUpdateGratitude}
+            onDeleteGratitude={onDeleteGratitude}
+            onShareGratitudePostcard={onShareGratitudePostcard}
+            onUseGratitudeAsReflectionPrompt={onUseGratitudeAsReflectionPrompt}
+            pendingEntryFocusId={pendingGratitudeEntryFocusId}
+            onPendingEntryFocusHandled={onPendingGratitudeEntryFocusHandled}
+          />
+        </section>
+      ) : (
+        <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
+          <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
           <div className="mb-4">
             <SectionVisualBanner src="/images/section-visuals/reflect-stillness.jpg" theme={theme} position="center 60%" />
           </div>
-        ) : null}
-        <JournalPanel
-          entries={entries}
-          title={title}
-          body={body}
-          language={language}
-          mode={mode}
-          setTitle={setTitle}
-          setBody={setBody}
-          onSave={onSave}
-          onDelete={onDelete}
-          ts={ts}
-          theme={theme}
-        />
-      </section>
+          <JournalPanel
+            entries={entries}
+            title={title}
+            body={body}
+            language={language}
+            mode={mode}
+            setTitle={setTitle}
+            setBody={setBody}
+            onSave={onSave}
+            onAddReflection={onAddReflection}
+            pendingEntryFocusId={pendingJournalEntryFocusId}
+            onPendingEntryFocusHandled={onPendingJournalEntryFocusHandled}
+            onDelete={onDelete}
+            ts={ts}
+            theme={theme}
+          />
+        </section>
+      )}
     </div>
   );
 }
@@ -30414,6 +31224,8 @@ function GratitudeLensPanel({
   onDeleteGratitude,
   onShareGratitudePostcard,
   onUseGratitudeAsReflectionPrompt,
+  pendingEntryFocusId,
+  onPendingEntryFocusHandled,
 }: {
   entries: GratitudeEntry[];
   syncStatus: GratitudeSyncStatus;
@@ -30426,6 +31238,8 @@ function GratitudeLensPanel({
   onDeleteGratitude: (id: string) => void;
   onShareGratitudePostcard: (entry: GratitudeEntry) => void;
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
+  pendingEntryFocusId: string | null;
+  onPendingEntryFocusHandled: () => void;
 }) {
   const railText = railTextColors(theme);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -30454,6 +31268,16 @@ function GratitudeLensPanel({
   const gratitudeStickerRailHasOverflow = useRailOverflowCue(gratitudeStickerRailRef, GRATITUDE_STICKERS.length > 1, [language]);
   const gratitudeEmojiRailRef = useRef<HTMLDivElement | null>(null);
   const gratitudeEmojiRailHasOverflow = useRailOverflowCue(gratitudeEmojiRailRef, GRATITUDE_EMOJIS.length > 1, [language]);
+
+  useEffect(() => {
+    if (!pendingEntryFocusId || !entries.some((entry) => entry.id === pendingEntryFocusId)) return;
+    const handle = window.requestAnimationFrame(() => {
+      setSelectedEntryId(pendingEntryFocusId);
+      setGratitudeDetailOpen(true);
+      onPendingEntryFocusHandled();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [entries, onPendingEntryFocusHandled, pendingEntryFocusId]);
 
   useEffect(() => {
     return () => {
@@ -31075,6 +31899,10 @@ function LibraryPanel({
   mode,
   preferences,
   ts,
+  requestedSection,
+  onRequestedSectionHandled,
+  pendingEntryFocusId,
+  onPendingEntryFocusHandled,
   onScriptureOpen,
   scriptureMemory,
   savedScriptures,
@@ -31105,6 +31933,10 @@ function LibraryPanel({
   mode: Mode;
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
+  requestedSection: "saved" | "explore" | null;
+  onRequestedSectionHandled: () => void;
+  pendingEntryFocusId: string | null;
+  onPendingEntryFocusHandled: () => void;
   onScriptureOpen: (scripture: string) => void;
   scriptureMemory: ScriptureMemory | null;
   savedScriptures: SavedScripture[];
@@ -31165,6 +31997,27 @@ function LibraryPanel({
         body: libraryNextBody,
       };
   const railEntries = entries;
+
+  useEffect(() => {
+    if (!requestedSection) return;
+    const handle = window.requestAnimationFrame(() => {
+      setLibrarySection(requestedSection);
+      onRequestedSectionHandled();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [onRequestedSectionHandled, requestedSection]);
+
+  useEffect(() => {
+    if (!pendingEntryFocusId) return;
+    const entry = savedScriptures.find((candidate) => candidate.id === pendingEntryFocusId);
+    if (!entry) return;
+    const handle = window.requestAnimationFrame(() => {
+      setSavedPassage(entry);
+      setLibrarySection("bible");
+      onPendingEntryFocusHandled();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [onPendingEntryFocusHandled, pendingEntryFocusId, savedScriptures]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -31500,6 +32353,9 @@ function JournalPanel({
   setTitle,
   setBody,
   onSave,
+  onAddReflection,
+  pendingEntryFocusId,
+  onPendingEntryFocusHandled,
   onDelete,
   ts,
   theme,
@@ -31512,16 +32368,38 @@ function JournalPanel({
   setTitle: (value: string) => void;
   setBody: (value: string) => void;
   onSave: () => void;
+  onAddReflection: (id: string, body: string) => Promise<void> | void;
+  pendingEntryFocusId: string | null;
+  onPendingEntryFocusHandled: () => void;
   onDelete: (id: string) => void;
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
-  const railText = railTextColors(theme);
-  const savedReflectionsRailRef = useRef<HTMLDivElement | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [promptLevel, setPromptLevel] = useState<"open" | "gentle" | "guided" | "deep">("gentle");
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
-  const savedReflectionsRailHasOverflow = useRailOverflowCue(savedReflectionsRailRef, entries.length > 0, [entries.length, language]);
+  const promptLimit = promptLevel === "open" ? 0 : promptLevel === "gentle" ? 1 : promptLevel === "guided" ? 2 : 3;
+  const smartPrompts = localizedModeProfile(mode, language).diagnosticTracks.slice(0, promptLimit);
+  const promptLevels = [
+    { id: "open" as const, label: ts('journey.openPage') },
+    { id: "gentle" as const, label: ts('journey.gentlePrompt') },
+    { id: "guided" as const, label: ts('journey.guidedReflection') },
+    { id: "deep" as const, label: ts('journey.deepReview') },
+  ];
+  const promptLevelRailRef = useRef<HTMLDivElement | null>(null);
+  const promptLevelRailHasOverflow = useRailOverflowCue(promptLevelRailRef, true, [language]);
+  const smartPromptRailRef = useRef<HTMLDivElement | null>(null);
+  const smartPromptRailHasOverflow = useRailOverflowCue(smartPromptRailRef, smartPrompts.length > 1, [language, mode]);
+
+  useEffect(() => {
+    if (!pendingEntryFocusId || !entries.some((entry) => entry.id === pendingEntryFocusId)) return;
+    const handle = window.requestAnimationFrame(() => {
+      setSelectedEntryId(pendingEntryFocusId);
+      onPendingEntryFocusHandled();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [entries, onPendingEntryFocusHandled, pendingEntryFocusId]);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -31546,10 +32424,52 @@ function JournalPanel({
             onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
             onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
           />
+          <div className="relative mt-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+              {ts('journey.guidanceLevel')}
+            </p>
+            <div ref={promptLevelRailRef} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={ts('journey.guidanceLevel')}>
+              {promptLevels.map((level) => (
+                <button
+                  key={level.id}
+                  type="button"
+                  aria-pressed={promptLevel === level.id}
+                  onClick={() => setPromptLevel(level.id)}
+                  className="h-9 shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-semibold"
+                  style={{
+                    borderColor: promptLevel === level.id ? theme.primary : theme.borderMedium,
+                    backgroundColor: promptLevel === level.id ? theme.activeBg : theme.bgInput,
+                    color: promptLevel === level.id ? theme.textPrimary : theme.textSecondary,
+                  }}
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
+            {promptLevelRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+          </div>
+          {smartPrompts.length ? (
+            <div className="relative mt-3">
+              <div ref={smartPromptRailRef} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={ts('labels.reflectionQuestion')}>
+                {smartPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => setBody(body.trim() ? `${body.trim()}\n\n${prompt}` : prompt)}
+                    className="shrink-0 rounded-full border px-3 py-2 text-left text-xs font-medium whitespace-nowrap"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+              {smartPromptRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
+            </div>
+          ) : null}
           <textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            className="mt-3 min-h-40 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+            className={`${promptLevel === "deep" ? "min-h-56" : promptLevel === "guided" ? "min-h-48" : "min-h-40"} mt-3 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none`}
             placeholder={ts('placeholders.reflectionBody')}
             style={{
               borderColor: theme.borderMedium,
@@ -31580,22 +32500,17 @@ function JournalPanel({
           </div>
 
           {entries.length ? (
-            <div className="relative">
-              <section
-                ref={savedReflectionsRailRef}
-                aria-label={ts('labels.savedReflections')}
-                className="mt-2 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]"
-              >
+            <section aria-label={ts('labels.savedReflections')} className="mt-3 space-y-3">
                 {entries.map((entry, index) => (
                   <button
                     key={entry.id}
                     type="button"
-                    className="premium-tap-card relative flex w-full min-w-full shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border text-left shadow-[0_10px_24px_rgba(7,10,14,0.08)] transition active:scale-[0.995]"
-                    style={{ height: "calc(15.25rem + var(--aletheia-rail-card-height-offset, 0rem))", borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, boxShadow: "0 8px 18px rgba(7, 10, 8, 0.06)" }}
+                    className="premium-tap-card relative flex w-full min-w-0 flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_8px_18px_rgba(7,10,8,0.06)] transition active:scale-[0.995]"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
                     onClick={() => setSelectedEntryId(entry.id)}
                     aria-label={`${ts('labels.savedReflections')}: ${entry.title}`}
                   >
-                    <div className="relative overflow-hidden" style={{ height: "calc(4.25rem + var(--aletheia-rail-card-hero-height-offset, 0rem))", background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
+                    <div className="relative h-10 overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
                       <div className="absolute left-2.5 top-2.5 grid size-[1.5rem] place-items-center rounded-full border shadow-[0_8px_16px_rgba(0,0,0,0.12)]" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                         <Feather size={12} style={{ color: theme.textOnPrimary }} />
@@ -31604,7 +32519,7 @@ function JournalPanel({
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <p className="line-clamp-2 text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
+                          <p className="break-words text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
                           <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
                             {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
                           </p>
@@ -31613,8 +32528,8 @@ function JournalPanel({
                           {ts('showDetails')}
                         </span>
                       </div>
-                      <p className="line-clamp-4 text-[0.85rem] leading-5" style={{ color: railText.railSecondary }}>{entry.body}</p>
-                      <div className="mt-auto flex items-center justify-between gap-2">
+                      <p className="text-[0.85rem] leading-5 whitespace-pre-wrap break-words" style={{ color: theme.textSecondary }}>{entry.body}</p>
+                      <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
                           {index + 1}
                         </span>
@@ -31622,9 +32537,7 @@ function JournalPanel({
                     </div>
                   </button>
                   ))}
-              </section>
-              {savedReflectionsRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
-            </div>
+            </section>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
               {ts('labels.noReflectionsYet')}
@@ -31640,6 +32553,7 @@ function JournalPanel({
         ts={ts}
         language={language}
         entry={selectedEntry}
+        onAddReflection={onAddReflection}
         onClose={() => setSelectedEntryId(null)}
         onDelete={async (id) => {
           await onDelete(id);
@@ -31657,6 +32571,7 @@ function JournalEntryDetailModal({
   language,
   entry,
   onClose,
+  onAddReflection,
   onDelete,
 }: {
   open: boolean;
@@ -31665,10 +32580,13 @@ function JournalEntryDetailModal({
   language: LanguageCode;
   entry: JournalEntry | null;
   onClose: () => void;
+  onAddReflection: (id: string, body: string) => Promise<void> | void;
   onDelete: (id: string) => void;
 }) {
   const canUsePortal = typeof document !== "undefined";
   useBodyScrollLock(open && canUsePortal);
+  const [reflectionDraft, setReflectionDraft] = useState("");
+  const [saving, setSaving] = useState(false);
 
   if (!open || !canUsePortal || !entry) {
     return null;
@@ -31678,6 +32596,18 @@ function JournalEntryDetailModal({
   const dateLabel = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", year: "numeric" }).format(createdAt);
   const timeLabel = new Intl.DateTimeFormat(language, { hour: "numeric", minute: "2-digit" }).format(createdAt);
   const modeLabel = localizedModeLabel(entry.mode, language);
+  const messages = entry.messages?.length
+    ? entry.messages
+    : [{ id: `${entry.id}-legacy`, role: "reflection" as const, body: entry.body, createdAt: entry.createdAt }];
+
+  const saveReply = async () => {
+    const body = reflectionDraft.trim();
+    if (!body || saving) return;
+    setSaving(true);
+    await Promise.resolve(onAddReflection(entry.id, body));
+    setReflectionDraft("");
+    setSaving(false);
+  };
 
   return createPortal(
     <div
@@ -31720,7 +32650,7 @@ function JournalEntryDetailModal({
                 {ts("labels.reflectionJournal")}
               </p>
               <h2 id="journal-detail-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {entry.title}
+                {ts("labels.reflection")}
               </h2>
               <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
                 {dateLabel} · {timeLabel} · {modeLabel}
@@ -31731,39 +32661,50 @@ function JournalEntryDetailModal({
         </div>
 
         <div className="space-y-4 p-3.5 sm:p-4">
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
-                {ts("labels.date")}
-              </p>
-              <p className="mt-1.5 text-sm font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-                {dateLabel}
-              </p>
-              <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
-                {timeLabel}
-              </p>
-            </div>
-            <div className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>
-                {ts("labels.currentlyActiveMode")}
-              </p>
-              <p className="mt-1.5 text-sm font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
-                {modeLabel}
-              </p>
-              <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
-                {ts("labels.reflectionJournal")}
-              </p>
-            </div>
-          </div>
-
-          <section className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {ts("labels.writeReflection")}
-            </p>
-            <p className="mt-2 text-[1rem] leading-7" style={{ color: theme.textPrimary, whiteSpace: "pre-wrap" }}>
-              {entry.body}
-            </p>
+          <section className="space-y-3" aria-label={ts("labels.reflectionJournal")}>
+            {messages.map((message) => {
+              const messageDate = new Date(message.createdAt);
+              const messageTime = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(messageDate);
+              const isReflection = message.role === "reflection";
+              return (
+                <article key={message.id} className={`flex ${isReflection ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[92%] rounded-[1.25rem] border px-4 py-3 ${isReflection ? "rounded-br-md" : "rounded-bl-md"}`}
+                    style={{
+                      borderColor: isReflection ? theme.borderStrong : theme.borderLight,
+                      backgroundColor: isReflection ? theme.activeBg : theme.bgCardElevated,
+                    }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: isReflection ? theme.accentGold : theme.textMuted }}>
+                      {message.role === "prompt" ? ts("labels.reflectionQuestion") : message.role === "counsel" ? ts("currentCounsel") : ts("labels.reflection")}
+                    </p>
+                    <p className="mt-1.5 break-words text-[0.95rem] leading-7 whitespace-pre-wrap" style={{ color: theme.textPrimary }}>{message.body}</p>
+                    <time className="mt-2 block text-[10px]" style={{ color: theme.textMuted }}>{messageTime}</time>
+                  </div>
+                </article>
+              );
+            })}
           </section>
+
+          <div className="rounded-[1.35rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <textarea
+              value={reflectionDraft}
+              onChange={(event) => setReflectionDraft(event.target.value)}
+              className="min-h-24 w-full resize-none rounded-[1rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+              placeholder={ts("placeholders.reflectionBody")}
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            />
+            <button
+              type="button"
+              disabled={!reflectionDraft.trim() || saving}
+              onClick={saveReply}
+              className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-50"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              <Send size={15} />
+              {ts("labels.saveReflection")}
+            </button>
+          </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
             <button

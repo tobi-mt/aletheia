@@ -38,10 +38,26 @@ async function main() {
   const client = new Client(getClientConfig());
 
   await client.connect();
+  let lockHeld = false;
+  let transactionOpen = false;
   try {
+    await client.query("SELECT pg_advisory_lock(hashtext($1))", ["aletheia:schema-migrations"]);
+    lockHeld = true;
+    await client.query("BEGIN");
+    transactionOpen = true;
     await client.query(sql);
+    await client.query("COMMIT");
+    transactionOpen = false;
     console.log(`Applied migration: ${path.basename(sqlPath)}`);
+  } catch (error) {
+    if (transactionOpen) {
+      await client.query("ROLLBACK").catch(() => undefined);
+    }
+    throw error;
   } finally {
+    if (lockHeld) {
+      await client.query("SELECT pg_advisory_unlock(hashtext($1))", ["aletheia:schema-migrations"]).catch(() => undefined);
+    }
     await client.end();
   }
 }

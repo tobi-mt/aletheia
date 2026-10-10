@@ -11,6 +11,29 @@ test("Reflect no longer exposes Wisdom Check as a separate section", () => {
   assert.match(reflectPanel, /id="reflect-gratitude"/);
   assert.match(reflectPanel, /id="reflect-journal"/);
   assert.doesNotMatch(reflectPanel, /FormationRailSection/);
+  assert.match(reflectPanel, /reflectSection === "gratitude" \? \(/);
+  assert.match(reflectPanel, /\) : \(\s*<section id="reflect-journal"/);
+  assert.doesNotMatch(reflectPanel, /scrollTargetBelowTopChrome\(target\)/);
+});
+
+test("Save as reflection persists the exchange and opens the journal destination", () => {
+  const handler = app.slice(app.indexOf("async function draftReflectionFromExchange"), app.indexOf("function draftCounselSummaryFromExchange"));
+  assert.match(handler, /await persistJournalEntry/);
+  assert.match(handler, /role: "prompt"/);
+  assert.match(handler, /role: "counsel"/);
+  assert.match(handler, /setReflectSection\("journal"\)/);
+  assert.doesNotMatch(handler, /setJournalTitle|setJournalBody|reflectionDraftPrepared/);
+});
+
+test("Reflection entries show complete content and accept timestamped follow-up reflections", () => {
+  const journal = app.slice(app.indexOf("function JournalPanel"), app.indexOf("function JournalEntryDetailModal"));
+  const modal = app.slice(app.indexOf("function JournalEntryDetailModal"));
+  assert.doesNotMatch(journal, /line-clamp/);
+  assert.match(journal, /whitespace-pre-wrap break-words/);
+  assert.match(modal, /messages\.map/);
+  assert.match(modal, /messageTime/);
+  assert.match(modal, /onAddReflection\(entry\.id, body\)/);
+  assert.doesNotMatch(modal, />\s*\{entry\.title\}\s*<\/h2>/);
 });
 
 test("Decision owns the live discernment readout", () => {

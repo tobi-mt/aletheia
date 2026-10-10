@@ -111,7 +111,7 @@ The database adapter creates required tables and seeds the curated wisdom entrie
 - Set `NOTIFICATION_CRON_SECRET` and use it from your Railway scheduled job against `/api/notifications/daily`.
 - Set `ANALYTICS_ADMIN_SECRET` to protect aggregate analytics exports.
 - Use `npm run build` as the build command.
-- Use `npm run start` as the start command.
+- Use `npm run start` as the start command. Its `prestart` lifecycle automatically applies the idempotent journal-message migration under a PostgreSQL advisory lock before the server accepts traffic. If the migration fails, startup stops instead of serving code against an outdated schema.
 - Redeploy after changing variables.
 
 ## Run Locally

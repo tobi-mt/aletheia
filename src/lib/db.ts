@@ -214,10 +214,13 @@ async function initializeDatabase() {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
+      messages JSONB NOT NULL DEFAULT '[]'::jsonb,
       mode TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
+
+    ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS messages JSONB NOT NULL DEFAULT '[]'::jsonb;
 
     CREATE TABLE IF NOT EXISTS wisdom_listen_captures (
       id TEXT PRIMARY KEY,

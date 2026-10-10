@@ -33,3 +33,13 @@ test("urgency and fear cues produce a pressured draft without inventing certaint
   assert.match(draft.pressure, /urgency/);
   assert.deepEqual(detectPatterns(`${draft.title} ${draft.pressure}`).includes("urgency"), true);
 });
+
+test("generic counsel does not duplicate the decision question into the pressure field", () => {
+  const draft = buildDecisionDraftPrefill(
+    "How can I practice faithful stewardship with today's money and work choices?",
+    "Begin with one calm next step and review it with someone you trust."
+  );
+
+  assert.match(draft.title, /practice faithful stewardship/i);
+  assert.equal(draft.pressure, "");
+});

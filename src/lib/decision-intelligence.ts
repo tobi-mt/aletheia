@@ -24,7 +24,7 @@ export type DecisionSignals = {
 };
 
 export const patternMatchers = {
-  urgency: /urgent|quick|today|now|asap|immediately|panic|fomo|rush|can't wait/i,
+  urgency: /urgent|quick|\bright now\b|asap|immediately|panic|fomo|rush|can't wait/i,
   comparison: /compare|behind|everyone|others|envy|jealous|not enough|successful/i,
   greed: /rich|wealthy|more money|greed|greedy|status|luxury|prove/i,
   fear: /fear|afraid|scared|anxious|worry|worried|terrified|insecure/i,
@@ -68,14 +68,6 @@ function stripQuestionPrefix(value: string) {
     .trim();
 }
 
-function cleanAnswerLead(value: string) {
-  const lead = normalizeDraftText(value)
-    .replace(/^(it sounds like|you may be|this seems to be|the pressure may be|the main pressure is|it may help to|consider|try|one next step is|a good next step is)\s+/i, "")
-    .split(/(?:[.!?]\s+|\n)+/)[0]
-    .trim();
-  return lead;
-}
-
 export function buildDecisionDraftPrefill(question: string, answer: string) {
   const normalizedQuestion = normalizeDraftText(question);
   const normalizedAnswer = normalizeDraftText(answer);
@@ -93,7 +85,7 @@ export function buildDecisionDraftPrefill(question: string, answer: string) {
   const pressure =
     pressureTopics.length > 0
       ? sentenceCaseDraftText(truncateDraftText(`Pressure around ${pressureTopics.join(" and ")}`, 96))
-      : sentenceCaseDraftText(truncateDraftText(cleanAnswerLead(normalizedAnswer) || `Pressure around ${stripQuestionPrefix(normalizedQuestion).toLowerCase() || normalizedQuestion.toLowerCase()}`, 96));
+      : "";
   const emotion =
     /peace|calm|steady|settled|rest|quiet/i.test(`${normalizedQuestion} ${normalizedAnswer}`)
       ? "peaceful"
