@@ -4,6 +4,7 @@ import { trackServerEvent } from "@/lib/analytics";
 import { apiError } from "@/lib/api-errors";
 import { many, run } from "@/lib/db";
 import { normalizeMode } from "@/lib/wisdom-data";
+import { deriveJournalTitle } from "@/lib/journal-title";
 
 type JournalMessage = {
   id: string;
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     const messages = normalizeMessages(body.messages);
     const entry = {
       id: crypto.randomUUID(),
-      title: body.title?.trim() || `${mode} reflection`,
+      title: body.title?.trim() || deriveJournalTitle(content) || "",
       body: content,
       mode,
       messages: messages.length ? messages : [{ id: crypto.randomUUID(), role: "reflection" as const, body: content, createdAt }],

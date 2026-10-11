@@ -9,6 +9,7 @@ import { createPortal, flushSync } from "react-dom";
 import type { ThemeColors } from "@/components/surfaces/surface-contracts";
 import { englishText, type UiText } from "@/components/surfaces/ui-copy";
 import { runtimeCopyFor } from "@/components/surfaces/runtime-panel-copy";
+import { deriveJournalTitle, journalDisplayTitle } from "@/lib/journal-title";
 import {
   DisclosureIndicator,
   ModalCornerCloseButton,
@@ -9670,7 +9671,7 @@ function startFirstRunGuestFlow() {
     if (!question || !answer) return;
     const createdAt = new Date().toISOString();
     const entry = await persistJournalEntry({
-      title: `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`,
+      title: deriveJournalTitle(question) ?? "",
       body: `${question}\n\n${answer}`,
       messages: [
         { id: crypto.randomUUID(), role: "prompt", body: question, createdAt },
@@ -11792,7 +11793,6 @@ function startFirstRunGuestFlow() {
   }
 
   async function saveReflection() {
-    const title = journalTitle.trim() || `${localizedModeLabel(mode, preferences.language)} ${ts('labels.reflection')}`;
     const body = journalBody.trim();
     if (!body) {
       announceWorkflow(ts('notifications.writeReflectionFirst'), ts('notifications.writeReflectionFirstBody'), "warning");
@@ -11800,7 +11800,7 @@ function startFirstRunGuestFlow() {
     }
     const isFirstReflection = journalEntries.length === 0;
     const entry = await persistJournalEntry({
-      title,
+      title: journalTitle.trim() || deriveJournalTitle(body) || "",
       body,
       messages: [{ id: crypto.randomUUID(), role: "reflection", body, createdAt: new Date().toISOString() }],
       source: "reflect_tab",
@@ -32372,9 +32372,27 @@ function JournalPanel({
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(language);
+  const JOURNAL_HISTORY_PAGE_SIZE = 4;
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [visibleEntryCount, setVisibleEntryCount] = useState(JOURNAL_HISTORY_PAGE_SIZE);
   const [promptLevel, setPromptLevel] = useState<"open" | "gentle" | "guided" | "deep">("gentle");
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
+  const visibleEntries = entries.slice(0, visibleEntryCount);
+  const groupedVisibleEntries = visibleEntries.reduce<Array<{ key: string; label: string; entries: JournalEntry[] }>>((groups, entry) => {
+    const createdAt = new Date(entry.createdAt);
+    const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}`;
+    const existing = groups.at(-1);
+    if (existing?.key === key) {
+      existing.entries.push(entry);
+      return groups;
+    }
+    groups.push({
+      key,
+      label: new Intl.DateTimeFormat(language, { month: "long", year: "numeric" }).format(createdAt),
+      entries: [entry],
+    });
+    return groups;
+  }, []);
   const promptLimit = promptLevel === "open" ? 0 : promptLevel === "gentle" ? 1 : promptLevel === "guided" ? 2 : 3;
   const smartPrompts = localizedModeProfile(mode, language).diagnosticTracks.slice(0, promptLimit);
   const promptLevels = [
@@ -32496,43 +32514,62 @@ function JournalPanel({
           </div>
 
           {entries.length ? (
-            <section aria-label={ts('labels.savedReflections')} className="mt-3 space-y-3">
-                {entries.map((entry, index) => (
+            <section aria-label={ts('labels.savedReflections')} className="mt-3 space-y-4">
+              {groupedVisibleEntries.map((group) => (
+                <div key={group.key}>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>
+                    {group.label}
+                  </p>
+                  <div className="overflow-hidden rounded-[1.15rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                    {group.entries.map((entry) => {
+                      const entryDate = new Date(entry.createdAt);
+                      const dateLabel = new Intl.DateTimeFormat(language, { month: "short", day: "numeric" }).format(entryDate);
+                      const timeLabel = new Intl.DateTimeFormat(language, { hour: "numeric", minute: "2-digit" }).format(entryDate);
+                      const prompt = entry.messages?.find((message) => message.role === "prompt")?.body;
+                      const displayTitle = journalDisplayTitle({
+                        title: entry.title,
+                        body: entry.body,
+                        prompt,
+                        modeLabel: localizedModeLabel(entry.mode, language),
+                        reflectionLabel: ts('labels.reflection'),
+                      });
+                      return (
                   <button
                     key={entry.id}
                     type="button"
-                    className="premium-tap-card relative flex w-full min-w-0 flex-col overflow-hidden rounded-[1.35rem] border text-left shadow-[0_8px_18px_rgba(7,10,8,0.06)] transition active:scale-[0.995]"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                    className="premium-tap-card flex w-full min-w-0 items-center gap-3 border-b px-3.5 py-3 text-left transition last:border-b-0 active:scale-[0.995]"
+                    style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
                     onClick={() => setSelectedEntryId(entry.id)}
-                    aria-label={`${ts('labels.savedReflections')}: ${entry.title}`}
+                    aria-label={displayTitle ? `${ts('labels.savedReflections')}: ${displayTitle}` : `${ts('labels.savedReflections')}: ${dateLabel}`}
                   >
-                    <div className="relative h-10 overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryHover} 100%)` }}>
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_38%)]" />
-                      <div className="absolute left-2.5 top-2.5 grid size-[1.5rem] place-items-center rounded-full border shadow-[0_8px_16px_rgba(0,0,0,0.12)]" style={{ borderColor: "rgba(255,255,255,0.22)", backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                        <Feather size={12} style={{ color: theme.textOnPrimary }} />
-                      </div>
+                    <div className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.activeBg, color: theme.primary }}>
+                      <Feather size={15} />
                     </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="break-words text-[0.97rem] font-semibold leading-[1.22rem]" style={{ color: theme.textPrimary }}>{entry.title}</p>
-                          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                            {localizedModeLabel(entry.mode, language)} · {new Date(entry.createdAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
-                          </p>
-                        </div>
-                        <span className="text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
-                          {ts('showDetails')}
-                        </span>
-                      </div>
-                      <p className="text-[0.85rem] leading-5 whitespace-pre-wrap break-words" style={{ color: theme.textSecondary }}>{entry.body}</p>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                          {index + 1}
-                        </span>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      {displayTitle ? <p className="break-words text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>{displayTitle}</p> : null}
+                      <p className={`${displayTitle ? "mt-1" : ""} text-[10px] font-semibold uppercase tracking-[0.12em]`} style={{ color: displayTitle ? theme.textMuted : theme.textPrimary }}>
+                        {localizedModeLabel(entry.mode, language)} · {dateLabel} · {timeLabel}
+                      </p>
                     </div>
+                    <ChevronRight size={16} className="shrink-0" style={{ color: theme.textMuted }} aria-hidden="true" />
                   </button>
-                  ))}
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {entries.length > JOURNAL_HISTORY_PAGE_SIZE ? (
+                <div className="flex justify-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleEntryCount((current) => current >= entries.length ? JOURNAL_HISTORY_PAGE_SIZE : Math.min(entries.length, current + JOURNAL_HISTORY_PAGE_SIZE))}
+                    className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-semibold"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  >
+                    {visibleEntryCount >= entries.length ? ts('hideDetails') : ts('labels.moreReflections')}
+                  </button>
+                </div>
+              ) : null}
             </section>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textMuted }}>
@@ -32595,6 +32632,13 @@ function JournalEntryDetailModal({
   const messages = entry.messages?.length
     ? entry.messages
     : [{ id: `${entry.id}-legacy`, role: "reflection" as const, body: entry.body, createdAt: entry.createdAt }];
+  const displayTitle = journalDisplayTitle({
+    title: entry.title,
+    body: entry.body,
+    prompt: messages.find((message) => message.role === "prompt")?.body,
+    modeLabel,
+    reflectionLabel: ts("labels.reflection"),
+  });
 
   const saveReply = async () => {
     const body = reflectionDraft.trim();
@@ -32618,7 +32662,8 @@ function JournalEntryDetailModal({
       <section
         role="dialog"
         aria-modal="true"
-        aria-labelledby="journal-detail-title"
+        aria-labelledby={displayTitle ? "journal-detail-title" : undefined}
+        aria-label={displayTitle ? undefined : ts("labels.reflectionJournal")}
         className="w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[2rem] border [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-[0_28px_90px_rgba(10,18,14,0.36)]"
         style={{
           borderColor: theme.borderStrong,
@@ -32645,9 +32690,11 @@ function JournalEntryDetailModal({
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.reflectionJournal")}
               </p>
-              <h2 id="journal-detail-title" className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
-                {ts("labels.reflection")}
-              </h2>
+              {displayTitle ? (
+                <h2 id="journal-detail-title" className="mt-1.5 pr-12 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                  {displayTitle}
+                </h2>
+              ) : null}
               <p className="mt-1.5 text-sm leading-6 sm:text-[0.95rem]" style={{ color: theme.textSecondary }}>
                 {dateLabel} · {timeLabel} · {modeLabel}
               </p>

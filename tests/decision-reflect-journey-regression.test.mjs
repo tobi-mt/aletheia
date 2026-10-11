@@ -25,15 +25,20 @@ test("Save as reflection persists the exchange and opens the journal destination
   assert.doesNotMatch(handler, /setJournalTitle|setJournalBody|reflectionDraftPrepared/);
 });
 
-test("Reflection entries show complete content and accept timestamped follow-up reflections", () => {
+test("Reflection history stays compact while detail shows complete timestamped conversations", () => {
   const journal = app.slice(app.indexOf("function JournalPanel"), app.indexOf("function JournalEntryDetailModal"));
   const modal = app.slice(app.indexOf("function JournalEntryDetailModal"));
   assert.doesNotMatch(journal, /line-clamp/);
-  assert.match(journal, /whitespace-pre-wrap break-words/);
+  assert.match(journal, /JOURNAL_HISTORY_PAGE_SIZE = 4/);
+  assert.match(journal, /entries\.slice\(0, visibleEntryCount\)/);
+  assert.match(journal, /groupedVisibleEntries/);
+  assert.match(journal, /labels\.moreReflections/);
+  assert.doesNotMatch(journal, /\{entry\.body\}<\/p>/);
   assert.match(modal, /messages\.map/);
   assert.match(modal, /messageTime/);
   assert.match(modal, /onAddReflection\(entry\.id, body\)/);
-  assert.doesNotMatch(modal, />\s*\{entry\.title\}\s*<\/h2>/);
+  assert.match(modal, /journalDisplayTitle/);
+  assert.doesNotMatch(modal, />\s*\{ts\("labels\.reflection"\)\}\s*<\/h2>/);
 });
 
 test("Decision owns the live discernment readout", () => {
