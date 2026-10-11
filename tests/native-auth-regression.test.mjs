@@ -187,6 +187,8 @@ test("native notification badges cannot survive an iOS reinstall or device re-re
   assert.match(nativeRoute, /cleared: false, reason: "not_signed_in"/);
   assert.match(client, /removeAllDeliveredNotifications/);
   assert.match(client, /App\.addListener\("appStateChange"/);
+  assert.match(client, /if \(!startupPaintReady \|\| !isNativePushShell\(\)/);
+  assert.match(client, /\}, \[startupPaintReady\]\);/);
   assert.match(appDelegate, /didFinishLaunchingWithOptions[\s\S]*?clearNotificationBadge\(\)/);
   assert.match(appDelegate, /removeAllDeliveredNotifications\(\)/);
   assert.match(appDelegate, /setBadgeCount\(0\)/);

@@ -15,6 +15,15 @@ test("the app shell recovers from startup failures and stalls", async () => {
   assert.match(source, /window\.location\.reload\(\)/);
 });
 
+test("the first-paint gate cannot stall during a folding or resize transition", async () => {
+  const source = await readFile(new URL("src/components/home-client-shell.tsx", root), "utf8");
+
+  assert.match(source, /const FIRST_PAINT_FALLBACK_MS = 120/);
+  assert.match(source, /requestAnimationFrame\(markPaintReady\)/);
+  assert.match(source, /setTimeout\(markPaintReady, FIRST_PAINT_FALLBACK_MS\)/);
+  assert.doesNotMatch(source, /secondFrame/);
+});
+
 test("startup recovery copy is available in every supported locale", async () => {
   const localeNames = ["en", "es", "fr", "de", "pt", "ar", "ha", "ig", "yo", "hi", "tl"];
 

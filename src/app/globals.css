@@ -89,6 +89,8 @@ body {
   --aletheia-safe-top-extra: 0px;
   --aletheia-safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   --aletheia-safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --aletheia-safe-area-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --aletheia-safe-area-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --aletheia-top-reserve: 20px;
   --aletheia-bottom-reserve: 12px;
   --aletheia-top-nav-space: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 5.6rem);
@@ -101,6 +103,23 @@ body {
   isolation: isolate;
   padding-top: calc(var(--aletheia-top-nav-space) + clamp(0.45rem, 1.2vw, 0.85rem));
   padding-bottom: max(var(--aletheia-safe-area-bottom), var(--aletheia-bottom-reserve));
+}
+
+.app-main-content {
+  padding-left: max(var(--aletheia-safe-area-left), clamp(0.75rem, 2vw, 1rem));
+  padding-right: max(var(--aletheia-safe-area-right), clamp(0.75rem, 2vw, 1rem));
+}
+
+.app-shell :where(.fixed.inset-0.backdrop-blur-sm, .fixed.inset-0.backdrop-blur-xl, .fixed.inset-x-0.backdrop-blur-sm) {
+  padding-left: max(var(--aletheia-safe-area-left), 0.75rem) !important;
+  padding-right: max(var(--aletheia-safe-area-right), 0.75rem) !important;
+}
+
+@media (max-width: 767px) {
+  .app-safe-floating-panel {
+    left: max(var(--aletheia-safe-area-left), 0.75rem) !important;
+    right: max(var(--aletheia-safe-area-right), 0.75rem) !important;
+  }
 }
 
 /* Typography Hierarchy Enhancement */
@@ -417,6 +436,8 @@ html[data-keyboard-open="true"] .app-bottom-nav {
 
 .app-top-nav {
   padding-top: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + clamp(0.7rem, 1.4vw, 0.9rem));
+  padding-left: max(var(--aletheia-safe-area-left), clamp(0.75rem, 2vw, 1rem));
+  padding-right: max(var(--aletheia-safe-area-right), clamp(0.75rem, 2vw, 1rem));
 }
 
 .app-brand-button {
@@ -761,7 +782,7 @@ html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*
   }
 }
 
-@media (max-width: 480px) and (orientation: portrait) {
+@media (max-width: 480px) {
   .app-top-nav {
     padding-top: calc(max(var(--aletheia-safe-area-top), var(--aletheia-top-reserve)) + 0.65rem);
   }

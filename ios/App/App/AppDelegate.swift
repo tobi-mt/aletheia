@@ -43,21 +43,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 
-    func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
-    }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-    }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
+    func handleSceneDidBecomeActive() {
         configureAudioSessionForSpeech()
         clearNotificationBadge()
     }
@@ -384,7 +370,9 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
     private var pendingAppleCall: CAPPluginCall?
     private var pendingAppleNonce: String?
     private var appleAuthorizationController: ASAuthorizationController?
+    private var applePresentationAnchor: ASPresentationAnchor?
     private var webAuthenticationSession: ASWebAuthenticationSession?
+    private var webPresentationAnchor: ASPresentationAnchor?
 
     @objc func signInWithApple(_ call: CAPPluginCall) {
         print("[native-auth] Sign in with Apple requested")
@@ -406,9 +394,16 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
                 call.reject("Apple sign-in could not be started.")
                 return
             }
+            guard let presentationAnchor = self.bridge?.viewController?.view.window else {
+                self.pendingAppleCall = nil
+                self.pendingAppleNonce = nil
+                call.reject("Apple sign-in is unavailable until the app window is ready.")
+                return
+            }
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
+            self.applePresentationAnchor = presentationAnchor
             self.appleAuthorizationController = controller
             controller.performRequests()
         }
@@ -429,10 +424,15 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
                 call.reject("Another authentication session is already in progress.")
                 return
             }
+            guard let presentationAnchor = self.bridge?.viewController?.view.window else {
+                call.reject("Authentication is unavailable until the app window is ready.")
+                return
+            }
 
             let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] callbackUrl, error in
                 DispatchQueue.main.async {
                     self?.webAuthenticationSession = nil
+                    self?.webPresentationAnchor = nil
                     if let authError = error as? ASWebAuthenticationSessionError, authError.code == .canceledLogin {
                         call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)
                         return
@@ -450,9 +450,11 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
             }
             session.presentationContextProvider = self
             session.prefersEphemeralWebBrowserSession = false
+            self.webPresentationAnchor = presentationAnchor
             self.webAuthenticationSession = session
             if !session.start() {
                 self.webAuthenticationSession = nil
+                self.webPresentationAnchor = nil
                 call.reject("Authentication session could not be started.")
             }
         }
@@ -516,31 +518,24 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
     }
 
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return activePresentationWindow()
+        guard let applePresentationAnchor else {
+            preconditionFailure("Apple authorization started without a presentation anchor")
+        }
+        return applePresentationAnchor
     }
 
     @objc(presentationAnchorForWebAuthenticationSession:)
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return activePresentationWindow()
-    }
-
-    private func activePresentationWindow() -> ASPresentationAnchor {
-        if let bridgeWindow = bridge?.viewController?.view.window {
-            return bridgeWindow
+        guard let webPresentationAnchor else {
+            preconditionFailure("Web authentication started without a presentation anchor")
         }
-        if let sceneWindow = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }) {
-            return sceneWindow
-        }
-        print("[native-auth] No active presentation window was found")
-        return ASPresentationAnchor(frame: UIScreen.main.bounds)
+        return webPresentationAnchor
     }
 
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         print("[native-auth] Sign in with Apple authorization completed")
         appleAuthorizationController = nil
+        applePresentationAnchor = nil
         guard let call = pendingAppleCall,
               let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
               let tokenData = credential.identityToken,
@@ -570,6 +565,7 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
         let nsError = error as NSError
         print("[native-auth] Sign in with Apple failed domain=\(nsError.domain) code=\(nsError.code) description=\(nsError.localizedDescription)")
         appleAuthorizationController = nil
+        applePresentationAnchor = nil
         guard let call = pendingAppleCall else { return }
         if let authError = error as? ASAuthorizationError, authError.code == .canceled {
             call.reject("AUTH_CANCELLED", "AUTH_CANCELLED", error)

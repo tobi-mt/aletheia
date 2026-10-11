@@ -26,6 +26,7 @@ const LazyAletheiaApp = dynamic(
 );
 
 const STARTUP_TIMEOUT_MS = 30_000;
+const FIRST_PAINT_FALLBACK_MS = 120;
 
 class AppStartupBoundary extends Component<
   { children: ReactNode; onError: (error: Error) => void },
@@ -170,25 +171,30 @@ export default function HomeClientShell() {
     }
 
     let cancelled = false;
-    const firstFrame = window.requestAnimationFrame(() => {
-      const secondFrame = window.requestAnimationFrame(() => {
-        if (!cancelled) {
-          if (!paintReadyLoggedRef.current) {
-            paintReadyLoggedRef.current = true;
-            traceStartup("home-client-shell:paint-ready");
-          }
-          setPaintReady(true);
-        }
-      });
+    let firstFrame = 0;
+    let fallbackTimer = 0;
 
+    const markPaintReady = () => {
       if (cancelled) {
-        window.cancelAnimationFrame(secondFrame);
+        return;
       }
-    });
+      if (!paintReadyLoggedRef.current) {
+        paintReadyLoggedRef.current = true;
+        traceStartup("home-client-shell:paint-ready");
+      }
+      setPaintReady(true);
+    };
+
+    // A single committed frame is enough because AletheiaApp has already
+    // reported its first layout. Keep a short fallback for folding/resizing
+    // transitions where WebKit can temporarily throttle animation frames.
+    firstFrame = window.requestAnimationFrame(markPaintReady);
+    fallbackTimer = window.setTimeout(markPaintReady, FIRST_PAINT_FALLBACK_MS);
 
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(firstFrame);
+      window.clearTimeout(fallbackTimer);
     };
   }, [launchReady]);
 

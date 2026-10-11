@@ -7159,30 +7159,29 @@ export function AletheiaApp({
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
       const shortestSide = Math.min(viewportWidth, viewportHeight);
-      const isTablet = viewportWidth >= 768 || shortestSide >= 768;
-      const isFoldClass = !isTablet && viewportWidth >= 600 && viewportWidth < 768 && viewportHeight >= 700;
-      const isSmallPhone = !isTablet && !isFoldClass && viewportWidth <= 390;
-      const isLargePhone = !isTablet && !isFoldClass && viewportWidth >= 400;
-      const deviceFamily = isTablet ? "tablet" : isFoldClass ? "fold" : isSmallPhone ? "small-phone" : isLargePhone ? "large-phone" : "regular-phone";
-      const bottomReserve = isTablet ? 0 : Math.round(Math.max(8, Math.min(14, shortestSide * 0.018)));
-      const bottomNavGap = isTablet ? 0 : isSmallPhone ? 0.42 : isFoldClass ? 0.42 : isLargePhone ? 0.38 : 0.42;
-      const bottomNavPadY = isTablet ? 0 : isSmallPhone ? 0.56 : isFoldClass ? 0.52 : isLargePhone ? 0.48 : 0.52;
-      const bottomNavPadX = isTablet ? 0 : isSmallPhone ? 0.72 : isFoldClass ? 0.72 : isLargePhone ? 0.68 : 0.7;
-      const bottomNavRadius = isTablet ? 0 : isSmallPhone ? 1.45 : isFoldClass ? 1.55 : isLargePhone ? 1.6 : 1.5;
-      const bottomNavWidth = isFoldClass ? "min(calc(100vw - 1rem), 38rem)" : "min(calc(100vw - 1rem), 28rem)";
-      const railCardHeight = isTablet ? 0 : viewportHeight < 760 ? 13.9 : viewportHeight < 820 ? 14.15 : 14.5;
-      const railHeroHeight = isTablet ? 0 : viewportHeight < 760 ? 3.35 : viewportHeight < 820 ? 3.55 : 3.75;
-      const railImageHeight = isTablet ? 0 : viewportHeight < 760 ? 6.85 : viewportHeight < 820 ? 7.05 : 7.25;
-      const railCardHeightOffset = isTablet ? 0 : viewportHeight < 760 ? -0.35 : viewportHeight < 820 ? -0.18 : 0;
-      const railHeroHeightOffset = isTablet ? 0 : viewportHeight < 760 ? -0.18 : viewportHeight < 820 ? -0.1 : 0;
-      const railImageHeightOffset = isTablet ? 0 : viewportHeight < 760 ? -0.25 : viewportHeight < 820 ? -0.12 : 0;
-      const noticeBottomOffset = isTablet
+      const usesWideNavigation = viewportWidth >= 768;
+      const usesMediumWidthNavigation = !usesWideNavigation && viewportWidth >= 600;
+      const isCompactWidth = viewportWidth <= 390;
+      const isComfortableCompactWidth = !usesMediumWidthNavigation && viewportWidth >= 400;
+      const bottomReserve = usesWideNavigation ? 0 : Math.round(Math.max(8, Math.min(14, shortestSide * 0.018)));
+      const bottomNavGap = usesWideNavigation ? 0 : isComfortableCompactWidth ? 0.38 : 0.42;
+      const bottomNavPadY = usesWideNavigation ? 0 : isCompactWidth ? 0.56 : isComfortableCompactWidth ? 0.48 : 0.52;
+      const bottomNavPadX = usesWideNavigation ? 0 : isCompactWidth ? 0.72 : isComfortableCompactWidth ? 0.68 : 0.7;
+      const bottomNavRadius = usesWideNavigation ? 0 : isCompactWidth ? 1.45 : usesMediumWidthNavigation ? 1.55 : isComfortableCompactWidth ? 1.6 : 1.5;
+      const bottomNavWidth = usesMediumWidthNavigation ? "38rem" : "28rem";
+      const railCardHeight = usesWideNavigation ? 0 : viewportHeight < 760 ? 13.9 : viewportHeight < 820 ? 14.15 : 14.5;
+      const railHeroHeight = usesWideNavigation ? 0 : viewportHeight < 760 ? 3.35 : viewportHeight < 820 ? 3.55 : 3.75;
+      const railImageHeight = usesWideNavigation ? 0 : viewportHeight < 760 ? 6.85 : viewportHeight < 820 ? 7.05 : 7.25;
+      const railCardHeightOffset = usesWideNavigation ? 0 : viewportHeight < 760 ? -0.35 : viewportHeight < 820 ? -0.18 : 0;
+      const railHeroHeightOffset = usesWideNavigation ? 0 : viewportHeight < 760 ? -0.18 : viewportHeight < 820 ? -0.1 : 0;
+      const railImageHeightOffset = usesWideNavigation ? 0 : viewportHeight < 760 ? -0.25 : viewportHeight < 820 ? -0.12 : 0;
+      const noticeBottomOffset = usesWideNavigation
         ? 0
-        : isSmallPhone
+        : isCompactWidth
           ? 11
-          : isFoldClass
+          : usesMediumWidthNavigation
             ? 11.25
-            : isLargePhone
+            : isComfortableCompactWidth
               ? 11.5
               : 10.5;
 
@@ -7199,18 +7198,15 @@ export function AletheiaApp({
       document.documentElement.style.setProperty("--aletheia-rail-card-hero-height-offset", `${railHeroHeightOffset}rem`);
       document.documentElement.style.setProperty("--aletheia-rail-card-image-height-offset", `${railImageHeightOffset}rem`);
       document.documentElement.style.setProperty("--aletheia-notice-bottom-offset", `${noticeBottomOffset}`);
-      document.documentElement.dataset.deviceFamily = deviceFamily;
     };
 
     updateViewportChrome();
     window.addEventListener("resize", updateViewportChrome);
-    window.addEventListener("orientationchange", updateViewportChrome);
     window.visualViewport?.addEventListener("resize", updateViewportChrome);
     return () => {
       document.removeEventListener("focusin", syncKeyboardOpenState, true);
       document.removeEventListener("focusout", handleFocusOut, true);
       window.removeEventListener("resize", updateViewportChrome);
-      window.removeEventListener("orientationchange", updateViewportChrome);
       window.visualViewport?.removeEventListener("resize", updateViewportChrome);
     };
   }, []);
@@ -7383,7 +7379,7 @@ export function AletheiaApp({
   );
 
   useEffect(() => {
-    if (!isNativePushShell() || typeof window === "undefined") {
+    if (!startupPaintReady || !isNativePushShell() || typeof window === "undefined") {
       return;
     }
 
@@ -7427,7 +7423,7 @@ export function AletheiaApp({
       void actionHandle?.remove().catch(() => undefined);
       void appStateHandle?.remove().catch(() => undefined);
     };
-  }, []);
+  }, [startupPaintReady]);
 
   useEffect(() => {
     if (!clientStateRestored) {
@@ -7451,12 +7447,10 @@ export function AletheiaApp({
     const resizeObserver = new ResizeObserver(updateTopNavSpace);
     resizeObserver.observe(topNav);
     window.addEventListener("resize", updateTopNavSpace);
-    window.addEventListener("orientationchange", updateTopNavSpace);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateTopNavSpace);
-      window.removeEventListener("orientationchange", updateTopNavSpace);
     };
   }, [clientStateRestored]);
 
@@ -7478,9 +7472,8 @@ export function AletheiaApp({
       const viewport = window.visualViewport;
       const viewportHeight = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
       const viewportWidth = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
-      const shortestSide = Math.min(viewportWidth, viewportHeight);
-      const isTablet = viewportWidth >= 768 || shortestSide >= 768;
-      const railBreath = isTablet ? 0 : viewportHeight < 760 ? 28 : viewportHeight < 820 ? 16 : 0;
+      const usesWideNavigation = viewportWidth >= 768;
+      const railBreath = usesWideNavigation ? 0 : viewportHeight < 760 ? 28 : viewportHeight < 820 ? 16 : 0;
       const navHeight = Math.max(0, Math.ceil(nav.getBoundingClientRect().height));
       const reservedSpace = navHeight > 0 ? navHeight + 18 + railBreath : 112 + railBreath;
       document.documentElement.style.setProperty("--aletheia-bottom-nav-space", `${reservedSpace}px`);
@@ -7490,13 +7483,11 @@ export function AletheiaApp({
     const resizeObserver = new ResizeObserver(updateBottomNavSpace);
     resizeObserver.observe(nav);
     window.addEventListener("resize", updateBottomNavSpace);
-    window.addEventListener("orientationchange", updateBottomNavSpace);
     window.visualViewport?.addEventListener("resize", updateBottomNavSpace);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateBottomNavSpace);
-      window.removeEventListener("orientationchange", updateBottomNavSpace);
       window.visualViewport?.removeEventListener("resize", updateBottomNavSpace);
     };
   }, [clientStateRestored]);
@@ -13037,7 +13028,7 @@ function startFirstRunGuestFlow() {
       </nav>
 
       {!isOnline ? (
-        <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4" role="status" aria-live="polite">
+        <div className="app-main-content mx-auto max-w-7xl pt-3" role="status" aria-live="polite">
           <div className="flex items-start gap-3 rounded-2xl border px-3.5 py-3 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
             <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
               <WifiOff size={16} />
@@ -13050,7 +13041,7 @@ function startFirstRunGuestFlow() {
         </div>
       ) : null}
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 pt-4 sm:px-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
+      <div className="app-main-content mx-auto grid max-w-7xl gap-5 pt-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -13476,7 +13467,7 @@ function startFirstRunGuestFlow() {
         onAction={followGuidedJourneyStep}
       />
 
-      <div ref={bottomNavRef} className="app-bottom-nav fixed left-1/2 z-40 -translate-x-1/2 overflow-hidden border shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-xl md:hidden" style={{
+      <div ref={bottomNavRef} className="app-bottom-nav fixed z-40 overflow-hidden border shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-xl md:hidden" style={{
         borderColor: theme.bgNavBorder,
         backgroundColor: (() => {
           // Get accent color for current view for ambient blending
@@ -13501,7 +13492,11 @@ function startFirstRunGuestFlow() {
                       : "rgba(238, 242, 239, 0.52)";
           return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
         })(),
-        width: "var(--aletheia-bottom-nav-width, min(calc(100vw - 1.5rem), 28rem))",
+        left: "max(var(--aletheia-safe-area-left, env(safe-area-inset-left, 0px)), 0.5rem)",
+        right: "max(var(--aletheia-safe-area-right, env(safe-area-inset-right, 0px)), 0.5rem)",
+        width: "auto",
+        maxWidth: "var(--aletheia-bottom-nav-width, 28rem)",
+        marginInline: "auto",
         bottom: "calc(var(--aletheia-bottom-nav-gap, 0.75) * 1rem + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))",
         borderRadius: "calc(var(--aletheia-bottom-nav-radius, 1.75) * 1rem)",
         padding: "calc(var(--aletheia-bottom-nav-pad-y, 0.6) * 1rem) calc(var(--aletheia-bottom-nav-pad-x, 0.85) * 1rem)",
@@ -14321,7 +14316,7 @@ function ReadingPlayer({
   const safeProgress = Math.min(100, Math.max(0, progress || 0));
   return (
     <section
-      className="fixed inset-x-3 bottom-[calc(4.6rem+var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px)))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
+      className="app-safe-floating-panel fixed inset-x-3 bottom-[calc(4.6rem+var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px)))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
       style={{
         borderColor: theme.borderStrong,
         backgroundColor: theme.bgCard,
@@ -14610,7 +14605,7 @@ function WorkflowNotice({
 
   return (
     <div
-      className="fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px]"
+      className="app-safe-floating-panel fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px]"
       style={{
         top: `calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
       }}
@@ -14700,7 +14695,7 @@ function GuidedJourneyNudge({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
-        className="fixed bottom-[calc(var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px))+6.9rem)] left-1/2 z-[39] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
+        className="app-safe-floating-panel fixed bottom-[calc(var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px))+6.9rem)] inset-x-3 z-[39] mx-auto max-w-md rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
         style={{
           borderColor: theme.borderLight,
           background: `linear-gradient(145deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, transparent), color-mix(in srgb, ${theme.bgCard} 96%, transparent))`,
@@ -15246,6 +15241,7 @@ function HomeDashboard({
               <input
                 id="journey-search"
                 type="search"
+                aria-label={ts('journey.searchTitle')}
                 value={journeySearch}
                 onChange={(event) => setJourneySearch(event.target.value)}
                 placeholder={ts('journey.searchPlaceholder')}
