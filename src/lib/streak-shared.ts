@@ -12,10 +12,20 @@ export type StreakData = {
 
 export const STREAK_MILESTONES = [7, 30, 100, 365] as const;
 
-export function formatStreak(days: number): string {
-  if (days === 0) return "Start your streak today! 🔥";
-  if (days === 1) return "🔥 1-day reflection streak";
-  return `🔥 ${days}-day reflection streak`;
+export type StreakCopy = {
+  startToday: string;
+  oneDay: string;
+  multipleDays: string;
+};
+
+export function formatStreak(
+  days: number,
+  copy: StreakCopy,
+  formatNumber: (value: number) => string = String
+): string {
+  if (days === 0) return copy.startToday;
+  const template = days === 1 ? copy.oneDay : copy.multipleDays;
+  return template.replace("{days}", formatNumber(days));
 }
 
 export function getStreakLevel(days: number): string {

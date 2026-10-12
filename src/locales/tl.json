@@ -38,6 +38,11 @@
   "showDetails": "Ipakita ang mga detalye",
   "hideDetails": "Itago ang mga detalye",
   "modeGuidancePreview": "Panatilihing nakatutok ang view na ito. Palawakin kapag gusto mo ng mas malalim na pagsusuri, blind spot, at maturity signal.",
+  "modeSuggestion": {
+    "body": "Maaaring mas bagay ang tanong na ito sa pananaw na {mode}, na nakatuon sa {focus}.",
+    "use": "Gamitin ang {mode} para sa tanong na ito",
+    "stay": "Manatili sa {mode}"
+  },
   "trustLayer": "Antas ng tiwala",
   "preferencesTitle": "Wika at rehiyon",
   "language": "Wika",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Streak sa isang tingin",
     "modalTitle": "Ang iyong streak, malinaw na ipinapakita",
     "modalBody": "Isang maaliwalas na tingin sa bawat antas, kung ano ang kailangan para maabot ito, at kung ano na ang na-unlock mo.",
+    "startToday": "Simulan ang iyong streak ngayon! 🔥",
+    "oneDay": "🔥 {days}-araw na streak ng pagninilay",
+    "multipleDays": "🔥 {days}-araw na streak ng pagninilay",
+    "dayBadge": "{days}a",
     "start": "Magsimula",
     "keepGoing": "Ituloy!",
     "milestone7": "7-Araw na Usbong 🌱",
@@ -2738,7 +2747,7 @@
     "control": "Maaari kang tumanggi at gamitin ang grounded na sagot ng Aletheia. Baguhin ang pagpili anumang oras sa Account settings.",
     "useFallback": "Gamitin ang grounded na sagot",
     "allow": "Payagan ang pagproseso ng OpenAI",
-    "settingTitle": "Third-party AI processing",
+    "settingTitle": "Pagproseso ng third-party AI",
     "settingBody": "Payagan ang OpenAI na iproseso ang mga tanong at kaugnay na konteksto. I-off anumang oras para gumamit ng grounded na sagot."
   }
 }

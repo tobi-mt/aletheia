@@ -39,6 +39,7 @@ test("Reflection history stays compact while detail shows complete timestamped c
   assert.match(modal, /onAddReflection\(entry\.id, body\)/);
   assert.match(modal, /journalDisplayTitle/);
   assert.doesNotMatch(modal, />\s*\{ts\("labels\.reflection"\)\}\s*<\/h2>/);
+  assert.match(modal, /className="relative pr-16"/);
 });
 
 test("Decision owns the live discernment readout", () => {

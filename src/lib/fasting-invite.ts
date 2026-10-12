@@ -175,9 +175,9 @@ export function buildFastingDayPlan(durationValue: number | null, goal: string):
   });
 }
 
-export function formatFastingDurationLabel(durationValue: number | null) {
+export function formatFastingDurationLabel(durationValue: number | null, language = "en") {
   if (durationValue === null) {
     return "";
   }
-  return `${durationValue} day${durationValue === 1 ? "" : "s"}`;
+  return new Intl.NumberFormat(language, { style: "unit", unit: "day", unitDisplay: "long" }).format(durationValue);
 }

@@ -38,6 +38,11 @@
   "showDetails": "Fi àlàyé hàn",
   "hideDetails": "Pa àlàyé mọ́",
   "modeGuidancePreview": "Jẹ́ kí ojú-ìwòye yìí dojú kọ ohun pàtàkì. Ṣí i nígbà tí o bá fẹ́ ṣàyẹ̀wò jinlẹ̀, rí ibi tí a lè foju kọ́, àti ka àwọn àmì ìdàgbàsókè.",
+  "modeSuggestion": {
+    "body": "Ìbéèrè yìí lè bá ojú-ìwòye {mode} mu dáadáa, níbi tí a ti dojú kọ {focus}.",
+    "use": "Lo {mode} fún ìbéèrè yìí",
+    "stay": "Dúró pẹ̀lú {mode}"
+  },
   "trustLayer": "Ìpele ìgbẹ́kẹ̀lé",
   "preferencesTitle": "Èdè àti agbègbè",
   "language": "Èdè",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Ṣiṣàn ní kúkúrú",
     "modalTitle": "Ṣiṣàn rẹ, tí a ṣe àwòrán dáadáa",
     "modalBody": "Ìwò pẹ̀lẹ́pẹ̀lẹ́ sí gbogbo ìpele, ohun tí ó ń béèrè, àti ohun tí o ti ṣí tẹ́lẹ̀.",
+    "startToday": "Bẹ̀rẹ̀ ṣiṣàn rẹ lónìí! 🔥",
+    "oneDay": "🔥 Ṣiṣàn ìrònú ọjọ́ {days}",
+    "multipleDays": "🔥 Ṣiṣàn ìrònú ọjọ́ {days}",
+    "dayBadge": "{days}ọ",
     "start": "Bẹ̀rẹ̀",
     "keepGoing": "Máa jẹ́!",
     "milestone7": "Abọ ọjọ́ 7 🌱",

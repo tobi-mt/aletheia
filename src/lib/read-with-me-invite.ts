@@ -120,22 +120,24 @@ export function normalizeReadWithMeInviteDetails(
 
 export function formatReadWithMeDurationLabel(
   durationValue: number | null,
-  durationUnit: ReadWithMeInviteDurationUnit
+  durationUnit: ReadWithMeInviteDurationUnit,
+  language = "en"
 ) {
   if (durationValue === null) {
     return "";
   }
-  const unit = durationValue === 1 ? durationUnit.replace(/s$/, "") : durationUnit;
-  return `${durationValue} ${unit}`;
+  const unit = durationUnit.replace(/s$/, "") as "day" | "week" | "month";
+  return new Intl.NumberFormat(language, { style: "unit", unit, unitDisplay: "long" }).format(durationValue);
 }
 
 export function formatReadWithMePendingWindowLabel(
   pendingAfterValue: number | null,
-  pendingAfterUnit: ReadWithMeInvitePendingWindowUnit
+  pendingAfterUnit: ReadWithMeInvitePendingWindowUnit,
+  language = "en"
 ) {
   if (pendingAfterValue === null) {
     return "";
   }
-  const unit = pendingAfterValue === 1 ? pendingAfterUnit.replace(/s$/, "") : pendingAfterUnit;
-  return `after ${pendingAfterValue} ${unit}`;
+  const unit = pendingAfterUnit.replace(/s$/, "") as "hour" | "day";
+  return new Intl.RelativeTimeFormat(language, { numeric: "always" }).format(pendingAfterValue, unit);
 }

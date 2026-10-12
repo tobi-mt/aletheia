@@ -38,6 +38,11 @@
   "showDetails": "Show details",
   "hideDetails": "Hide details",
   "modeGuidancePreview": "Keep this view focused. Expand when you want deeper checks, blind spots, and maturity signals.",
+  "modeSuggestion": {
+    "body": "This question may fit the {mode} lens better, where the focus is {focus}.",
+    "use": "Use {mode} for this question",
+    "stay": "Stay with {mode}"
+  },
   "trustLayer": "Trust layer",
   "preferencesTitle": "Language and region",
   "language": "Language",
@@ -2493,6 +2498,10 @@
     "modalEyebrow": "Streak at a glance",
     "modalTitle": "Your streak, beautifully mapped",
     "modalBody": "A calm view of every milestone, what it takes to reach it, and what you have already unlocked.",
+    "startToday": "Start your streak today! 🔥",
+    "oneDay": "🔥 {days}-day reflection streak",
+    "multipleDays": "🔥 {days}-day reflection streak",
+    "dayBadge": "{days}d",
     "start": "Start",
     "keepGoing": "Keep going!",
     "milestone7": "7-Day Sprout 🌱",

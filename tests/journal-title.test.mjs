@@ -1,17 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveJournalTitle, journalDisplayTitle } from "../src/lib/journal-title.ts";
+import { journalDisplayTitle } from "../src/lib/journal-title.ts";
 
-test("journal titles become short, readable phrases without inventing content", () => {
-  assert.equal(
-    deriveJournalTitle("How can I practice faithful stewardship with today's money and work choices?"),
-    "How can I practice faithful stewardship with today's…"
-  );
-  assert.equal(deriveJournalTitle("I noticed peace after asking for counsel."), "I noticed peace after asking for counsel");
-  assert.equal(deriveJournalTitle("Peace"), null);
-});
-
-test("generic reflection titles are replaced from the saved prompt", () => {
+test("generic reflection titles remain untitled instead of repeating the prompt", () => {
   assert.equal(
     journalDisplayTitle({
       title: "Money Reflection",
@@ -20,11 +11,11 @@ test("generic reflection titles are replaced from the saved prompt", () => {
       modeLabel: "Money",
       reflectionLabel: "Reflection",
     }),
-    "Should I wait before making this purchase"
+    null
   );
 });
 
-test("a deliberate title is preserved and weak content can remain untitled", () => {
+test("a deliberate title is preserved while a title copied from content is omitted", () => {
   assert.equal(
     journalDisplayTitle({
       title: "A slower yes",
@@ -39,6 +30,16 @@ test("a deliberate title is preserved and weak content can remain untitled", () 
       title: "Reflection",
       body: "Peace",
       modeLabel: "Life",
+      reflectionLabel: "Reflection",
+    }),
+    null
+  );
+  assert.equal(
+    journalDisplayTitle({
+      title: "What does the Bible say about sexuality and…",
+      body: "Full counsel follows.",
+      prompt: "What does the Bible say about sexuality and feelings?",
+      modeLabel: "Money",
       reflectionLabel: "Reflection",
     }),
     null

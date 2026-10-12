@@ -38,6 +38,11 @@
   "showDetails": "Gosi nkọwa",
   "hideDetails": "Zoo nkọwa",
   "modeGuidancePreview": "Debe echiche a nfe. Mepee ya mgbe ịchọrọ nyocha miri emi, ihe nwere ike ịgbanahụ, na akara ntozu.",
+  "modeSuggestion": {
+    "body": "Ajụjụ a nwere ike ịka mma n'okpuru echiche {mode}, nke na-elekwasị anya na {focus}.",
+    "use": "Jiri {mode} maka ajụjụ a",
+    "stay": "Nọgide na {mode}"
+  },
   "trustLayer": "Ogo ntụkwasị obi",
   "preferencesTitle": "Asụsụ na mpaghara",
   "language": "Asụsụ",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Usoro na nlele",
     "modalTitle": "Usoro gị, gosipụtara nke ọma",
     "modalBody": "Nlele dị jụụ nke ụzọ ọhụụ ọ bụla, ihe ọ na-achọ, na ihe i mepeworị.",
+    "startToday": "Malite usoro gị taa! 🔥",
+    "oneDay": "🔥 Usoro ntụgharị uche nke ụbọchị {days}",
+    "multipleDays": "🔥 Usoro ntụgharị uche nke ụbọchị {days}",
+    "dayBadge": "{days}ụ",
     "start": "Malite",
     "keepGoing": "Nọgide!",
     "milestone7": "Ọpụpụ nke Ụbọchị 7 🌱",

@@ -4022,7 +4022,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
       const dayPrompt = fastingDays.find((d) => d.day === nextDay);
       if (!dayPrompt) continue;
       const dayLabel = String(getTranslation(translations, "challenges.dayLabel")).replace("{day}", String(nextDay));
-      const totalLabel = formatFastingDurationLabel(fastingInviteDetails.durationValue);
+      const totalLabel = formatFastingDurationLabel(fastingInviteDetails.durationValue, language);
       body = fastingReminderBody({
         language,
         tone: reentryTone,

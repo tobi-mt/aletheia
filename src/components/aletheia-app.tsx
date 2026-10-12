@@ -9,7 +9,7 @@ import { createPortal, flushSync } from "react-dom";
 import type { ThemeColors } from "@/components/surfaces/surface-contracts";
 import { englishText, type UiText } from "@/components/surfaces/ui-copy";
 import { runtimeCopyFor } from "@/components/surfaces/runtime-panel-copy";
-import { deriveJournalTitle, journalDisplayTitle } from "@/lib/journal-title";
+import { journalDisplayTitle } from "@/lib/journal-title";
 import {
   DisclosureIndicator,
   ModalCornerCloseButton,
@@ -108,6 +108,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
+import { suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { normalizeMode, stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
@@ -2445,6 +2446,19 @@ type ChatMessage = {
   text: string;
   sources?: WisdomEntry[];
   createdAt?: string;
+};
+
+type PendingModeSuggestion = {
+  question: string;
+  visibleQuestion?: string;
+  currentMode: Mode;
+  suggestedMode: Mode;
+};
+
+type PendingAiQuestion = {
+  question: string;
+  visibleQuestion?: string;
+  mode: Mode;
 };
 
 type ConversationExchange = {
@@ -5872,7 +5886,8 @@ export function AletheiaApp({
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showAccountDeletedFarewell, setShowAccountDeletedFarewell] = useState(false);
   const [showAiConsentModal, setShowAiConsentModal] = useState(false);
-  const [pendingAiQuestion, setPendingAiQuestion] = useState("");
+  const [pendingAiQuestion, setPendingAiQuestion] = useState<PendingAiQuestion | null>(null);
+  const [pendingModeSuggestion, setPendingModeSuggestion] = useState<PendingModeSuggestion | null>(null);
   const [aiConsentDeclined, setAiConsentDeclined] = useState(() => {
     try {
       return window.localStorage.getItem("aletheia_third_party_ai_declined") === "yes";
@@ -9088,6 +9103,7 @@ export function AletheiaApp({
   }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, preferences.language, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
+    setPendingModeSuggestion(null);
     setMode(nextMode);
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
@@ -9671,7 +9687,7 @@ function startFirstRunGuestFlow() {
     if (!question || !answer) return;
     const createdAt = new Date().toISOString();
     const entry = await persistJournalEntry({
-      title: deriveJournalTitle(question) ?? "",
+      title: "",
       body: `${question}\n\n${answer}`,
       messages: [
         { id: crypto.randomUUID(), role: "prompt", body: question, createdAt },
@@ -10712,7 +10728,7 @@ function startFirstRunGuestFlow() {
     }
   }
 
-  async function askAletheia(rawQuestion: string, consentOverride?: boolean, visibleQuestion?: string) {
+  async function askAletheia(rawQuestion: string, consentOverride?: boolean, visibleQuestion?: string, questionMode: Mode = mode) {
     if (isWorking) {
       return;
     }
@@ -10722,13 +10738,13 @@ function startFirstRunGuestFlow() {
       return;
     }
     if (!preferences.thirdPartyAiConsent && !aiConsentDeclined && consentOverride === undefined) {
-      setPendingAiQuestion(trimmed);
+      setPendingAiQuestion({ question: trimmed, visibleQuestion, mode: questionMode });
       setShowAiConsentModal(true);
       return;
     }
 
     const questionAnalytics = {
-      mode,
+      mode: questionMode,
       language: preferences.language,
       region: preferences.region,
       persisted: Boolean(user),
@@ -10736,7 +10752,7 @@ function startFirstRunGuestFlow() {
       onboarding_variant: (() => {
         try { return readExperimentVariant(window.localStorage, "activation_onboarding_v1") ?? "unassigned"; } catch { return "unassigned"; }
       })(),
-      ...analyticsQuestionMetadata(trimmed, mode),
+      ...analyticsQuestionMetadata(trimmed, questionMode),
     };
     trackClientEvent("question_asked", questionAnalytics);
     if (questionAnalytics.followup) {
@@ -10750,18 +10766,18 @@ function startFirstRunGuestFlow() {
         scheduleSignInPrompt("guest_second_question", {
           question_count: guestQuestionCountRef.current,
           location: "companion_ask",
-          mode,
+          mode: questionMode,
         });
       }
     }
 
-    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode, text: visibleQuestion?.trim() || trimmed };
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode: questionMode, text: visibleQuestion?.trim() || trimmed };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
       setMessages((current) => [
         ...current,
         userMessage,
-      { id: "thinking", role: "aletheia", mode, text: ts('notifications.retrievingWisdom') },
+      { id: "thinking", role: "aletheia", mode: questionMode, text: ts('notifications.retrievingWisdom') },
       ]);
     setQuery("");
 
@@ -10771,7 +10787,7 @@ function startFirstRunGuestFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: trimmed,
-          mode,
+          mode: questionMode,
           preferences: {
             ...preferences,
             thirdPartyAiConsent: consentOverride ?? preferences.thirdPartyAiConsent,
@@ -10804,7 +10820,7 @@ function startFirstRunGuestFlow() {
       if (!user) {
         scheduleSignInPrompt("guest_first_answer", {
           location: "answer_ready",
-          mode,
+          mode: questionMode,
           used_openai: Boolean(data.usedOpenAI),
           persisted: Boolean(data.persisted),
         });
@@ -10813,14 +10829,14 @@ function startFirstRunGuestFlow() {
       trackClientEvent("error_seen", {
         area: "chat",
         kind: "answer_generation_failed",
-        mode,
-        ...analyticsQuestionMetadata(trimmed, mode),
+        mode: questionMode,
+        ...analyticsQuestionMetadata(trimmed, questionMode),
       });
-      const fallback = composeResponse(trimmed, mode, preferences);
+      const fallback = composeResponse(trimmed, questionMode, preferences);
       setMessages((current) =>
         current.map((message) =>
           message.id === "thinking"
-            ? { id: crypto.randomUUID(), role: "aletheia", mode, text: fallback.text, sources: fallback.sources }
+            ? { id: crypto.randomUUID(), role: "aletheia", mode: questionMode, text: fallback.text, sources: fallback.sources }
             : message
         )
       );
@@ -10830,7 +10846,7 @@ function startFirstRunGuestFlow() {
       if (!user) {
         scheduleSignInPrompt("guest_first_answer", {
           location: "answer_fallback",
-          mode,
+          mode: questionMode,
           used_openai: false,
           persisted: false,
         });
@@ -10840,9 +10856,30 @@ function startFirstRunGuestFlow() {
     }
   }
 
+  async function submitQuestionWithModeCheck(rawQuestion: string, visibleQuestion?: string) {
+    if (isWorking) return;
+    const trimmed = rawQuestion.trim();
+    if (!trimmed) {
+      await askAletheia(rawQuestion, undefined, visibleQuestion);
+      return;
+    }
+    const suggestion = suggestModeForQuestion(trimmed, mode);
+    if (suggestion) {
+      setPendingModeSuggestion({
+        question: trimmed,
+        visibleQuestion,
+        currentMode: mode,
+        suggestedMode: suggestion.mode,
+      });
+      return;
+    }
+    setPendingModeSuggestion(null);
+    await askAletheia(trimmed, undefined, visibleQuestion);
+  }
+
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await askAletheia(query);
+    await submitQuestionWithModeCheck(query);
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -11800,7 +11837,7 @@ function startFirstRunGuestFlow() {
     }
     const isFirstReflection = journalEntries.length === 0;
     const entry = await persistJournalEntry({
-      title: journalTitle.trim() || deriveJournalTitle(body) || "",
+      title: journalTitle.trim(),
       body,
       messages: [{ id: crypto.randomUUID(), role: "reflection", body, createdAt: new Date().toISOString() }],
       source: "reflect_tab",
@@ -13109,12 +13146,33 @@ function startFirstRunGuestFlow() {
                       ui={ui}
                       query={query}
                       focusIntentions={focusIntentions}
-                      setQuery={setQuery}
+                      setQuery={(value) => {
+                        setQuery(value);
+                        if (pendingModeSuggestion && value.trim() !== pendingModeSuggestion.question) {
+                          setPendingModeSuggestion(null);
+                        }
+                      }}
                       onAsk={handleAsk}
-                      onDraftPrompt={setQuery}
+                      onDraftPrompt={(value) => {
+                        setPendingModeSuggestion(null);
+                        setQuery(value);
+                      }}
                       onModeChange={handleModeChange}
                       onListen={startVoiceInput}
-                      onAskQuestion={askAletheia}
+                      onAskQuestion={submitQuestionWithModeCheck}
+                      pendingModeSuggestion={pendingModeSuggestion}
+                      onUseSuggestedMode={() => {
+                        if (!pendingModeSuggestion) return;
+                        const pending = pendingModeSuggestion;
+                        setPendingModeSuggestion(null);
+                        void askAletheia(pending.question, undefined, pending.visibleQuestion, pending.suggestedMode);
+                      }}
+                      onKeepCurrentMode={() => {
+                        if (!pendingModeSuggestion) return;
+                        const pending = pendingModeSuggestion;
+                        setPendingModeSuggestion(null);
+                        void askAletheia(pending.question, undefined, pending.visibleQuestion, pending.currentMode);
+                      }}
                       onClearVoiceTranscript={() => setVoiceTranscriptPreview("")}
                       onSpeak={speakLatestAletheiaReply}
                       onTogglePause={toggleSpeechPause}
@@ -13632,6 +13690,7 @@ function startFirstRunGuestFlow() {
       />
       <ChallengeInviteModal
         theme={theme}
+        language={preferences.language}
         token={challengeInviteToken}
         inviteUrl={challengeInviteUrl}
         preview={challengeInvitePreview}
@@ -13727,28 +13786,33 @@ function startFirstRunGuestFlow() {
         theme={theme}
         ts={ts}
         onUseGroundedFallback={() => {
-          const question = pendingAiQuestion;
+          const pending = pendingAiQuestion;
           setShowAiConsentModal(false);
-          setPendingAiQuestion("");
+          setPendingAiQuestion(null);
           setAiConsentDeclined(true);
           try {
             window.localStorage.setItem("aletheia_third_party_ai_declined", "yes");
           } catch {
             // The choice still applies for this session if storage is unavailable.
           }
-          void askAletheia(question, false);
+          if (pending) {
+            void askAletheia(pending.question, false, pending.visibleQuestion, pending.mode);
+          }
         }}
         onAllowAi={() => {
-          const question = pendingAiQuestion;
+          const pending = pendingAiQuestion;
           setShowAiConsentModal(false);
-          setPendingAiQuestion("");
+          setPendingAiQuestion(null);
           setAiConsentDeclined(false);
           try {
             window.localStorage.removeItem("aletheia_third_party_ai_declined");
           } catch {
             // The choice still applies for this session if storage is unavailable.
           }
-          void updatePreferences({ thirdPartyAiConsent: true }, { silent: true }).then(() => askAletheia(question, true));
+          if (pending) {
+            void updatePreferences({ thirdPartyAiConsent: true }, { silent: true })
+              .then(() => askAletheia(pending.question, true, pending.visibleQuestion, pending.mode));
+          }
         }}
       />
       <ReportIssueModal
@@ -13763,6 +13827,7 @@ function startFirstRunGuestFlow() {
         open={showStreakMilestonesModal}
         theme={theme}
         ts={ts}
+        language={preferences.language}
         streakData={streakData}
         onClose={() => setShowStreakMilestonesModal(false)}
       />
@@ -17641,7 +17706,10 @@ function FormationRailSection({
   const [reflectionText, setReflectionText] = useState("");
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
-  const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(defaultReadWithMeInviteDetails);
+  const [readWithMeInviteDraft, setReadWithMeInviteDraft] = useState<ReadWithMeInviteDetails>(() => ({
+    ...defaultReadWithMeInviteDetails,
+    cadence: ts("challenges.readWithMeCadencePlaceholder"),
+  }));
   const [fastingInviteDraft, setFastingInviteDraft] = useState<FastingInviteDetails>(defaultFastingInviteDetails);
   const [inviteEditorChallengeId, setInviteEditorChallengeId] = useState<string | null>(null);
   const [inviteViewerChallengeId, setInviteViewerChallengeId] = useState<string | null>(null);
@@ -17913,22 +17981,23 @@ function FormationRailSection({
   const canCreateFastingInvite = fastingInviteDraft.durationValue !== null && fastingInviteDraft.durationValue > 0;
   const readWithMeDurationLabel = formatReadWithMeDurationLabel(
     readWithMeInviteDetails?.durationValue ?? null,
-    readWithMeInviteDetails?.durationUnit ?? defaultReadWithMeInviteDetails.durationUnit
+    readWithMeInviteDetails?.durationUnit ?? defaultReadWithMeInviteDetails.durationUnit,
+    language
   );
-  const fastingDurationLabel = formatFastingDurationLabel(fastingInviteDetails?.durationValue ?? null);
+  const fastingDurationLabel = formatFastingDurationLabel(fastingInviteDetails?.durationValue ?? null, language);
   const readWithMePendingWindowValue =
     readWithMeInviteDetails?.pendingAfterValue ?? defaultReadWithMeInviteDetails.pendingAfterValue;
   const readWithMePendingWindowUnit =
     readWithMeInviteDetails?.pendingAfterUnit ?? defaultReadWithMeInviteDetails.pendingAfterUnit;
   const readWithMeStartDate = readWithMeInviteDetails?.startDate
-    ? new Date(`${readWithMeInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+    ? new Date(`${readWithMeInviteDetails.startDate}T00:00:00`).toLocaleDateString(language, {
         month: "short",
         day: "numeric",
         year: "numeric",
       })
     : "";
   const fastingStartDate = fastingInviteDetails?.startDate
-    ? new Date(`${fastingInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+    ? new Date(`${fastingInviteDetails.startDate}T00:00:00`).toLocaleDateString(language, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -18182,7 +18251,10 @@ function FormationRailSection({
     } else if (inviteDetails?.kind === "fasting") {
       setFastingInviteDraft(normalizeFastingInviteDetails(inviteDetails));
     } else if (challenge.id === "read-with-me-7day") {
-      setReadWithMeInviteDraft(defaultReadWithMeInviteDetails);
+      setReadWithMeInviteDraft({
+        ...defaultReadWithMeInviteDetails,
+        cadence: ts("challenges.readWithMeCadencePlaceholder"),
+      });
       setRecipientNameDraft("");
       setRecipientNoteDraft("");
     } else {
@@ -19500,6 +19572,7 @@ function FormationRailSection({
                       <ChallengeResponseDashboard
                         theme={theme}
                         ts={ts}
+                        language={language}
                         show={Boolean(selectedCircleInviteDetails)}
                         recipients={readWithMeInviteRecipients}
                         responses={readWithMeInviteResponses}
@@ -19689,6 +19762,7 @@ function FormationRailSection({
 const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
   theme,
   ts,
+  language,
   show,
   recipients,
   responses,
@@ -19699,6 +19773,7 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
   show: boolean;
   recipients: ReadWithMeInviteRecipient[];
   responses: ChallengeCircleResponse[];
@@ -19851,7 +19926,7 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
                         <span>
                           {ts("labels.responded")}{" "}
-                          {new Date(response.respondedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          {new Date(response.respondedAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
                         </span>
                         {response.responseStatus && response.responseStatus !== status ? (
                           <span>• {response.responseStatus}</span>
@@ -20134,11 +20209,11 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                       {inviteViewerInviteDetails.bookTitle || ts("labels.notSet")}
                     </span>
                     <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {formatReadWithMeDurationLabel(inviteViewerInviteDetails.durationValue, inviteViewerInviteDetails.durationUnit)}
+                      {formatReadWithMeDurationLabel(inviteViewerInviteDetails.durationValue, inviteViewerInviteDetails.durationUnit, language)}
                     </span>
                     {inviteViewerInviteDetails.startDate ? (
                       <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                        {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(language, {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -20167,11 +20242,11 @@ const ChallengeInviteDetailsPanel = memo(function ChallengeInviteDetailsPanel({
                 <div className="mt-3 space-y-2">
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
-                      {formatFastingDurationLabel(inviteViewerInviteDetails.durationValue)}
+                      {formatFastingDurationLabel(inviteViewerInviteDetails.durationValue, language)}
                     </span>
                     {inviteViewerInviteDetails.startDate ? (
                       <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(undefined, {
+                        {new Date(`${inviteViewerInviteDetails.startDate}T00:00:00`).toLocaleDateString(language, {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -20685,7 +20760,7 @@ function AccountPersonalizationPanel({
               compact
             />
           </div>
-          <AvatarStudioCard theme={theme} user={user} ts={ts} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} />
+          <AvatarStudioCard theme={theme} user={user} ts={ts} language={preferences.language} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} />
         </div>
       </div>
 
@@ -22939,12 +23014,14 @@ function AvatarStudioCard({
   theme,
   user,
   ts,
+  language,
   onUpdateProfileAvatar,
   onUpdateProfileName,
 }: {
   theme: ThemeColors;
   user: User | null;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
   onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
   onUpdateProfileName: (name: string) => Promise<boolean>;
 }) {
@@ -23149,7 +23226,7 @@ function AvatarStudioCard({
         </div>
         {lastChangedAt ? (
           <span className="rounded-full border px-2 py-1 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-            {ts('avatar.lastChanged')} {new Date(lastChangedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {ts('avatar.lastChanged')} {new Date(lastChangedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" })}
           </span>
         ) : null}
       </div>
@@ -25969,12 +26046,14 @@ function StreakMilestonesModal({
   open,
   theme,
   ts,
+  language,
   streakData,
   onClose,
 }: {
   open: boolean;
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
+  language: LanguageCode;
   streakData: StreakData;
   onClose: () => void;
 }) {
@@ -25988,8 +26067,19 @@ function StreakMilestonesModal({
   const currentDays = streakData.consecutiveDays;
   const achievedCount = STREAK_MILESTONES.filter((milestone) => Boolean(streakData.achievements[milestone]) || currentDays >= milestone).length;
   const nextMilestone = STREAK_MILESTONES.find((milestone) => currentDays < milestone) ?? null;
-  const currentLabel = formatStreak(currentDays);
-  const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const numberFormatter = new Intl.NumberFormat(language);
+  const formatNumber = (value: number) => numberFormatter.format(value);
+  const formatDayBadge = (value: number) => ts("streak.dayBadge").replace("{days}", formatNumber(value));
+  const currentLabel = formatStreak(
+    currentDays,
+    {
+      startToday: ts("streak.startToday"),
+      oneDay: ts("streak.oneDay"),
+      multipleDays: ts("streak.multipleDays"),
+    },
+    formatNumber
+  );
+  const dateFormatter = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", year: "numeric" });
   const formatDate = (value: string | null | undefined) => {
     if (!value) {
       return null;
@@ -26092,12 +26182,12 @@ function StreakMilestonesModal({
             <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.primary}, color-mix(in srgb, ${theme.primary} 30%, ${theme.accentGold} 70%))` }} />
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.unlockedCount")}</p>
-              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{achievedCount}/{STREAK_MILESTONES.length}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{formatNumber(achievedCount)}/{formatNumber(STREAK_MILESTONES.length)}</p>
             </div>
             <div className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="mb-3 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${theme.borderStrong}, ${theme.accentGold})` }} />
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ts("streak.nextGoal")}</p>
-              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{nextMilestone ? `${nextMilestone}d` : ts("streak.allUnlocked")}</p>
+              <p className="mt-1.5 text-lg font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{nextMilestone ? formatDayBadge(nextMilestone) : ts("streak.allUnlocked")}</p>
             </div>
           </div>
         </div>
@@ -26164,7 +26254,7 @@ function StreakMilestonesModal({
                                 color: item.achieved ? theme.accentGold : theme.textSecondary,
                               }}
                             >
-                              {item.milestone}d
+                              {formatDayBadge(item.milestone)}
                             </span>
                           </div>
                           <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -26190,14 +26280,14 @@ function StreakMilestonesModal({
                             ? ts("streak.unlockedRequirement")
                             : item.remaining === 0
                               ? ts("streak.readyNow")
-                              : `${item.remaining} ${ts("streak.days")} ${ts("streak.remainingLabel")}`}
+                              : `${formatNumber(item.remaining)} ${ts("streak.days")} ${ts("streak.remainingLabel")}`}
                         </div>
                         <div className="rounded-2xl border px-3 py-2.5 text-[11px] font-medium leading-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
                           {item.achieved
                             ? item.unlockedAt
                               ? `${ts("streak.unlockedOn")} ${item.unlockedAt}`
                               : ts("streak.unlocked")
-                            : `${ts("streak.unlocksAt")} ${item.milestone} ${ts("streak.days")}`}
+                            : `${ts("streak.unlocksAt")} ${formatNumber(item.milestone)} ${ts("streak.days")}`}
                         </div>
                       </div>
                     </div>
@@ -26561,6 +26651,7 @@ function CounselInviteModal({
 
 function ChallengeInviteModal({
   theme,
+  language,
   token,
   inviteUrl,
   preview,
@@ -26595,6 +26686,7 @@ function ChallengeInviteModal({
   onClose,
 }: {
   theme: ThemeColors;
+  language: LanguageCode;
   token: string | null;
   inviteUrl: string | null;
   preview: ChallengeCircleSummary | null;
@@ -26680,11 +26772,11 @@ function ChallengeInviteModal({
   const isFastingInvite = details?.kind === "fasting";
   const detailSummaryDuration = details
     ? isFastingInvite
-      ? formatFastingDurationLabel(details.durationValue)
-      : formatReadWithMeDurationLabel(details.durationValue, details.durationUnit)
+      ? formatFastingDurationLabel(details.durationValue, language)
+      : formatReadWithMeDurationLabel(details.durationValue, details.durationUnit, language)
     : "";
   const detailSummaryStartDate = details?.startDate
-    ? new Date(`${details.startDate}T00:00:00`).toLocaleDateString(undefined, {
+    ? new Date(`${details.startDate}T00:00:00`).toLocaleDateString(language, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -26712,19 +26804,20 @@ function ChallengeInviteModal({
         : ts(challenge.challenge.titleKey, challenge.challenge.title);
     const text = details?.kind === "fasting"
       ? [
-          detailSummaryDuration ? `${detailSummaryDuration} fast` : "",
-          detailSummaryGoal ? `Goal: ${detailSummaryGoal}` : "",
-          detailSummaryStartDate ? `Start: ${detailSummaryStartDate}` : "",
+          detailSummaryDuration ? `${ts("labels.duration")}: ${detailSummaryDuration}` : "",
+          detailSummaryGoal ? `${ts("labels.goal")}: ${detailSummaryGoal}` : "",
+          detailSummaryStartDate ? `${ts("labels.startDate")}: ${detailSummaryStartDate}` : "",
           details.note?.trim() ? details.note.trim() : "",
         ]
           .filter(Boolean)
           .join(" · ")
       : details?.bookTitle?.trim()
         ? [
-            `${details.bookTitle.trim()}${details.author?.trim() ? ` by ${details.author.trim()}` : ""}`,
-            detailSummaryDuration ? `for ${detailSummaryDuration}` : "",
-            details.cadence ? `Cadence: ${details.cadence}` : "",
-            details.focus ? `Focus: ${details.focus}` : "",
+            details.bookTitle.trim(),
+            details.author?.trim() ? `${ts("labels.author")}: ${details.author.trim()}` : "",
+            detailSummaryDuration ? `${ts("labels.duration")}: ${detailSummaryDuration}` : "",
+            details.cadence ? `${ts("labels.cadence")}: ${details.cadence}` : "",
+            details.focus ? `${ts("labels.focus")}: ${details.focus}` : "",
           ]
             .filter(Boolean)
             .join(" · ")
@@ -27275,6 +27368,9 @@ function CompanionPanel({
   onModeChange,
   onListen,
   onAskQuestion,
+  pendingModeSuggestion,
+  onUseSuggestedMode,
+  onKeepCurrentMode,
   onClearVoiceTranscript,
   onSpeak,
   onTogglePause,
@@ -27319,6 +27415,9 @@ function CompanionPanel({
   onModeChange: (mode: Mode) => void;
   onListen: () => void;
   onAskQuestion: (question: string) => Promise<void>;
+  pendingModeSuggestion: PendingModeSuggestion | null;
+  onUseSuggestedMode: () => void;
+  onKeepCurrentMode: () => void;
   onClearVoiceTranscript: () => void;
   onSpeak: () => void;
   onTogglePause: () => void;
@@ -27370,6 +27469,15 @@ function CompanionPanel({
   const voiceDraft = voiceTranscriptPreview.trim();
   const modeLensRailRef = useRef<HTMLDivElement | null>(null);
   const modeLensRailHasOverflow = useRailOverflowCue(modeLensRailRef, modeCards.length > 1, [modeCards.length, mode, preferences.language]);
+  const suggestedModeLabel = pendingModeSuggestion
+    ? localizedModeLabel(pendingModeSuggestion.suggestedMode, preferences.language)
+    : "";
+  const currentModeLabel = pendingModeSuggestion
+    ? localizedModeLabel(pendingModeSuggestion.currentMode, preferences.language)
+    : "";
+  const suggestedModeFocus = pendingModeSuggestion
+    ? localizedModeProfile(pendingModeSuggestion.suggestedMode, preferences.language).focus
+    : "";
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -27484,6 +27592,41 @@ function CompanionPanel({
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
               />
             </div>
+
+            {pendingModeSuggestion ? (
+              <div
+                role="status"
+                aria-live="polite"
+                className="border-l-2 py-1 pl-3"
+                style={{ borderColor: theme.primary }}
+              >
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                  {ts('modeSuggestion.body')
+                    .replace('{mode}', suggestedModeLabel)
+                    .replace('{focus}', suggestedModeFocus)}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={onUseSuggestedMode}
+                    disabled={isWorking}
+                    className="min-h-11 rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    {ts('modeSuggestion.use').replace('{mode}', suggestedModeLabel)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onKeepCurrentMode}
+                    disabled={isWorking}
+                    className="min-h-11 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                  >
+                    {ts('modeSuggestion.stay').replace('{mode}', currentModeLabel)}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="flex items-stretch gap-2">
               {preferences.voiceEnabled ? (
@@ -32685,13 +32828,13 @@ function JournalEntryDetailModal({
               background: `radial-gradient(circle at 18% 18%, color-mix(in srgb, ${theme.accentGold} 18%, transparent), transparent 36%), radial-gradient(circle at 92% 0%, color-mix(in srgb, ${theme.primary} 10%, transparent), transparent 30%)`,
             }}
           />
-          <div className="relative">
+          <div className="relative pr-16">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs" style={{ color: theme.accentGold }}>
                 {ts("labels.reflectionJournal")}
               </p>
               {displayTitle ? (
-                <h2 id="journal-detail-title" className="mt-1.5 pr-12 text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
+                <h2 id="journal-detail-title" className="mt-1.5 break-words text-xl font-semibold tracking-tight sm:text-2xl" style={{ color: theme.textPrimary }}>
                   {displayTitle}
                 </h2>
               ) : null}

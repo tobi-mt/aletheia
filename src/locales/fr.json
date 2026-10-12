@@ -38,6 +38,11 @@
   "showDetails": "Afficher les détails",
   "hideDetails": "Masquer les détails",
   "modeGuidancePreview": "Garde cette vue ciblée. Déploie-la quand tu veux des vérifications plus approfondies, des angles morts et des signaux de maturité.",
+  "modeSuggestion": {
+    "body": "Cette question correspond peut-être mieux à l'angle {mode}, axé sur {focus}.",
+    "use": "Utiliser {mode} pour cette question",
+    "stay": "Rester avec {mode}"
+  },
   "trustLayer": "Couche de confiance",
   "preferencesTitle": "Langue et région",
   "language": "Langue",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Régularité en un clin d'œil",
     "modalTitle": "Votre régularité, clairement tracée",
     "modalBody": "Une vue apaisée de chaque palier, de ce qu’il faut pour l’atteindre et de ce que vous avez déjà débloqué.",
+    "startToday": "Commencez votre série aujourd’hui ! 🔥",
+    "oneDay": "🔥 Série de réflexion de {days} jour",
+    "multipleDays": "🔥 Série de réflexion de {days} jours",
+    "dayBadge": "{days} j",
     "start": "Commencer",
     "keepGoing": "Continue !",
     "milestone7": "Pousse de 7 jours 🌱",

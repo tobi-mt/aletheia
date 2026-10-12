@@ -38,6 +38,11 @@
   "showDetails": "Mostrar detalles",
   "hideDetails": "Ocultar detalles",
   "modeGuidancePreview": "Mantén esta vista centrada. Amplíala cuando quieras revisar señales profundas, puntos ciegos y madurez.",
+  "modeSuggestion": {
+    "body": "Esta pregunta podría encajar mejor con el enfoque {mode}, centrado en {focus}.",
+    "use": "Usar {mode} para esta pregunta",
+    "stay": "Seguir con {mode}"
+  },
   "trustLayer": "Capa de confianza",
   "preferencesTitle": "Idioma y región",
   "language": "Idioma",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Racha de un vistazo",
     "modalTitle": "Tu racha, trazada con claridad",
     "modalBody": "Una vista tranquila de cada hito, lo que requiere y lo que ya has desbloqueado.",
+    "startToday": "¡Empieza tu racha hoy! 🔥",
+    "oneDay": "🔥 Racha de reflexión de {days} día",
+    "multipleDays": "🔥 Racha de reflexión de {days} días",
+    "dayBadge": "{days} d",
     "start": "Inicio",
     "keepGoing": "¡Sigue adelante!",
     "milestone7": "Brote de 7 días 🌱",

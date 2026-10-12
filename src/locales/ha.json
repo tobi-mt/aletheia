@@ -38,6 +38,11 @@
   "showDetails": "Nuna bayani",
   "hideDetails": "Boyar da bayani",
   "modeGuidancePreview": "Ka bar wannan hangen ya kasance mai sauƙi. Buɗe shi idan kana son bincike mai zurfi, abin da ka iya ɓoye, da alamun balaga.",
+  "modeSuggestion": {
+    "body": "Wannan tambayar na iya fi dacewa da hangen {mode}, wanda ya mayar da hankali kan {focus}.",
+    "use": "Yi amfani da {mode} don tambayar nan",
+    "stay": "Ci gaba da {mode}"
+  },
   "trustLayer": "Matakin amincewa",
   "preferencesTitle": "Harshe da yanki",
   "language": "Harshe",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Jerin a taƙaice",
     "modalTitle": "Jerin ka, an tsara shi da kyau",
     "modalBody": "Natsattsen kallo ga kowane mataki, abin da ake buƙata don isa gare shi, da abin da ka riga ka buɗe.",
+    "startToday": "Fara jerinka yau! 🔥",
+    "oneDay": "🔥 Jerin tunani na rana {days}",
+    "multipleDays": "🔥 Jerin tunani na kwanaki {days}",
+    "dayBadge": "{days}r",
     "start": "Fara",
     "keepGoing": "Ka ci gaba!",
     "milestone7": "Tsiro na Kwana 7 🌱",

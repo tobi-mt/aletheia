@@ -38,6 +38,11 @@
   "showDetails": "Details zeigen",
   "hideDetails": "Details ausblenden",
   "modeGuidancePreview": "Halte diese Ansicht ruhig und fokussiert. Klappe sie auf, wenn du tiefer prüfen, blinde Flecken sehen und Reifezeichen erkennen willst.",
+  "modeSuggestion": {
+    "body": "Diese Frage passt vielleicht besser zur Perspektive {mode}, mit dem Schwerpunkt {focus}.",
+    "use": "Für diese Frage {mode} verwenden",
+    "stay": "Bei {mode} bleiben"
+  },
   "trustLayer": "Vertrauensebene",
   "preferencesTitle": "Sprache und Region",
   "language": "Sprache",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Beständigkeit auf einen Blick",
     "modalTitle": "Deine Beständigkeit, klar dargestellt",
     "modalBody": "Ein ruhiger Blick auf jede Stufe, was sie verlangt und was du bereits freigeschaltet hast.",
+    "startToday": "Beginne deine Serie heute! 🔥",
+    "oneDay": "🔥 Reflexionsserie: {days} Tag",
+    "multipleDays": "🔥 Reflexionsserie: {days} Tage",
+    "dayBadge": "{days} T",
     "start": "Start",
     "keepGoing": "Weiter so!",
     "milestone7": "7-Tage-Keim 🌱",

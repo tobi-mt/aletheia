@@ -38,6 +38,11 @@
   "showDetails": "Mostrar detalhes",
   "hideDetails": "Ocultar detalhes",
   "modeGuidancePreview": "Mantenha esta visão enxuta. Expanda quando quiser ver verificações de fundo, pontos cegos e sinais de maturidade.",
+  "modeSuggestion": {
+    "body": "Esta pergunta talvez se encaixe melhor na perspectiva {mode}, com foco em {focus}.",
+    "use": "Usar {mode} nesta pergunta",
+    "stay": "Continuar com {mode}"
+  },
   "trustLayer": "Camada de confiança",
   "preferencesTitle": "Idioma e região",
   "language": "Idioma",
@@ -2473,6 +2478,10 @@
     "modalEyebrow": "Sequência em resumo",
     "modalTitle": "Sua sequência, com clareza e elegância",
     "modalBody": "Uma visão calma de cada marco, do que é preciso para alcançá-lo e do que você já desbloqueou.",
+    "startToday": "Comece sua sequência hoje! 🔥",
+    "oneDay": "🔥 Sequência de reflexão de {days} dia",
+    "multipleDays": "🔥 Sequência de reflexão de {days} dias",
+    "dayBadge": "{days} d",
     "start": "Início",
     "keepGoing": "Continue!",
     "milestone7": "Broto de 7 dias 🌱",
