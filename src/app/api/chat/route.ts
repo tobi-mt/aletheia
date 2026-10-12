@@ -128,10 +128,14 @@ export async function GET() {
     created_at: string;
   }>(
     `SELECT id, role, mode, content, sources, created_at
-     FROM chat_messages
-     WHERE user_id = ?
-     ORDER BY created_at ASC
-     LIMIT 60`,
+     FROM (
+       SELECT id, role, mode, content, sources, created_at
+       FROM chat_messages
+       WHERE user_id = ?
+       ORDER BY created_at DESC, CASE WHEN role = 'aletheia' THEN 0 ELSE 1 END
+       LIMIT 60
+     ) recent_messages
+     ORDER BY created_at ASC, CASE WHEN role = 'user' THEN 0 ELSE 1 END`,
     user.id
   );
 
@@ -259,7 +263,7 @@ export async function POST(request: Request) {
 - Do not quote journal/reflection content unless the user provides it in this chat. For decisions, summarize patterns before naming details.
 - Respect region and language preferences while avoiding legal, tax, medical, or regulated financial claims.`;
   if (user) {
-    const [decisions, rules, journals, manualContextRows, memoryRows] = await Promise.all([
+    const [decisions, rules, journals, manualContextRows, memoryRows, recentChatRows] = await Promise.all([
       many<{ title: string; mode: string; pressure: string; status: string; updated_at: string }>(
         `SELECT title, mode, pressure, status, updated_at
          FROM wisdom_decisions
@@ -307,6 +311,14 @@ export async function POST(request: Request) {
          LIMIT 1`,
         user.id
       ),
+      many<{ mode: string; content: string; created_at: string }>(
+        `SELECT mode, content, created_at
+         FROM chat_messages
+         WHERE user_id = ? AND role = 'user'
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        user.id
+      ),
     ]);
     const contextRow = manualContextRows[0];
     const contextFromJson =
@@ -335,6 +347,11 @@ export async function POST(request: Request) {
       clientContext,
       memoryRow?.summary ? `Saved user-safe memory:\n${memoryRow.summary}` : "",
       safeSummary,
+      recentChatRows.length
+        ? `Recent questions for continuity (newest first; use only when relevant and do not claim more certainty than they support):\n${recentChatRows
+            .map((message) => `- ${message.mode}: ${message.content.slice(0, 280)}`)
+            .join("\n")}`
+        : "",
       manualContextSummary(manualContext) ? `User-provided manual context:\n${manualContextSummary(manualContext)}` : "",
       decisions.length
         ? `Active/recent decisions:\n${decisions

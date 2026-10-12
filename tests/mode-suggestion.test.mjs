@@ -18,6 +18,7 @@ test("recognizes high-confidence money, generosity, life, and purpose questions"
   assert.equal(suggestModeForQuestion("How much should I give to charity this month?", "Money")?.mode, "Generosity");
   assert.equal(suggestModeForQuestion("How can I forgive my family after this conflict?", "Money")?.mode, "Life");
   assert.equal(suggestModeForQuestion("I have lost my sense of direction and purpose in life.", "Money")?.mode, "Purpose");
+  assert.equal(suggestModeForQuestion("Should I change my career this year?", "Money")?.mode, "Work");
 });
 
 test("stays quiet for vague or genuinely cross-mode questions", () => {

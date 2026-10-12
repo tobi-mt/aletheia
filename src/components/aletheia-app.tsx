@@ -13290,6 +13290,14 @@ function startFirstRunGuestFlow() {
                       pressure={decisionPressure}
                       emotion={decisionEmotion}
                       focusIntentions={focusIntentions}
+                      latestCounselExchange={conversationExchanges(messages)
+                        .filter((exchange) => Boolean(exchange.question) && exchange.answer.id !== "thinking")
+                        .at(-1) ?? null}
+                      onOpenLatestCounsel={(exchange) => {
+                        setHomeSection("ask", "decision_counsel_continuation");
+                        showView("companion");
+                        setAnswerFocusId(exchange.answer.id);
+                      }}
                       counselName={counselName}
                       counselRole={counselRole}
                       counselAvatarUrl={counselAvatarUrl}
@@ -27687,11 +27695,6 @@ function CompanionPanel({
               </button>
             </div>
 
-            <div className="flex items-start gap-2 px-1 text-xs leading-5" style={{ color: theme.textMuted }}>
-              <ShieldCheck size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <p>{signedIn ? ts('labels.syncActiveFull') : ts('labels.accountGuestSummary')}</p>
-            </div>
-
             {isListening || voiceDraft ? (
               <DisclosureSection
                 title={isListening ? ts('notifications.voiceInputListening') : ts('labels.voiceTranscription')}
@@ -29696,6 +29699,8 @@ function DecisionCompanionPanel({
   pressure,
   emotion,
   focusIntentions,
+  latestCounselExchange,
+  onOpenLatestCounsel,
   counselName,
   counselRole,
   counselAvatarUrl,
@@ -29759,6 +29764,8 @@ function DecisionCompanionPanel({
   pressure: string;
   emotion: string;
   focusIntentions: string[];
+  latestCounselExchange: ConversationExchange | null;
+  onOpenLatestCounsel: (exchange: ConversationExchange) => void;
   counselName: string;
   counselRole: string;
   counselAvatarUrl: string;
@@ -29845,6 +29852,13 @@ function DecisionCompanionPanel({
   const decisionNextBodyWithFocus = decisionFocusPrompt
     ? `${decisionNextBody} ${decisionFocusPrompt}`
     : decisionNextBody;
+  const latestCounselContinuation = latestCounselExchange?.question
+    ? buildAnswerContinuation(
+        latestCounselExchange.question.text,
+        latestCounselExchange.answer.text,
+        latestCounselExchange.mode,
+      )
+    : null;
   const visibleCounselContacts = counselContacts.slice(0, 3);
   const hiddenCounselContacts = counselContacts.slice(3);
   const incomingSharedDecisionItems = receivedCounselInvites
@@ -30128,6 +30142,24 @@ function DecisionCompanionPanel({
         onClose={() => setWisdomTimelineOpen(false)}
       />
       <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
+      {latestCounselExchange?.question ? (
+        <button
+          type="button"
+          onClick={() => onOpenLatestCounsel(latestCounselExchange)}
+          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[1.1rem] border px-4 py-3 text-left transition active:scale-[0.99]"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+        >
+          <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts('labels.continueFromThis')}
+            </span>
+            <span className="mt-1 block text-sm font-semibold leading-5">
+              {latestCounselContinuation?.direction ?? cleanDisplayText(latestCounselExchange.question.text)}
+            </span>
+          </span>
+          <ChevronRight size={17} className="shrink-0" aria-hidden="true" />
+        </button>
+      ) : null}
       <ScreenTabs
         value={decisionSection}
         onChange={(section) => {

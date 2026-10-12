@@ -48,7 +48,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
       "bagong trabaho", "alok na trabaho", "magpalit ng karera", "umalis sa trabaho",
     ],
     terms: [
-      "career", "workplace", "promotion", "interview", "resign", "burnout", "business", "leadership",
+      "job", "career", "workplace", "promotion", "interview", "resign", "burnout", "business", "leadership",
       "carrera", "ascenso", "entrevista", "renunciar", "agotamiento", "negocio", "liderazgo",
       "carrière", "promotion", "entretien", "démissionner", "épuisement", "entreprise", "leadership",
       "karriere", "beförderung", "vorstellungsgespräch", "kündigen", "burnout", "unternehmen", "führung",
@@ -181,8 +181,8 @@ export function suggestModeForQuestion(question: string, currentMode: Mode): Mod
   if (
     !best ||
     best.mode === currentMode ||
-    best.score < 4 ||
-    best.score - (runnerUp?.score ?? 0) < 3 ||
+    best.score < 2 ||
+    best.score - (runnerUp?.score ?? 0) < 2 ||
     best.score - currentScore < 2
   ) {
     return null;
