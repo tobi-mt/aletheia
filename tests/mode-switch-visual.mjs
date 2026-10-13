@@ -113,7 +113,10 @@ try {
   } else {
 
   const notice = page.getByText("Using the Work lens for a better fit", { exact: true });
-  await notice.waitFor({ state: "visible", timeout: 2_000 });
+  await notice.waitFor({ state: "visible", timeout: 2_000 }).catch(async (error) => {
+    console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-3_000) });
+    throw error;
+  });
   assert.equal(await page.getByRole("button", { name: "Keep Money", exact: true }).isVisible(), true);
   assert.equal(await page.locator(".mode-switch-progress").isVisible(), true);
   await page.screenshot({ path: path.join(outputDir, "01-auto-switch-notice.png"), fullPage: false });

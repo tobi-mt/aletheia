@@ -7,13 +7,16 @@ import process from "node:process";
 
 const DEFAULT_PUBLIC_APP_ORIGIN = "https://aletheia.mirrortalkpodcast.com";
 
-function runBuild(rootDir, appOrigin) {
+function runBuild(rootDir, appOrigin, modeFitShadowPercent) {
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   const env = {
     ...process.env,
     AUTH_URL: process.env.AUTH_URL || appOrigin,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || appOrigin,
     NEXT_PUBLIC_NATIVE_WEB_BUNDLE: "1",
+    // Native test/release builds must visibly exercise mode-fit by default.
+    // Use the native-only override explicitly when a deliberate shadow rollout is needed.
+    NEXT_PUBLIC_MODE_FIT_SHADOW_PERCENT: modeFitShadowPercent,
   };
 
   execFileSync(npmCommand, ["run", "build"], {
@@ -21,6 +24,27 @@ function runBuild(rootDir, appOrigin) {
     env,
     stdio: "inherit",
   });
+}
+
+async function verifyNativeModeFitBundle(staticDir, expectedShadowPercent) {
+  const chunksDir = path.join(staticDir, "chunks");
+  const chunkNames = await readdir(chunksDir).catch(() => []);
+  const expectedLiteral = `Number("${expectedShadowPercent}")`;
+  let modeFitChunkFound = false;
+
+  for (const name of chunkNames) {
+    if (!name.endsWith(".js")) continue;
+    const contents = await readFile(path.join(chunksDir, name), "utf8");
+    if (!contents.includes("mode_fit_prediction")) continue;
+    modeFitChunkFound = true;
+    if (!contents.includes(expectedLiteral)) {
+      throw new Error(`Native mode-fit bundle mismatch: expected shadow percent ${expectedShadowPercent}.`);
+    }
+  }
+
+  if (!modeFitChunkFound) {
+    throw new Error("Native mode-fit bundle verification failed: runtime marker was not found.");
+  }
 }
 
 function shouldCopyNativeServerArtifact(name) {
@@ -69,8 +93,10 @@ async function main() {
   const nextServerAppDir = path.join(rootDir, ".next", "server", "app");
   const nextStaticDir = path.join(rootDir, ".next", "static");
   const publicDir = path.join(rootDir, "public");
+  const modeFitShadowPercent = (process.env.NATIVE_MODE_FIT_SHADOW_PERCENT ?? "0").trim() || "0";
 
-  runBuild(rootDir, appOrigin);
+  runBuild(rootDir, appOrigin, modeFitShadowPercent);
+  await verifyNativeModeFitBundle(nextStaticDir, modeFitShadowPercent);
 
   await rm(capacitorWebDir, { recursive: true, force: true });
   await mkdir(capacitorWebDir, { recursive: true });
@@ -94,6 +120,8 @@ async function main() {
       2
     )}\n`
   );
+
+  console.log(`Verified native mode-fit shadow percent: ${modeFitShadowPercent}`);
 }
 
 await main();
