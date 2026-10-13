@@ -61,4 +61,7 @@ SCRIPTURE_COVERAGE_INVENTORY.md
 /capacitor-web/*
 !/capacitor-web/index.html
 !/capacitor-web/capacitor.config.json
+/ios/.swiftpm-cache/
+/ios/.derived-data/
+/ios/build/
 deployment_cert.der

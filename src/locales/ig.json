@@ -2418,6 +2418,8 @@
     "completedTodayBody": "Ụbọchị {nextDay} nke {total} na-eche ruo echi.",
     "inProgressBody": "Gaa n'ihu na ụbọchị {nextDay} nke {total}.",
     "continueCurrentPractice": "Gaa n'ihu na omume gị ugbu a",
+    "historyTitle": "Akụkọ omume",
+    "historySummary": "Ụbọchị emechara na ntụgharị uche sitere n'omume nzụlite gị.",
     "reentryNote": "Ị banyelarị site na omume a. Debe ụda ahụ n'ụbọchị {nextDay}.",
     "communitySummaryTitle": "Ọnọdụ okirikiri n’otu anya",
     "communitySummaryBody": "Ọganihu, mkpali, na nyocha na-apụta ebe a ka omume na-aga.",

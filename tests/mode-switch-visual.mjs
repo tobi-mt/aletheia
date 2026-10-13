@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 const baseUrl = process.env.MODE_SWITCH_TEST_URL || "http://localhost:3000";
 const outputDir = path.resolve("test-results/mode-switch-visual");
 const shadowScenario = process.env.MODE_SWITCH_SHADOW === "1";
+const freshConsentScenario = process.env.MODE_SWITCH_FRESH_CONSENT === "1";
 const semanticScenario = process.env.MODE_SWITCH_SEMANTIC === "1" || shadowScenario;
 const testQuestion = semanticScenario
   ? "Would a different role make better use of my strengths?"
@@ -20,6 +21,7 @@ const context = await browser.newContext({
   colorScheme: "light",
 });
 const page = await context.newPage();
+page.on("pageerror", (error) => console.error("PAGE ERROR", error));
 const requestedModes = [];
 
 await page.route("**/api/chat/mode-fit", async (route) => {
@@ -65,20 +67,25 @@ await page.route("**/api/chat", async (route, request) => {
 
 try {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await page.evaluate((semanticScenario) => {
+  await page.evaluate(({ semanticScenario, freshConsentScenario }) => {
     localStorage.setItem("aletheia_preferences", JSON.stringify({
       language: "en",
       region: "US",
       bibleTranslation: "WEB",
       voiceEnabled: true,
-      thirdPartyAiConsent: semanticScenario,
+      thirdPartyAiConsent: freshConsentScenario ? false : semanticScenario,
     }));
-    localStorage.setItem("aletheia_third_party_ai_declined", "yes");
+    if (freshConsentScenario) localStorage.removeItem("aletheia_third_party_ai_declined");
+    else localStorage.setItem("aletheia_third_party_ai_declined", "yes");
     localStorage.setItem("aletheia_onboarding_complete", "yes");
     localStorage.setItem("aletheia_first_run_gate_complete", "yes");
     localStorage.removeItem("aletheia_onboarding_progress");
-  }, semanticScenario);
+  }, { semanticScenario, freshConsentScenario });
   await page.reload({ waitUntil: "networkidle" });
+  if (freshConsentScenario) {
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("aletheia_preferences") ?? "{}").thirdPartyAiConsent), false);
+    assert.equal(await page.evaluate(() => localStorage.getItem("aletheia_third_party_ai_declined")), null);
+  }
   await page.getByRole("button", { name: "Ask Aletheia", exact: true }).first().click();
   await page.locator("#companion-question-input").waitFor({ state: "visible", timeout: 10_000 });
   await page.locator("#companion-question-input").fill(testQuestion);
@@ -86,6 +93,13 @@ try {
     ? page.waitForRequest((request) => request.url().includes("/api/chat/mode-fit"), { timeout: 5_000 })
     : null;
   await page.locator("#companion-question-input").locator("xpath=ancestor::form").locator('button[type="submit"]').click();
+  if (freshConsentScenario) {
+    await page.getByRole("dialog").waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
+      console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-2_000) });
+      throw error;
+    });
+    await page.getByRole("button", { name: /Allow .* processing/i }).click();
+  }
   if (semanticRequest) await semanticRequest;
 
   if (shadowScenario) {

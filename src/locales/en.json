@@ -2438,6 +2438,8 @@
     "completedTodayBody": "Day {nextDay} of {total} waits until tomorrow.",
     "inProgressBody": "Continue with day {nextDay} of {total}.",
     "continueCurrentPractice": "Continue your current practice",
+    "historyTitle": "Practice history",
+    "historySummary": "Completed days and reflections from your formation practices.",
     "reentryNote": "You are already partway through this practice. Keep the rhythm going with day {nextDay}.",
     "communitySummaryTitle": "Circle activity at a glance",
     "communitySummaryBody": "Progress, nudges, and check-ins show up here as the practice moves.",

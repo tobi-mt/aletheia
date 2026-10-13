@@ -2418,6 +2418,8 @@
     "completedTodayBody": "Ọjọ́ {nextDay} nínú {total} ń dúró de ọ̀la.",
     "inProgressBody": "Tẹ̀síwájú pẹ̀lú ọjọ́ {nextDay} nínú {total}.",
     "continueCurrentPractice": "Tẹ̀síwájú pẹ̀lú ìṣe rẹ lọwọlọwọ",
+    "historyTitle": "Ìtàn àwọn ìṣe",
+    "historySummary": "Àwọn ọjọ́ tí o parí àti ìrònú láti inú àwọn ìṣe ìdàgbàsókè rẹ.",
     "reentryNote": "O ti wa ni apakan tẹlẹ nipasẹ iṣe yii. Jeki ariwo naa lọ pẹlu ọjọ {nextDay}.",
     "communitySummaryTitle": "Iṣẹ́ ẹgbẹ́ ni kánkán",
     "communitySummaryBody": "Ilọsiwaju, ìmúnilọ́kànlẹ́, àti ìṣàyẹ̀wò máa hàn níbí bí ìṣe ṣe ń lọ.",

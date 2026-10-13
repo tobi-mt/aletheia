@@ -2418,6 +2418,8 @@
     "completedTodayBody": "اليوم {nextDay} من {total} ينتظر الغد.",
     "inProgressBody": "واصل مع اليوم {nextDay} من {total}.",
     "continueCurrentPractice": "واصل ممارستك الحالية",
+    "historyTitle": "سجل الممارسات",
+    "historySummary": "الأيام المكتملة والتأملات من ممارساتك التكوينية.",
     "reentryNote": "أنت بالفعل في منتصف الطريق من خلال هذه الممارسة. حافظ على إيقاعك مع اليوم {nextDay}.",
     "communitySummaryTitle": "نشاط الدائرة",
     "communitySummaryBody": "يظهر التقدم والتنبيهات والمتابعات هنا مع استمرار الممارسة.",

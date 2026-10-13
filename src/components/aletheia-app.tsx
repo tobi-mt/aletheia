@@ -250,7 +250,7 @@ type JourneyDestination =
   | { view: "decisions"; section: "rhythm"; entryId?: string }
   | { view: "reflect"; section: "journal"; entryId?: string }
   | { view: "reflect"; section: "gratitude"; entryId?: string }
-  | { view: "library"; section: "saved" | "explore"; entryId?: string };
+  | { view: "library"; section: "saved" | "explore" | "formation"; entryId?: string };
 type JourneyItem = {
   id: string;
   kind: "decision" | "reflection" | "counsel" | "reminder" | "gratitude" | "scripture" | "rule";
@@ -2459,6 +2459,7 @@ type AutoModeSwitchState = {
   suggestedMode: Mode;
   learningTopic: string;
   modeFitObservation: NonNullable<AskAletheiaOptions["modeFitObservation"]>;
+  consentOverride?: boolean;
 };
 
 type AskAletheiaOptions = {
@@ -5839,7 +5840,7 @@ export function AletheiaApp({
   const [journalTitle, setJournalTitle] = useState("");
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal">("gratitude");
+  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal" | "formation">("gratitude");
   const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(() => storedGratitudeEntries());
   const [gratitudeSyncStatus, setGratitudeSyncStatus] = useState<GratitudeSyncStatus>("local");
   const [isOnline, setIsOnline] = useState(true);
@@ -5863,7 +5864,7 @@ export function AletheiaApp({
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
   const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
-  const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | null>(null);
+  const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | "formation" | null>(null);
   const [pendingLibraryEntryFocusId, setPendingLibraryEntryFocusId] = useState<string | null>(null);
   const [clientStateRestored, setClientStateRestored] = useState(false);
   const bootReadyReportedRef = useRef(false);
@@ -6203,15 +6204,14 @@ export function AletheiaApp({
     }
 
     if (notificationRoute.focus === "challenge") {
-      setActiveView("companion", "notification_click");
-      setHomeSectionState("today");
+      setRequestedLibrarySection("formation");
+      setActiveView("library", "notification_click");
       if (notificationRoute.challengeId) {
         setPendingChallengeId(notificationRoute.challengeId);
       }
       if (notificationRoute.section === "nudges") {
         setPendingChallengeFocus("nudges");
       }
-      scrollToSection("home-formation");
       return;
     }
 
@@ -6678,7 +6678,7 @@ export function AletheiaApp({
       setReflectSection(destination.section);
       if (destination.section === "journal") {
         setPendingJournalEntryFocusId(destination.entryId ?? null);
-      } else {
+      } else if (destination.section === "gratitude") {
         setPendingGratitudeEntryFocusId(destination.entryId ?? null);
       }
     } else if (destination.view === "library") {
@@ -9306,9 +9306,8 @@ function startFirstRunGuestFlow() {
 
   function openRecommendedChallenge(challengeId: string) {
     setPendingChallengeId(challengeId);
-    setHomeSection("today", "challenge");
-    showView("companion");
-    scrollToSection("home-formation");
+    setRequestedLibrarySection("formation");
+    showView("library");
   }
 
   function askOneQuestionFlow() {
@@ -10967,17 +10966,17 @@ function startFirstRunGuestFlow() {
     }
   }
 
-  async function submitQuestionWithModeCheck(rawQuestion: string, visibleQuestion?: string) {
+  async function submitQuestionWithModeCheck(rawQuestion: string, visibleQuestion?: string, consentOverride?: boolean) {
     if (isWorking || modeFitSubmissionInFlightRef.current) return;
     modeFitSubmissionInFlightRef.current = true;
     try {
-      await submitQuestionWithModeCheckOnce(rawQuestion, visibleQuestion);
+      await submitQuestionWithModeCheckOnce(rawQuestion, visibleQuestion, consentOverride);
     } finally {
       modeFitSubmissionInFlightRef.current = false;
     }
   }
 
-  async function submitQuestionWithModeCheckOnce(rawQuestion: string, visibleQuestion?: string) {
+  async function submitQuestionWithModeCheckOnce(rawQuestion: string, visibleQuestion?: string, consentOverride?: boolean) {
     const trimmed = rawQuestion.trim();
     if (!trimmed) {
       await askAletheia(rawQuestion, undefined, visibleQuestion);
@@ -10985,12 +10984,12 @@ function startFirstRunGuestFlow() {
     }
     const originalMode = mode;
     const isFollowUp = messages.some((message) => message.role === "user");
-    let detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined)
+    let detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined || consentOverride !== undefined)
       ? suggestModeForQuestion(trimmed, originalMode, { followUp: isFollowUp })
       : null;
     let semanticProbabilities: import("@/lib/semantic-mode-fit").ModeProbabilities | null = null;
     let semanticSuggestion: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null = null;
-    if (!detectedSuggestion && preferences.thirdPartyAiConsent && navigator.onLine) {
+    if (!detectedSuggestion && (consentOverride ?? preferences.thirdPartyAiConsent) && navigator.onLine) {
       try {
         const classificationResponse = await fetch("/api/chat/mode-fit", {
           method: "POST",
@@ -11029,7 +11028,7 @@ function startFirstRunGuestFlow() {
     }
     if (!suggestion) {
       latestModeFitObservationRef.current = undefined;
-      await askAletheia(trimmed, undefined, visibleQuestion, originalMode);
+      await askAletheia(trimmed, consentOverride, visibleQuestion, originalMode);
       return;
     }
     const predictionId = crypto.randomUUID();
@@ -11064,7 +11063,7 @@ function startFirstRunGuestFlow() {
       probability_life: semanticProbabilities?.Life ?? null,
     });
     if (policy === "shadow") {
-      await askAletheia(trimmed, undefined, visibleQuestion, originalMode, { modeFitObservation: observation });
+      await askAletheia(trimmed, consentOverride, visibleQuestion, originalMode, { modeFitObservation: observation });
       return;
     }
     const requestId = ++chatRequestSequenceRef.current;
@@ -11078,6 +11077,7 @@ function startFirstRunGuestFlow() {
       suggestedMode: suggestion.mode,
       learningTopic: suggestion.topic ?? suggestion.evidence,
       modeFitObservation: observation,
+      consentOverride,
     };
     setActiveAutoModeSwitch(autoSwitch);
     setMode(suggestion.mode);
@@ -11087,7 +11087,7 @@ function startFirstRunGuestFlow() {
       confidence: suggestion.confidence,
       evidence: suggestion.evidence,
     });
-    await askAletheia(trimmed, undefined, visibleQuestion, suggestion.mode, {
+    await askAletheia(trimmed, consentOverride, visibleQuestion, suggestion.mode, {
       deferPersistence: true,
       holdUntil: vetoUntil,
       requestId,
@@ -11118,7 +11118,7 @@ function startFirstRunGuestFlow() {
       suggested_mode: pending.suggestedMode,
       topic: pending.learningTopic,
     });
-    await askAletheia(pending.question, undefined, pending.visibleQuestion, pending.originalMode, {
+    await askAletheia(pending.question, pending.consentOverride, pending.visibleQuestion, pending.originalMode, {
       deferPersistence: true,
       replacePending: true,
       requestId,
@@ -12974,9 +12974,8 @@ function startFirstRunGuestFlow() {
       );
       if (action === "accept") {
         setPendingChallengeId(data.challengeId);
-        setHomeSection("today", "challenge_invite");
-        showView("companion");
-        scrollToSection("home-formation");
+        setRequestedLibrarySection("formation");
+        showView("library");
         writeStoredChallengeInviteToken(null);
         setChallengeInviteToken(null);
         setChallengeInvitePreview(null);
@@ -13449,9 +13448,9 @@ function startFirstRunGuestFlow() {
                         weeklyReview={weeklyReview}
                         journeyItems={journeyItems}
                         journeySearchItems={journeySearchItems}
+                        signedIn={Boolean(user)}
                         personalizationContextEmpty={!manualContextHasContent(manualContext)}
                         prioritizeToday={pendingNotificationFocus}
-                        challengeRecommendation={featuredChallengeRecommendation.primary}
                         ts={ts}
                         onScriptureOpen={openScripture}
                         onContinueDecision={continueDecisionFlow}
@@ -13465,33 +13464,6 @@ function startFirstRunGuestFlow() {
                         onOpenJourneyItem={(item) => openJourneyDestination(item.destination, "home_journey")}
                         theme={theme}
                       />
-                      <div id="home-formation" className="mt-5 scroll-mt-24">
-                        <FormationRailSection
-                          theme={theme}
-                          ts={ts}
-                          user={user}
-                          mode={mode}
-                          manualContext={manualContext}
-                          counselContacts={counselContacts}
-                          focusIntentions={focusIntentions}
-                          messages={messages}
-                          journalEntries={journalEntries}
-                          wisdomDecisions={wisdomDecisions}
-                          pendingChallengeId={pendingChallengeId}
-                          pendingChallengeFocus={pendingChallengeFocus}
-                          onClearPendingChallenge={() => { setPendingChallengeId(null); setPendingChallengeFocus(null); }}
-                          challengeCircleRefreshKey={challengeCircleRefreshKey}
-                          onChallengeCircleChanged={refreshChallengeCircles}
-                          onChallengeInviteReady={({ inviteUrl, circle }) => {
-                            setChallengeInviteToken(null);
-                            setChallengeInvitePreview(circle);
-                            setChallengeInviteUrl(inviteUrl);
-                            setChallengeInviteStatus(ts("challenges.inviteReady"));
-                          }}
-                          celebrate={celebrate}
-                          language={preferences.language}
-                        />
-                      </div>
                     </div>
                     )}
                   </ViewIdentityFrame>
@@ -13644,6 +13616,33 @@ function startFirstRunGuestFlow() {
                       onReflectFromListen={reflectOnWisdomListen}
                       onAttachFromListen={attachWisdomListen}
                       onShareFromListen={shareWisdomListen}
+                      formationWorkspace={(
+                        <FormationRailSection
+                          theme={theme}
+                          ts={ts}
+                          user={user}
+                          mode={mode}
+                          manualContext={manualContext}
+                          counselContacts={counselContacts}
+                          focusIntentions={focusIntentions}
+                          messages={messages}
+                          journalEntries={journalEntries}
+                          wisdomDecisions={wisdomDecisions}
+                          pendingChallengeId={pendingChallengeId}
+                          pendingChallengeFocus={pendingChallengeFocus}
+                          onClearPendingChallenge={() => { setPendingChallengeId(null); setPendingChallengeFocus(null); }}
+                          challengeCircleRefreshKey={challengeCircleRefreshKey}
+                          onChallengeCircleChanged={refreshChallengeCircles}
+                          onChallengeInviteReady={({ inviteUrl, circle }) => {
+                            setChallengeInviteToken(null);
+                            setChallengeInvitePreview(circle);
+                            setChallengeInviteUrl(inviteUrl);
+                            setChallengeInviteStatus(ts("challenges.inviteReady"));
+                          }}
+                          celebrate={celebrate}
+                          language={preferences.language}
+                        />
+                      )}
                       theme={theme}
                     />
                   </ViewIdentityFrame>
@@ -14035,7 +14034,7 @@ function startFirstRunGuestFlow() {
             // The choice still applies for this session if storage is unavailable.
           }
           if (pending) {
-            void askAletheia(pending.question, false, pending.visibleQuestion, pending.mode);
+            void submitQuestionWithModeCheck(pending.question, pending.visibleQuestion, false);
           }
         }}
         onAllowAi={() => {
@@ -14050,7 +14049,7 @@ function startFirstRunGuestFlow() {
           }
           if (pending) {
             void updatePreferences({ thirdPartyAiConsent: true }, { silent: true })
-              .then(() => askAletheia(pending.question, true, pending.visibleQuestion, pending.mode));
+              .then(() => submitQuestionWithModeCheck(pending.question, pending.visibleQuestion, true));
           }
         }}
       />
@@ -15235,10 +15234,10 @@ function HomeDashboard({
   weeklyReview,
   journeyItems,
   journeySearchItems,
+  signedIn,
   personalizationContextEmpty,
   prioritizeToday,
   ts,
-  challengeRecommendation,
   onScriptureOpen,
   onContinueDecision,
   onOpenAccount,
@@ -15265,6 +15264,7 @@ function HomeDashboard({
   weeklyReview: WeeklyWisdomReview;
   journeyItems: JourneyItem[];
   journeySearchItems: JourneyItem[];
+  signedIn: boolean;
   personalizationContextEmpty: boolean;
   prioritizeToday: boolean;
   onScriptureOpen: (scripture: string) => void;
@@ -15275,7 +15275,6 @@ function HomeDashboard({
   onReflectCard: (card: TodayCompanionCard) => void;
   onAskAboutCard: (card: TodayCompanionCard) => void;
   onSaveCardAsRule: (card: TodayCompanionCard) => void;
-  challengeRecommendation: ChallengeRecommendationBundle["primary"];
   onOpenRecommendedChallenge: (challengeId: string) => void;
   onOpenJourneyItem: (item: JourneyItem) => void;
   theme: ThemeColors;
@@ -15440,13 +15439,11 @@ function HomeDashboard({
             </button>
           ) : null}
 
-          <ChallengeRecommendationCard
-            recommendation={challengeRecommendation}
+          <TodayFormationContinuation
+            signedIn={signedIn}
             theme={theme}
             ts={ts}
             onOpenChallenge={onOpenRecommendedChallenge}
-            homeGlow
-            compact
           />
         </div>
       </section>
@@ -17166,6 +17163,68 @@ function AccountPanel({
         </DisclosureSection>
       ) : null}
     </div>
+  );
+}
+
+function TodayFormationContinuation({
+  signedIn,
+  theme,
+  ts,
+  onOpenChallenge,
+}: {
+  signedIn: boolean;
+  theme: ThemeColors;
+  ts: (key: string, fallback?: string) => string;
+  onOpenChallenge: (challengeId: string) => void;
+}) {
+  const [activeChallenge, setActiveChallenge] = useState<ChallengeWithProgress | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) {
+      return;
+    }
+    let cancelled = false;
+    void fetch("/api/challenges", { cache: "no-store" })
+      .then(async (response) => response.ok ? await response.json() as { challenges?: ChallengeWithProgress[] } : {})
+      .then((data) => {
+        if (cancelled) return;
+        const active = [...(data.challenges ?? [])]
+          .filter((challenge) => challenge.completedDays.length > 0 && challenge.completedDays.length < challenge.totalDays)
+          .sort((left, right) => Date.parse(right.completedDays.at(-1)?.completedAt ?? "") - Date.parse(left.completedDays.at(-1)?.completedAt ?? ""))[0] ?? null;
+        setActiveChallenge(active);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveChallenge(null);
+      });
+    return () => { cancelled = true; };
+  }, [signedIn]);
+
+  if (!signedIn || !activeChallenge) return null;
+  const completed = activeChallenge.completedDays.length;
+  const nextDay = Math.min(activeChallenge.totalDays, completed + 1);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenChallenge(activeChallenge.id)}
+      className="premium-tap-card flex w-full items-center gap-3 rounded-[1.1rem] border px-3.5 py-3 text-left transition active:scale-[0.99]"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+        <Sprout size={17} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+          {ts("challenges.continueCurrentPractice")}
+        </span>
+        <span className="mt-1 block truncate text-sm font-semibold" style={{ color: theme.textPrimary }}>
+          {ts(activeChallenge.titleKey, activeChallenge.title)}
+        </span>
+        <span className="mt-0.5 block text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {ts("challenges.inProgressBody").replace("{nextDay}", String(nextDay)).replace("{total}", String(activeChallenge.totalDays))}
+        </span>
+      </span>
+      <ChevronRight size={18} className="shrink-0" style={{ color: theme.textMuted }} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -19433,13 +19492,7 @@ function FormationRailSection({
         className="rounded-[1.35rem] border p-3.5 sm:p-4"
         style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow")}
-        </p>
-        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle")}
-        </h2>
-        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
+        <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
           {ts("challenges.signInToTrack")}
         </p>
       </section>
@@ -19448,18 +19501,6 @@ function FormationRailSection({
 
   return (
     <section ref={sectionRef} className="space-y-4">
-      <div className="rounded-[1.35rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.eyebrow")}
-        </p>
-        <h2 className="mt-1.5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
-          {ts("challenges.sectionTitle")}
-        </h2>
-        <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.sectionSummary")}
-        </p>
-      </div>
-
       {challengeNudgeThreadModal}
       {dayModal}
       {inviteEditorModal}
@@ -31279,8 +31320,8 @@ function ReflectPanel({
   language: LanguageCode;
   mode: Mode;
   ts: (key: string, fallback?: string) => string;
-  reflectSection: "gratitude" | "journal";
-  setReflectSection: (section: "gratitude" | "journal") => void;
+  reflectSection: "gratitude" | "journal" | "formation";
+  setReflectSection: (section: "gratitude" | "journal" | "formation") => void;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
   gratitudeSyncStatus: GratitudeSyncStatus;
@@ -31303,7 +31344,7 @@ function ReflectPanel({
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   theme: ThemeColors;
 }) {
-  const openReflectSection = (section: "gratitude" | "journal") => {
+  const openReflectSection = (section: "gratitude" | "journal" | "formation") => {
     setReflectSection(section);
     trackClientEvent("feature_destination_opened", { surface: "reflect", destination: section });
   };
@@ -31325,6 +31366,7 @@ function ReflectPanel({
         tabs={[
           { key: "gratitude", label: ts('labels.gratitudeLens') },
           { key: "journal", label: ts('labels.reflectionJournal') },
+          { key: "formation", label: ts('challenges.eyebrow') },
         ]}
       />
       {reflectSection === "gratitude" ? (
@@ -31349,7 +31391,7 @@ function ReflectPanel({
             onPendingEntryFocusHandled={onPendingGratitudeEntryFocusHandled}
           />
         </section>
-      ) : (
+      ) : reflectSection === "journal" ? (
         <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
           <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
           <div className="mb-4">
@@ -31372,8 +31414,86 @@ function ReflectPanel({
             theme={theme}
           />
         </section>
+      ) : (
+        <FormationReflectionHistory signedIn={signedIn} language={language} ts={ts} theme={theme} />
       )}
     </div>
+  );
+}
+
+function FormationReflectionHistory({
+  signedIn,
+  language,
+  ts,
+  theme,
+}: {
+  signedIn: boolean;
+  language: LanguageCode;
+  ts: (key: string, fallback?: string) => string;
+  theme: ThemeColors;
+}) {
+  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
+
+  useEffect(() => {
+    if (!signedIn) {
+      return;
+    }
+    let cancelled = false;
+    void fetch("/api/challenges", { cache: "no-store" })
+      .then(async (response) => response.ok ? await response.json() as { challenges?: ChallengeWithProgress[] } : {})
+      .then((data) => {
+        if (!cancelled) setChallenges((data.challenges ?? []).filter((challenge) => challenge.completedDays.length > 0));
+      })
+      .catch(() => {
+        if (!cancelled) setChallenges([]);
+      });
+    return () => { cancelled = true; };
+  }, [signedIn]);
+
+  const history = challenges
+    .flatMap((challenge) => challenge.completedDays.map((entry) => ({ challenge, entry })))
+    .sort((left, right) => Date.parse(right.entry.completedAt) - Date.parse(left.entry.completedAt));
+
+  return (
+    <section id="reflect-formation" tabIndex={-1} className="scroll-mt-24 outline-none">
+      <h2 className="text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts("challenges.historyTitle")}</h2>
+      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.historySummary")}</p>
+      {!signedIn ? (
+        <div className="mt-4 rounded-[1.2rem] border p-4 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+          {ts("challenges.signInToTrack")}
+        </div>
+      ) : history.length === 0 ? (
+        <div className="mt-4 rounded-[1.2rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+          {ts("challenges.noProgressYet")}
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {history.map(({ challenge, entry }) => (
+            <article key={`${challenge.id}:${entry.day}:${entry.completedAt}`} className="rounded-[1.2rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+                    {ts("challenges.dayLabel").replace("{day}", String(entry.day))}
+                  </p>
+                  <h3 className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                    {ts(challenge.titleKey, challenge.title)}
+                  </h3>
+                </div>
+                <time className="shrink-0 text-xs" style={{ color: theme.textMuted }} dateTime={entry.completedAt}>
+                  {new Date(entry.completedAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
+                </time>
+              </div>
+              {entry.reflection.trim() ? (
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.reflection}</p>
+              ) : null}
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }} aria-hidden="true">
+                <div className="h-full rounded-full" style={{ width: `${Math.min(100, (entry.day / challenge.totalDays) * 100)}%`, backgroundColor: theme.primary }} />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -32309,6 +32429,7 @@ function LibraryPanel({
   onReflectFromListen,
   onAttachFromListen,
   onShareFromListen,
+  formationWorkspace,
   theme,
 }: {
   entries: WisdomEntry[];
@@ -32317,7 +32438,7 @@ function LibraryPanel({
   mode: Mode;
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
-  requestedSection: "saved" | "explore" | null;
+  requestedSection: "saved" | "explore" | "formation" | null;
   onRequestedSectionHandled: () => void;
   pendingEntryFocusId: string | null;
   onPendingEntryFocusHandled: () => void;
@@ -32343,12 +32464,13 @@ function LibraryPanel({
   onReflectFromListen: (result: WisdomListenResult) => void;
   onAttachFromListen: (result: WisdomListenResult, decisionId: string) => void;
   onShareFromListen: (result: WisdomListenResult, decisionId: string, contactId: string) => void;
+  formationWorkspace: ReactNode;
   theme: ThemeColors;
 }) {
   const runtime = runtimeCopyFor(preferences.language);
   const railText = railTextColors(theme);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
-  const [librarySection, setLibrarySection] = useState<"explore" | "bible" | "listen" | "saved">("explore");
+  const [librarySection, setLibrarySection] = useState<"explore" | "bible" | "listen" | "saved" | "formation">("explore");
   const [savedPassage, setSavedPassage] = useState<SavedScripture | null>(null);
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
   const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
@@ -32369,7 +32491,13 @@ function LibraryPanel({
         THEME_KEYS.PROVISION_AND_ANXIETY,
         THEME_KEYS.DILIGENCE,
       ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
-  const libraryPurpose = librarySection === "listen"
+  const libraryPurpose = librarySection === "formation"
+    ? {
+        eyebrow: ts("challenges.eyebrow"),
+        title: ts("challenges.sectionTitle"),
+        body: ts("challenges.sectionSummary"),
+      }
+    : librarySection === "listen"
     ? {
         eyebrow: ts('listen.eyebrow'),
         title: ts('listen.compactTitle'),
@@ -32417,6 +32545,7 @@ function LibraryPanel({
           layout="fit"
           cuePaddingClassName=""
           tabs={[
+            { key: "formation", label: ts('challenges.eyebrow') },
             { key: "explore", label: ts('labels.libraryExplore') },
             { key: "bible", label: ts('labels.bibleLibrary') },
             { key: "listen", label: ts('labels.listening') },
@@ -32425,7 +32554,7 @@ function LibraryPanel({
           scrollItemMinWidth="5rem"
         />
 
-      {librarySection !== "explore" && !(librarySection === "saved" && !savedScriptures.length && !scriptureMemory) ? (
+      {librarySection !== "explore" && librarySection !== "formation" && !(librarySection === "saved" && !savedScriptures.length && !scriptureMemory) ? (
         <SectionVisualBanner
           src={librarySection === "listen"
             ? "/images/section-visuals/listening-scripture.jpg"
@@ -32433,6 +32562,12 @@ function LibraryPanel({
           theme={theme}
           position={librarySection === "listen" ? "center" : "center 58%"}
         />
+      ) : null}
+
+      {librarySection === "formation" ? (
+        <section id="library-formation" tabIndex={-1} className="scroll-mt-24 outline-none">
+          {formationWorkspace}
+        </section>
       ) : null}
 
       {librarySection === "saved" && scriptureMemory ? (

@@ -2418,6 +2418,8 @@
     "completedTodayBody": "O dia {nextDay} de {total} está esperando por amanhã.",
     "inProgressBody": "Continue com o dia {nextDay} de {total}.",
     "continueCurrentPractice": "Continue sua prática atual",
+    "historyTitle": "Histórico de práticas",
+    "historySummary": "Dias concluídos e reflexões das suas práticas de formação.",
     "reentryNote": "Você já está no meio desta prática. Mantenha o ritmo com o dia {nextDay}.",
     "communitySummaryTitle": "Atividade do círculo",
     "communitySummaryBody": "O progresso, os incentivos e os acompanhamentos aparecem aqui enquanto a prática avança.",

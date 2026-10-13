@@ -2418,6 +2418,8 @@
     "completedTodayBody": "Rana {nextDay} ta {total} tana jiran gobe.",
     "inProgressBody": "Ci gaba da rana {nextDay} ta {total}.",
     "continueCurrentPractice": "Ci gaba da aikin da kake yi yanzu",
+    "historyTitle": "Tarihin ayyuka",
+    "historySummary": "Kwanakin da aka kammala da tunani daga ayyukan gina rayuwarka.",
     "reentryNote": "Kun riga kun rabu ta wannan aikin. Ci gaba da zazzagewa tare da rana {nextDay}.",
     "communitySummaryTitle": "Ayyukan ƙungiya a taƙaice",
     "communitySummaryBody": "Ci gaba, ƙarfafawa, da dubawa sukan bayyana a nan yayin da aikin ke tafiya.",

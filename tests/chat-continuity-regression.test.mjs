@@ -55,6 +55,13 @@ test("semantic mode-fit is consent-gated, bounded, and remotely disableable", ()
   assert.doesNotMatch(modeFitRoute, /conversationHistory|recentQuestions|userProfile/);
 });
 
+test("first-question AI consent resumes through mode-fit classification", () => {
+  const consent = app.slice(app.indexOf("<AiConsentModal"), app.indexOf("<ReportIssueModal"));
+  assert.match(consent, /submitQuestionWithModeCheck\(pending\.question, pending\.visibleQuestion, false\)/);
+  assert.match(consent, /submitQuestionWithModeCheck\(pending\.question, pending\.visibleQuestion, true\)/);
+  assert.doesNotMatch(consent, /askAletheia\(pending\.question/);
+});
+
 test("provisional answers are persisted and counted only through finalization", () => {
   assert.match(route, /deferPersistence\?: boolean/);
   assert.match(route, /export async function PATCH/);

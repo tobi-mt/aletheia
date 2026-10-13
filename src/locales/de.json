@@ -2418,6 +2418,8 @@
     "completedTodayBody": "Tag {nextDay} von {total} wartet bis morgen.",
     "inProgressBody": "Mach mit Tag {nextDay} von {total} weiter.",
     "continueCurrentPractice": "Mit der aktuellen Praxis weitermachen",
+    "historyTitle": "Praxisverlauf",
+    "historySummary": "Abgeschlossene Tage und Reflexionen aus deinen Formationsübungen.",
     "reentryNote": "Du bist bereits mitten in dieser Praxis. Halte den Rhythmus mit Tag {nextDay} aufrecht.",
     "communitySummaryTitle": "Kreisaktivität auf einen Blick",
     "communitySummaryBody": "Fortschritt, Anstöße und Rückmeldungen erscheinen hier, während die Praxis weitergeht.",

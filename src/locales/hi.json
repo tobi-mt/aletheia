@@ -2418,6 +2418,8 @@
     "completedTodayBody": "दिन {nextDay} का {total} कल के लिए इंतज़ार कर रहा है।",
     "inProgressBody": "दिन {nextDay} का {total} जारी रखें।",
     "continueCurrentPractice": "अपनी वर्तमान अभ्यास को जारी रखें",
+    "historyTitle": "अभ्यास इतिहास",
+    "historySummary": "आपके निर्माण अभ्यासों के पूरे किए गए दिन और चिंतन।",
     "reentryNote": "आप पहले से ही इस अभ्यास का हिस्सा बन चुके हैं। दिन {nextDay} के साथ लय जारी रखें।",
     "communitySummaryTitle": "सर्कल गतिविधि एक नज़र में",
     "communitySummaryBody": "प्रगति, प्रोत्साहन, और जाँच-इन यहाँ दिखते हैं जब अभ्यास आगे बढ़ता है।",

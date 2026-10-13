@@ -14,6 +14,15 @@ function memoryStorage() {
   };
 }
 
+test("does not inherit suppression from the retired classifier policy", () => {
+  const storage = memoryStorage();
+  storage.setItem("aletheia_mode_switch_learning_v1", JSON.stringify({
+    "Money>Work:explicit_phrase": { accepted: 0, declined: 20, updatedAt: Date.now() },
+  }));
+  assert.equal(modeSwitchLearningStorageKey, "aletheia_mode_switch_learning_v2");
+  assert.equal(shouldApplyLearnedModeSuggestion(storage, "Money", explicitWork), true);
+});
+
 const highWork = { mode: "Work", confidence: "high", evidence: "distinct_signal", topic: "career" };
 const explicitWork = { mode: "Work", confidence: "very_high", evidence: "explicit_phrase" };
 

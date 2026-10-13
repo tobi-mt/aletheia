@@ -1,7 +1,10 @@
 import type { Mode } from "@/lib/mode-keys";
 import type { ModeSuggestion } from "@/lib/mode-suggestion";
 
-const STORAGE_KEY = "aletheia_mode_switch_learning_v1";
+// Keep learned feedback scoped to the classifier policy that produced it.
+// The v1 policy was exercised heavily during QA and could silently suppress
+// newly improved, high-confidence suggestions for 90 days after an app update.
+const STORAGE_KEY = "aletheia_mode_switch_learning_v2";
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
 type TransitionFeedback = {
