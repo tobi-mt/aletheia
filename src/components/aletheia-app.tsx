@@ -22,6 +22,7 @@ import {
 } from "@/components/surfaces/surface-primitives";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { readExperimentVariant } from "@/lib/product-experiments";
+import { modeFitPolicyForIdentity, type ModeFitPolicy } from "@/lib/mode-fit-rollout";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
@@ -109,6 +110,7 @@ import {
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { suggestModeForQuestion } from "@/lib/mode-suggestion";
+import { recordModeSwitchFeedback, shouldApplyLearnedModeSuggestion } from "@/lib/mode-switch-learning";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { normalizeMode, stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
@@ -2455,6 +2457,8 @@ type AutoModeSwitchState = {
   visibleQuestion?: string;
   originalMode: Mode;
   suggestedMode: Mode;
+  learningTopic: string;
+  modeFitObservation: NonNullable<AskAletheiaOptions["modeFitObservation"]>;
 };
 
 type AskAletheiaOptions = {
@@ -2463,6 +2467,14 @@ type AskAletheiaOptions = {
   replacePending?: boolean;
   requestId?: number;
   supersede?: boolean;
+  learningTransition?: { originalMode: Mode; suggestedMode: Mode; topic: string };
+  modeFitObservation?: {
+    predictionId: string;
+    policy: ModeFitPolicy;
+    selectedMode: Mode;
+    suggestedMode: Mode;
+    topic: string;
+  };
 };
 
 type PendingAiQuestion = {
@@ -5900,6 +5912,8 @@ export function AletheiaApp({
   const [activeAutoModeSwitch, setActiveAutoModeSwitch] = useState<AutoModeSwitchState | null>(null);
   const chatRequestSequenceRef = useRef(0);
   const chatAbortControllerRef = useRef<AbortController | null>(null);
+  const modeFitSubmissionInFlightRef = useRef(false);
+  const latestModeFitObservationRef = useRef<AskAletheiaOptions["modeFitObservation"]>(undefined);
   const [aiConsentDeclined, setAiConsentDeclined] = useState(() => {
     try {
       return window.localStorage.getItem("aletheia_third_party_ai_declined") === "yes";
@@ -9622,7 +9636,25 @@ function startFirstRunGuestFlow() {
       mode,
       language: preferences.language,
       ...analyticsQuestionMetadata(latestQuestion, mode),
+      ...(latestModeFitObservationRef.current ? {
+        mode_fit_prediction_id: latestModeFitObservationRef.current.predictionId,
+        mode_fit_policy: latestModeFitObservationRef.current.policy,
+        mode_fit_selected: latestModeFitObservationRef.current.selectedMode,
+        mode_fit_suggested: latestModeFitObservationRef.current.suggestedMode,
+        mode_fit_topic: latestModeFitObservationRef.current.topic,
+      } : {}),
     };
+    if (latestModeFitObservationRef.current) {
+      trackClientEvent("mode_fit_outcome", {
+        prediction_id: latestModeFitObservationRef.current.predictionId,
+        policy: latestModeFitObservationRef.current.policy,
+        signal: "answer_feedback",
+        value,
+        selected_mode: latestModeFitObservationRef.current.selectedMode,
+        suggested_mode: latestModeFitObservationRef.current.suggestedMode,
+        topic: latestModeFitObservationRef.current.topic,
+      });
+    }
     if (!user) {
       trackClientEvent("answer_feedback", feedbackMetadata);
     }
@@ -10849,6 +10881,21 @@ function startFirstRunGuestFlow() {
         if (!persistResponse.ok) throw new Error("The final answer could not be saved.");
       }
       if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
+      latestModeFitObservationRef.current = options.modeFitObservation;
+      if (options.learningTransition) {
+        recordModeSwitchFeedback(
+          window.localStorage,
+          options.learningTransition.originalMode,
+          options.learningTransition.suggestedMode,
+          options.learningTransition.topic,
+          "accepted",
+        );
+        trackClientEvent("mode_better_fit_accepted", {
+          from_mode: options.learningTransition.originalMode,
+          to_mode: options.learningTransition.suggestedMode,
+          topic: options.learningTransition.topic,
+        });
+      }
       trackClientEvent("question_asked", questionAnalytics);
       if (questionAnalytics.followup) {
         trackClientEvent("answer_followup_asked", { ...questionAnalytics, kind: "typed_followup" });
@@ -10921,7 +10968,16 @@ function startFirstRunGuestFlow() {
   }
 
   async function submitQuestionWithModeCheck(rawQuestion: string, visibleQuestion?: string) {
-    if (isWorking) return;
+    if (isWorking || modeFitSubmissionInFlightRef.current) return;
+    modeFitSubmissionInFlightRef.current = true;
+    try {
+      await submitQuestionWithModeCheckOnce(rawQuestion, visibleQuestion);
+    } finally {
+      modeFitSubmissionInFlightRef.current = false;
+    }
+  }
+
+  async function submitQuestionWithModeCheckOnce(rawQuestion: string, visibleQuestion?: string) {
     const trimmed = rawQuestion.trim();
     if (!trimmed) {
       await askAletheia(rawQuestion, undefined, visibleQuestion);
@@ -10929,14 +10985,86 @@ function startFirstRunGuestFlow() {
     }
     const originalMode = mode;
     const isFollowUp = messages.some((message) => message.role === "user");
-    const detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined)
-      ? suggestModeForQuestion(trimmed, originalMode)
+    let detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined)
+      ? suggestModeForQuestion(trimmed, originalMode, { followUp: isFollowUp })
       : null;
-    const suggestion = detectedSuggestion && (!isFollowUp || detectedSuggestion.confidence === "very_high")
+    let semanticProbabilities: import("@/lib/semantic-mode-fit").ModeProbabilities | null = null;
+    let semanticSuggestion: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null = null;
+    if (!detectedSuggestion && preferences.thirdPartyAiConsent && navigator.onLine) {
+      try {
+        const classificationResponse = await fetch("/api/chat/mode-fit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: trimmed, selectedMode: originalMode, thirdPartyAiConsent: true }),
+          signal: AbortSignal.timeout(1_700),
+        });
+        const classification = await classificationResponse.json() as {
+          available?: boolean;
+          mixed?: boolean;
+          probabilities?: import("@/lib/semantic-mode-fit").ModeProbabilities;
+          suggestion?: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null;
+        };
+        semanticProbabilities = classification.probabilities ?? null;
+        semanticSuggestion = classification.available && !classification.mixed ? classification.suggestion ?? null : null;
+        detectedSuggestion = semanticSuggestion;
+        trackClientEvent("mode_semantic_classification_completed", {
+          available: Boolean(classification.available),
+          mixed: Boolean(classification.mixed),
+          suggested: Boolean(detectedSuggestion),
+        });
+      } catch {
+        trackClientEvent("mode_semantic_classification_completed", { available: false, mixed: false, suggested: false });
+      }
+    }
+    const suggestion = detectedSuggestion && shouldApplyLearnedModeSuggestion(window.localStorage, originalMode, detectedSuggestion)
       ? detectedSuggestion
       : null;
+    if (detectedSuggestion && !suggestion) {
+      trackClientEvent("mode_better_fit_suppressed_by_preference", {
+        from_mode: originalMode,
+        to_mode: detectedSuggestion.mode,
+        confidence: detectedSuggestion.confidence,
+        evidence: detectedSuggestion.evidence,
+      });
+    }
     if (!suggestion) {
+      latestModeFitObservationRef.current = undefined;
       await askAletheia(trimmed, undefined, visibleQuestion, originalMode);
+      return;
+    }
+    const predictionId = crypto.randomUUID();
+    const shadowPercent = Number(process.env.NEXT_PUBLIC_MODE_FIT_SHADOW_PERCENT ?? "0");
+    const policy = modeFitPolicyForIdentity(
+      analyticsId(window.localStorage, "aletheia_anon_id"),
+      shadowPercent,
+    );
+    const observation = {
+      predictionId,
+      policy,
+      selectedMode: originalMode,
+      suggestedMode: suggestion.mode,
+      topic: suggestion.topic ?? suggestion.evidence,
+    };
+    trackClientEvent("mode_fit_prediction", {
+      prediction_id: predictionId,
+      policy,
+      selected_mode: originalMode,
+      suggested_mode: suggestion.mode,
+      topic: observation.topic,
+      confidence: suggestion.confidence,
+      evidence: suggestion.evidence,
+      threshold_version: "v1",
+      leading_probability: semanticSuggestion?.leadingProbability ?? null,
+      selected_probability: semanticSuggestion?.selectedProbability ?? null,
+      margin: semanticSuggestion?.margin ?? null,
+      probability_money: semanticProbabilities?.Money ?? null,
+      probability_work: semanticProbabilities?.Work ?? null,
+      probability_purpose: semanticProbabilities?.Purpose ?? null,
+      probability_generosity: semanticProbabilities?.Generosity ?? null,
+      probability_life: semanticProbabilities?.Life ?? null,
+    });
+    if (policy === "shadow") {
+      await askAletheia(trimmed, undefined, visibleQuestion, originalMode, { modeFitObservation: observation });
       return;
     }
     const requestId = ++chatRequestSequenceRef.current;
@@ -10948,14 +11076,23 @@ function startFirstRunGuestFlow() {
       visibleQuestion,
       originalMode,
       suggestedMode: suggestion.mode,
+      learningTopic: suggestion.topic ?? suggestion.evidence,
+      modeFitObservation: observation,
     };
     setActiveAutoModeSwitch(autoSwitch);
     setMode(suggestion.mode);
-    trackClientEvent("mode_better_fit_started", { from_mode: originalMode, to_mode: suggestion.mode });
+    trackClientEvent("mode_better_fit_started", {
+      from_mode: originalMode,
+      to_mode: suggestion.mode,
+      confidence: suggestion.confidence,
+      evidence: suggestion.evidence,
+    });
     await askAletheia(trimmed, undefined, visibleQuestion, suggestion.mode, {
       deferPersistence: true,
       holdUntil: vetoUntil,
       requestId,
+      learningTransition: { originalMode, suggestedMode: suggestion.mode, topic: suggestion.topic ?? suggestion.evidence },
+      modeFitObservation: observation,
     });
   }
 
@@ -10966,12 +11103,27 @@ function startFirstRunGuestFlow() {
     chatAbortControllerRef.current?.abort();
     setActiveAutoModeSwitch(null);
     setMode(pending.originalMode);
-    trackClientEvent("mode_better_fit_declined", { from_mode: pending.suggestedMode, to_mode: pending.originalMode });
+    recordModeSwitchFeedback(window.localStorage, pending.originalMode, pending.suggestedMode, pending.learningTopic, "declined");
+    trackClientEvent("mode_better_fit_declined", {
+      from_mode: pending.suggestedMode,
+      to_mode: pending.originalMode,
+      topic: pending.learningTopic,
+    });
+    trackClientEvent("mode_fit_outcome", {
+      prediction_id: pending.modeFitObservation.predictionId,
+      policy: "live",
+      signal: "veto",
+      value: "declined",
+      selected_mode: pending.originalMode,
+      suggested_mode: pending.suggestedMode,
+      topic: pending.learningTopic,
+    });
     await askAletheia(pending.question, undefined, pending.visibleQuestion, pending.originalMode, {
       deferPersistence: true,
       replacePending: true,
       requestId,
       supersede: true,
+      modeFitObservation: pending.modeFitObservation,
     });
   }
 

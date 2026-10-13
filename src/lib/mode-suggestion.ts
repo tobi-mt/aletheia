@@ -3,15 +3,25 @@ import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 export type ModeSuggestion = {
   mode: Mode;
   confidence: "high" | "very_high";
+  evidence: "explicit_phrase" | "context_pair" | "multiple_signals" | "distinct_signal" | "semantic";
+  topic?: string;
+};
+
+type ModeSuggestionContext = {
+  followUp?: boolean;
 };
 
 type ModeSignals = {
   phrases: string[];
   terms: string[];
+  contextPairs?: Array<{ intent: string[]; context: string[] }>;
 };
 
 const SIGNALS: Record<Mode, ModeSignals> = {
   [MODE_KEYS.MONEY]: {
+    contextPairs: [
+      { intent: ["afford", "pay", "cost"], context: ["home", "house", "car", "rent", "bill"] },
+    ],
     phrases: [
       "credit card", "pay off debt", "student loan", "home loan", "financial plan", "emergency fund",
       "tarjeta de crédito", "pagar deudas", "prêt étudiant", "carte de crédit", "schulden abzahlen",
@@ -20,7 +30,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
       "kaadi kirẹditi", "क्रेडिट कार्ड", "कर्ज चुकाना", "utang sa credit card", "bayaran ang utang",
     ],
     terms: [
-      "budget", "debt", "loan", "mortgage", "saving", "savings", "invest", "investing", "finance", "financial",
+      "budget", "debt", "loan", "mortgage", "saving", "savings", "invest", "investing", "finance", "financial", "income", "expense", "expenses", "retirement", "taxes",
       "presupuesto", "deuda", "préstamo", "ahorro", "invertir", "finanzas",
       "budget", "dette", "emprunt", "épargne", "investir", "finances",
       "haushalt", "schulden", "darlehen", "sparen", "investieren", "finanzen",
@@ -34,21 +44,37 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     ],
   },
   [MODE_KEYS.WORK]: {
+    contextPairs: [
+      { intent: ["productiv", "focus", "efficient", "procrastinat", "perform"], context: ["work", "job", "office", "career", "profession"] },
+      { intent: ["lead", "manag", "delegat"], context: ["team", "employee", "staff", "coworker", "project"] },
+    ],
     phrases: [
       "new job", "job offer", "leave my job", "quit my job", "career change", "start a business", "work burnout",
+      "productive at work", "productivity at work", "more productive at work", "focus at work", "work productivity",
       "nuevo trabajo", "oferta de trabajo", "cambio de carrera", "dejar mi trabajo",
+      "productivo en el trabajo", "productiva en el trabajo", "productividad en el trabajo",
       "nouvel emploi", "offre d'emploi", "changer de carrière", "quitter mon emploi",
+      "productif au travail", "productive au travail", "productivité au travail",
       "neuer job", "jobangebot", "karrierewechsel", "meinen job kündigen",
+      "produktiv bei der arbeit", "produktivität bei der arbeit",
       "novo emprego", "oferta de emprego", "mudar de carreira", "deixar meu emprego",
-      "وظيفة جديدة", "عرض عمل", "تغيير المسار المهني", "ترك عملي",
+      "produtivo no trabalho", "produtiva no trabalho", "produtividade no trabalho",
+      "وظيفة جديدة", "عرض عمل", "عرض العمل", "تغيير المسار المهني", "ترك عملي",
+      "الإنتاجية في العمل", "أكثر إنتاجية في العمل",
       "sabon aiki", "tayin aiki", "canjin sana'a", "barin aiki",
+      "ƙwazo a wurin aiki", "yawan aiki a wurin aiki",
       "ọrụ ọhụrụ", "onyinye ọrụ", "mgbanwe ọrụ", "ịhapụ ọrụ",
+      "ịrụpụta ihe n'ọrụ", "ịrụsi ọrụ ike n'ọrụ",
       "iṣẹ tuntun", "ìfilọ́ iṣẹ́", "yí iṣẹ́ padà", "fi iṣẹ́ sílẹ̀",
+      "mú iṣẹ́ jáde dáadáa", "ìṣiṣẹ́ jáde níbi iṣẹ́",
       "नई नौकरी", "नौकरी का प्रस्ताव", "करियर बदलना", "नौकरी छोड़ना",
+      "काम में उत्पादक", "कार्यस्थल पर उत्पादकता",
       "bagong trabaho", "alok na trabaho", "magpalit ng karera", "umalis sa trabaho",
+      "produktibo sa trabaho", "pagiging produktibo sa trabaho",
     ],
     terms: [
       "job", "career", "workplace", "promotion", "interview", "resign", "burnout", "business", "leadership",
+      "deadline", "deadlines", "manager", "coworker", "coworkers", "meeting", "meetings", "workload", "project", "projects", "office",
       "carrera", "ascenso", "entrevista", "renunciar", "agotamiento", "negocio", "liderazgo",
       "carrière", "promotion", "entretien", "démissionner", "épuisement", "entreprise", "leadership",
       "karriere", "beförderung", "vorstellungsgespräch", "kündigen", "burnout", "unternehmen", "führung",
@@ -62,6 +88,9 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     ],
   },
   [MODE_KEYS.PURPOSE]: {
+    contextPairs: [
+      { intent: ["lost", "stuck", "uncertain", "confus"], context: ["direction", "calling", "purpose", "meaning", "future"] },
+    ],
     phrases: [
       "meaning of my life", "what am i called to", "sense of direction", "who am i becoming", "next chapter of my life",
       "sentido de mi vida", "cuál es mi llamado", "sentido de dirección",
@@ -76,7 +105,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
       "kahulugan ng buhay ko", "ano ang tawag sa akin", "walang direksyon",
     ],
     terms: [
-      "purpose", "identity", "direction", "meaning", "calling", "discernment", "values",
+      "purpose", "identity", "direction", "meaning", "calling", "discernment", "values", "legacy", "vocation",
       "propósito", "identidad", "dirección", "sentido", "llamado", "discernimiento", "valores",
       "but", "identité", "direction", "sens", "vocation", "discernement", "valeurs",
       "zweck", "identität", "richtung", "sinn", "berufung", "werte",
@@ -90,6 +119,9 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     ],
   },
   [MODE_KEYS.GENEROSITY]: {
+    contextPairs: [
+      { intent: ["help", "support", "lend", "give"], context: ["financial", "money", "rent", "bill", "debt"] },
+    ],
     phrases: [
       "help family financially", "give to charity", "how much should i give", "lend money to family",
       "ayudar económicamente a mi familia", "dar a la caridad", "cuánto debo dar",
@@ -104,7 +136,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
       "tulungan ang pamilya sa pera", "magbigay sa kawanggawa", "magkano ang ibibigay",
     ],
     terms: [
-      "generosity", "donate", "donation", "charity", "tithe", "giving", "alms",
+      "generosity", "donate", "donation", "charity", "tithe", "giving", "alms", "fundraiser", "philanthropy",
       "generosidad", "donar", "donación", "caridad", "diezmo", "limosna",
       "générosité", "donner", "don", "charité", "dîme", "aumône",
       "großzügigkeit", "spenden", "spende", "wohltätigkeit", "zehnt", "almosen",
@@ -118,6 +150,9 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     ],
   },
   [MODE_KEYS.LIFE]: {
+    contextPairs: [
+      { intent: ["heal", "repair", "improve", "struggl"], context: ["marriage", "relationship", "family", "friendship", "health"] },
+    ],
     phrases: [
       "family conflict", "marriage problem", "feel lonely", "sexual feelings", "mental health", "physical health",
       "conflicto familiar", "problema matrimonial", "me siento solo", "salud mental",
@@ -133,6 +168,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     ],
     terms: [
       "relationship", "marriage", "family", "forgive", "forgiveness", "conflict", "lonely", "loneliness", "addiction", "temptation", "sexuality", "health", "habit",
+      "sleep", "grief", "anxiety", "friendship", "parenting", "rest", "recovery",
       "relación", "matrimonio", "familia", "perdonar", "perdón", "conflicto", "soledad", "adicción", "tentación", "sexualidad", "salud", "hábito",
       "relation", "mariage", "famille", "pardonner", "pardon", "conflit", "solitude", "dépendance", "tentation", "sexualité", "santé", "habitude",
       "beziehung", "ehe", "familie", "vergeben", "vergebung", "konflikt", "einsamkeit", "sucht", "versuchung", "sexualität", "gesundheit", "gewohnheit",
@@ -148,39 +184,55 @@ const SIGNALS: Record<Mode, ModeSignals> = {
 };
 
 function normalize(value: string) {
-  return value.toLocaleLowerCase().normalize("NFKC").replace(/\s+/g, " ").trim();
+  return value.toLocaleLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim();
 }
 
 function wordSet(value: string) {
   return new Set(normalize(value).match(/[\p{L}\p{M}\p{N}]+/gu) ?? []);
 }
 
-function scoreMode(question: string, words: Set<string>, signals: ModeSignals) {
-  let score = 0;
-  for (const phrase of signals.phrases) {
-    if (question.includes(normalize(phrase))) score += 5;
-  }
-  for (const term of signals.terms) {
-    if (words.has(normalize(term))) score += 2;
-  }
-  return score;
+function hasConcept(words: Set<string>, concepts: string[]) {
+  return concepts.some((concept) => {
+    const normalizedConcept = normalize(concept);
+    return [...words].some((word) => word === normalizedConcept || (normalizedConcept.length >= 4 && word.startsWith(normalizedConcept)));
+  });
 }
 
-export function suggestModeForQuestion(question: string, currentMode: Mode): ModeSuggestion | null {
+function scoreMode(question: string, words: Set<string>, signals: ModeSignals) {
+  const phraseMatches = new Set(signals.phrases.map(normalize).filter((phrase) => question.includes(phrase)));
+  const termMatches = new Set(signals.terms.map(normalize).filter((term) => words.has(term)));
+  const contextPairMatches = (signals.contextPairs ?? []).filter(
+    (pair) => hasConcept(words, pair.intent) && hasConcept(words, pair.context),
+  ).length;
+  return {
+    score: phraseMatches.size * 5 + contextPairMatches * 5 + termMatches.size * 2,
+    phraseMatches: phraseMatches.size,
+    contextPairMatches,
+    termMatches: termMatches.size,
+  };
+}
+
+export function suggestModeForQuestion(
+  question: string,
+  currentMode: Mode,
+  context: ModeSuggestionContext = {},
+): ModeSuggestion | null {
   const normalizedQuestion = normalize(question);
   const words = wordSet(normalizedQuestion);
   if (normalizedQuestion.length < 12 || words.size < 3) return null;
 
   const ranked = (Object.keys(SIGNALS) as Mode[])
-    .map((mode) => ({ mode, score: scoreMode(normalizedQuestion, words, SIGNALS[mode]) }))
+    .map((mode) => ({ mode, ...scoreMode(normalizedQuestion, words, SIGNALS[mode]) }))
     .sort((left, right) => right.score - left.score);
   const best = ranked[0];
   const runnerUp = ranked[1];
   const currentScore = ranked.find((candidate) => candidate.mode === currentMode)?.score ?? 0;
+  const joinsDistinctConcerns = /\b(so|because|while|but|and|para|porque|mientras|mais|pendant|aber|während|damit|mas|enquanto)\b/u.test(normalizedQuestion);
 
   if (
     !best ||
     best.mode === currentMode ||
+    (joinsDistinctConcerns && (runnerUp?.score ?? 0) >= 2) ||
     best.score < 2 ||
     best.score - (runnerUp?.score ?? 0) < 2 ||
     best.score - currentScore < 2
@@ -189,10 +241,21 @@ export function suggestModeForQuestion(question: string, currentMode: Mode): Mod
   }
 
   const runnerUpScore = runnerUp?.score ?? 0;
-  return {
+  const evidence = best.phraseMatches > 0
+    ? "explicit_phrase"
+    : best.contextPairMatches > 0
+      ? "context_pair"
+    : best.termMatches >= 2
+      ? "multiple_signals"
+      : "distinct_signal";
+  const suggestion: ModeSuggestion = {
     mode: best.mode,
-    confidence: best.score >= 5 && best.score - runnerUpScore >= 4 && best.score - currentScore >= 4
+    confidence: (best.phraseMatches > 0 || best.contextPairMatches > 0 || best.termMatches >= 2)
+      && best.score - runnerUpScore >= 4
+      && best.score - currentScore >= 4
       ? "very_high"
       : "high",
+    evidence,
   };
+  return context.followUp && suggestion.confidence !== "very_high" ? null : suggestion;
 }

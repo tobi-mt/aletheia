@@ -86,6 +86,13 @@ const ALLOWED_EVENTS = new Set([
   "theme_changed",
   "today_card_carried",
   "wisdom_mode_selected",
+  "mode_semantic_classification_completed",
+  "mode_better_fit_started",
+  "mode_better_fit_accepted",
+  "mode_better_fit_declined",
+  "mode_better_fit_suppressed_by_preference",
+  "mode_fit_prediction",
+  "mode_fit_outcome",
 ]);
 
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;
@@ -1407,5 +1414,65 @@ export async function updateRolloutSummary(windowHours = 24) {
       p95: latencyRow.p95_elapsed_ms,
     },
     hourly,
+  };
+}
+
+export async function modeFitCalibrationSummary(windowHours = 24 * 14) {
+  const boundedWindowHours = Math.min(24 * 90, Math.max(1, Math.floor(windowHours)));
+  const humanProductionTraffic = trafficFilterWhere(false);
+  const rows = await many<{
+    policy: string;
+    predictions: number;
+    vetoes: number;
+    feedback_samples: number;
+    useful: number;
+    not_relevant: number;
+  }>(
+    `WITH predictions AS (
+       SELECT metadata->>'prediction_id' AS prediction_id,
+              COALESCE(NULLIF(metadata->>'policy', ''), 'unknown') AS policy
+       FROM analytics_events
+       WHERE event_name = 'mode_fit_prediction'
+         AND created_at >= now() - (? * interval '1 hour')
+         AND metadata->>'prediction_id' IS NOT NULL
+         AND ${humanProductionTraffic}
+     ), outcomes AS (
+       SELECT metadata->>'prediction_id' AS prediction_id,
+              BOOL_OR(metadata->>'signal' = 'veto') AS vetoed,
+              BOOL_OR(metadata->>'signal' = 'answer_feedback') AS has_feedback,
+              BOOL_OR(metadata->>'signal' = 'answer_feedback' AND metadata->>'value' IN ('helpful', 'mildly_helpful')) AS useful,
+              BOOL_OR(metadata->>'signal' = 'answer_feedback' AND metadata->>'value' = 'not_relevant') AS not_relevant
+       FROM analytics_events
+       WHERE event_name = 'mode_fit_outcome'
+         AND created_at >= now() - (? * interval '1 hour')
+         AND ${humanProductionTraffic}
+       GROUP BY metadata->>'prediction_id'
+     )
+     SELECT predictions.policy,
+            COUNT(*)::int AS predictions,
+            COUNT(*) FILTER (WHERE outcomes.vetoed)::int AS vetoes,
+            COUNT(*) FILTER (WHERE outcomes.has_feedback)::int AS feedback_samples,
+            COUNT(*) FILTER (WHERE outcomes.useful)::int AS useful,
+            COUNT(*) FILTER (WHERE outcomes.not_relevant)::int AS not_relevant
+     FROM predictions
+     LEFT JOIN outcomes USING (prediction_id)
+     GROUP BY predictions.policy
+     ORDER BY predictions.policy`,
+    boundedWindowHours,
+    boundedWindowHours,
+  );
+
+  return {
+    windowHours: boundedWindowHours,
+    generatedAt: new Date().toISOString(),
+    policies: rows.map((row) => ({
+      ...row,
+      vetoRate: row.predictions ? Number((row.vetoes / row.predictions).toFixed(4)) : 0,
+      usefulnessRate: row.feedback_samples ? Number((row.useful / row.feedback_samples).toFixed(4)) : 0,
+      notRelevantRate: row.feedback_samples ? Number((row.not_relevant / row.feedback_samples).toFixed(4)) : 0,
+      interpretation: row.policy === "shadow"
+        ? "notRelevantRate is a missed-switch proxy for retained selected-lens answers"
+        : "vetoRate and notRelevantRate are false-switch guardrails",
+    })),
   };
 }

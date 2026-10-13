@@ -1,0 +1,18 @@
+[
+  { "language": "en", "question": "How do I become more productive at work?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "en", "question": "Should I leave my job so I can pay debt faster?", "selectedMode": "Purpose", "expectedMode": null },
+  { "language": "es", "question": "¿Cómo puedo pagar deudas de mi tarjeta de crédito?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "es", "question": "¿Debo aceptar esta oferta de trabajo?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "fr", "question": "Comment rembourser ma carte de crédit?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "fr", "question": "Dois-je accepter cette offre d'emploi?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "de", "question": "Soll ich dieses neue Jobangebot annehmen?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "de", "question": "Wie kann ich meine Schulden abzahlen?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "pt", "question": "Como posso pagar a dívida do cartão de crédito?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "pt", "question": "Devo aceitar esta oferta de emprego?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "ar", "question": "هل أقبل عرض العمل الجديد؟", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "hi", "question": "क्या मुझे नई नौकरी का प्रस्ताव स्वीकार करना चाहिए?", "selectedMode": "Money", "expectedMode": "Work" },
+  { "language": "tl", "question": "Paano ko mababayaran ang utang sa credit card?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "ha", "question": "Ta yaya zan biya bashin katin bashi?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "ig", "question": "Kedu ka m ga-esi kwụghachi ụgwọ kaadị kredit?", "selectedMode": "Life", "expectedMode": "Money" },
+  { "language": "yo", "question": "Báwo ni mo ṣe lè san gbèsè káàdì kirẹditi?", "selectedMode": "Life", "expectedMode": "Money" }
+]

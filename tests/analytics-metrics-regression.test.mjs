@@ -47,3 +47,13 @@ test("dashboard reports impact experiments and diagnosable authentication failur
   assert.match(analytics, /metadata->>'method'/);
   assert.match(analytics, /metadata->>'reason'/);
 });
+
+test("mode-fit calibration events are accepted and reported without question text", () => {
+  assert.match(analytics, /"mode_fit_prediction"/);
+  assert.match(analytics, /"mode_fit_outcome"/);
+  assert.match(analytics, /export async function modeFitCalibrationSummary/);
+  assert.match(analytics, /metadata->>'prediction_id'/);
+  assert.match(analytics, /false-switch guardrails/);
+  const calibration = analytics.slice(analytics.indexOf("export async function modeFitCalibrationSummary"));
+  assert.doesNotMatch(calibration, /metadata->>'question'|metadata->>'answer'/);
+});
