@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "Cette question correspond peut-être mieux à l'angle {mode}, axé sur {focus}.",
     "use": "Utiliser {mode} pour cette question",
-    "stay": "Rester avec {mode}"
+    "stay": "Rester avec {mode}",
+    "autoUsing": "Utilisation de l’angle {mode} pour une meilleure adéquation",
+    "keep": "Garder {mode}"
   },
   "trustLayer": "Couche de confiance",
   "preferencesTitle": "Langue et région",

@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "Ajụjụ a nwere ike ịka mma n'okpuru echiche {mode}, nke na-elekwasị anya na {focus}.",
     "use": "Jiri {mode} maka ajụjụ a",
-    "stay": "Nọgide na {mode}"
+    "stay": "Nọgide na {mode}",
+    "autoUsing": "A na-eji echiche {mode} ka ọ dabara nke ọma",
+    "keep": "Debe {mode}"
   },
   "trustLayer": "Ogo ntụkwasị obi",
   "preferencesTitle": "Asụsụ na mpaghara",

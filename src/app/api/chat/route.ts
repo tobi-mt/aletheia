@@ -13,6 +13,18 @@ import { normalizeMode } from "@/lib/wisdom-data";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
 
+type DeferredChatMessage = {
+  id?: unknown;
+  role?: unknown;
+  mode?: unknown;
+  text?: unknown;
+  sources?: unknown;
+};
+
+function validMessageId(value: unknown) {
+  return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
+}
+
 type GratitudeContextSummary = {
   totalEntries?: unknown;
   recentEntries?: unknown;
@@ -151,6 +163,75 @@ export async function GET() {
   });
 }
 
+export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return apiError(401, "sign_in_required", "Sign in to save this conversation.");
+  }
+
+  const parsedBody = await readJsonBody<{
+    userMessage?: DeferredChatMessage;
+    reply?: DeferredChatMessage;
+    preferences?: Partial<UserPreferences>;
+    usedOpenAI?: unknown;
+  }>(request, { maxBytes: 80_000 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const { userMessage, reply } = parsedBody.data;
+  const question = typeof userMessage?.text === "string" ? userMessage.text.trim().slice(0, 12_000) : "";
+  const answer = typeof reply?.text === "string" ? reply.text.trim().slice(0, 40_000) : "";
+  const questionMode = normalizeMode(userMessage?.mode);
+  const answerMode = normalizeMode(reply?.mode);
+  if (
+    !validMessageId(userMessage?.id) ||
+    !validMessageId(reply?.id) ||
+    userMessage?.role !== "user" ||
+    reply?.role !== "aletheia" ||
+    !question ||
+    !answer ||
+    questionMode !== answerMode
+  ) {
+    return apiError(400, "invalid_input", "A complete generated exchange is required.");
+  }
+
+  const sources = Array.isArray(reply.sources) ? reply.sources.slice(0, 12) : [];
+  const preferences = normalizePreferences(parsedBody.data.preferences ?? defaultPreferences);
+  const now = new Date().toISOString();
+  const persistenceResult = await run(
+    `INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at)
+     VALUES (?, ?, 'user', ?, ?, NULL, ?), (?, ?, 'aletheia', ?, ?, ?, ?)
+     ON CONFLICT (id) DO NOTHING`,
+    userMessage.id,
+    user.id,
+    questionMode,
+    question,
+    now,
+    reply.id,
+    user.id,
+    answerMode,
+    answer,
+    JSON.stringify(sources),
+    now
+  );
+  if (persistenceResult.rowCount === 2) await trackServerEvent({
+    userId: user.id,
+    eventName: "chat_question_sent",
+    metadata: {
+      mode: questionMode,
+      language: preferences.language,
+      region: preferences.region,
+      persisted: true,
+      usedOpenAI: parsedBody.data.usedOpenAI === true,
+      sourceCount: sources.length,
+      ...analyticsQuestionMetadata(question, questionMode),
+    },
+  });
+
+  return NextResponse.json({ persisted: true, alreadyPersisted: persistenceResult.rowCount === 0 });
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   const identity = user?.id ?? (await getClientIdentity());
@@ -173,6 +254,7 @@ export async function POST(request: Request) {
     manualContext?: Partial<ManualContextProfile>;
     focusIntentions?: unknown;
     gratitudeContext?: GratitudeContextSummary;
+    deferPersistence?: boolean;
   }>(request, { maxBytes: 24_000 });
   if (!parsedBody.ok) {
     return parsedBody.response;
@@ -182,6 +264,7 @@ export async function POST(request: Request) {
   const message = body.message?.trim();
   const mode = normalizeMode(body.mode);
   const preferences = normalizePreferences(body.preferences ?? defaultPreferences);
+  const deferPersistence = body.deferPersistence === true;
 
   if (!message) {
     return apiError(400, "invalid_input", "Message is required.");
@@ -192,7 +275,7 @@ export async function POST(request: Request) {
   if (lifeConcern === "self_harm") {
     const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
-    if (user) {
+    if (user && !deferPersistence) {
       const now = new Date().toISOString();
       await run(
         "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -244,7 +327,8 @@ export async function POST(request: Request) {
           mode,
           sources,
         },
-        persisted: Boolean(user),
+        persisted: Boolean(user) && !deferPersistence,
+        deferredPersistence: Boolean(user) && deferPersistence,
         usedOpenAI: false,
       },
       { headers: rateLimitHeaders(rateLimit) }
@@ -380,7 +464,7 @@ export async function POST(request: Request) {
       ? await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })
       : null) ?? composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
-  if (user) {
+  if (user && !deferPersistence) {
     const now = new Date().toISOString();
     await run(
       "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -404,7 +488,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (user) {
+  if (user && !deferPersistence) {
     const analyticsMetadata = {
       mode,
       language: preferences.language,
@@ -436,7 +520,8 @@ export async function POST(request: Request) {
         mode,
         sources,
       },
-      persisted: Boolean(user),
+      persisted: Boolean(user) && !deferPersistence,
+      deferredPersistence: Boolean(user) && deferPersistence,
       usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
     },
     { headers: rateLimitHeaders(rateLimit) }

@@ -85,14 +85,15 @@ test("missing translations fail closed instead of exposing code-like keys", asyn
   assert.doesNotMatch(translations, /return fallback \|\| key/);
 });
 
-test("Ask Aletheia keeps the question editor visible above the mobile keyboard", async () => {
+test("Ask Aletheia relies on viewport keyboard handling without forced focus scrolling", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const css = await read("src/app/globals.css");
   const askStart = client.indexOf('id="companion-question-input"');
   const askEnd = client.indexOf("</textarea>", askStart);
   const askInput = client.slice(askStart, askEnd);
 
-  assert.match(askInput, /scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/);
+  assert.doesNotMatch(askInput, /scrollIntoView/);
+  assert.match(askInput, /style\.borderColor = theme\.primary/);
   assert.match(client, /document\.documentElement\.dataset\.keyboardOpen = keyboardOpen \? "true" : "false"/);
   assert.match(css, /html\[data-keyboard-open="true"\] \.app-bottom-nav[\s\S]*?display: none/);
 });

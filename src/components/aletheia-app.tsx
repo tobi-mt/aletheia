@@ -2448,11 +2448,21 @@ type ChatMessage = {
   createdAt?: string;
 };
 
-type PendingModeSuggestion = {
+type AutoModeSwitchState = {
+  requestId: number;
+  vetoUntil: number;
   question: string;
   visibleQuestion?: string;
-  currentMode: Mode;
+  originalMode: Mode;
   suggestedMode: Mode;
+};
+
+type AskAletheiaOptions = {
+  deferPersistence?: boolean;
+  holdUntil?: number;
+  replacePending?: boolean;
+  requestId?: number;
+  supersede?: boolean;
 };
 
 type PendingAiQuestion = {
@@ -5887,7 +5897,9 @@ export function AletheiaApp({
   const [showAccountDeletedFarewell, setShowAccountDeletedFarewell] = useState(false);
   const [showAiConsentModal, setShowAiConsentModal] = useState(false);
   const [pendingAiQuestion, setPendingAiQuestion] = useState<PendingAiQuestion | null>(null);
-  const [pendingModeSuggestion, setPendingModeSuggestion] = useState<PendingModeSuggestion | null>(null);
+  const [activeAutoModeSwitch, setActiveAutoModeSwitch] = useState<AutoModeSwitchState | null>(null);
+  const chatRequestSequenceRef = useRef(0);
+  const chatAbortControllerRef = useRef<AbortController | null>(null);
   const [aiConsentDeclined, setAiConsentDeclined] = useState(() => {
     try {
       return window.localStorage.getItem("aletheia_third_party_ai_declined") === "yes";
@@ -9103,7 +9115,6 @@ export function AletheiaApp({
   }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, preferences.language, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
-    setPendingModeSuggestion(null);
     setMode(nextMode);
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
@@ -10728,8 +10739,14 @@ function startFirstRunGuestFlow() {
     }
   }
 
-  async function askAletheia(rawQuestion: string, consentOverride?: boolean, visibleQuestion?: string, questionMode: Mode = mode) {
-    if (isWorking) {
+  async function askAletheia(
+    rawQuestion: string,
+    consentOverride?: boolean,
+    visibleQuestion?: string,
+    questionMode: Mode = mode,
+    options: AskAletheiaOptions = {},
+  ) {
+    if (isWorking && !options.supersede) {
       return;
     }
     const trimmed = rawQuestion.trim();
@@ -10743,6 +10760,13 @@ function startFirstRunGuestFlow() {
       return;
     }
 
+    const requestId = options.requestId ?? ++chatRequestSequenceRef.current;
+    chatRequestSequenceRef.current = Math.max(chatRequestSequenceRef.current, requestId);
+    if (options.supersede) {
+      chatAbortControllerRef.current?.abort();
+    }
+    const requestController = new AbortController();
+    chatAbortControllerRef.current = requestController;
     const questionAnalytics = {
       mode: questionMode,
       language: preferences.language,
@@ -10754,37 +10778,26 @@ function startFirstRunGuestFlow() {
       })(),
       ...analyticsQuestionMetadata(trimmed, questionMode),
     };
-    trackClientEvent("question_asked", questionAnalytics);
-    if (questionAnalytics.followup) {
-      trackClientEvent("answer_followup_asked", { ...questionAnalytics, kind: "typed_followup" });
-    }
-
-    if (!user) {
-      trackClientEvent("chat_question_sent", questionAnalytics);
-      guestQuestionCountRef.current += 1;
-      if (guestQuestionCountRef.current >= 2) {
-        scheduleSignInPrompt("guest_second_question", {
-          question_count: guestQuestionCountRef.current,
-          location: "companion_ask",
-          mode: questionMode,
-        });
-      }
-    }
-
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode: questionMode, text: visibleQuestion?.trim() || trimmed };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
-      setMessages((current) => [
-        ...current,
+      setMessages((current) => {
+        const base = options.replacePending && current.at(-1)?.id === "thinking" && current.at(-2)?.role === "user"
+          ? current.slice(0, -2)
+          : current;
+        return [
+        ...base,
         userMessage,
       { id: "thinking", role: "aletheia", mode: questionMode, text: ts('notifications.retrievingWisdom') },
-      ]);
+      ];
+      });
     setQuery("");
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: requestController.signal,
         body: JSON.stringify({
           message: trimmed,
           mode: questionMode,
@@ -10795,9 +10808,11 @@ function startFirstRunGuestFlow() {
           manualContext,
           focusIntentions,
           gratitudeContext: gratitudeContextSummary(gratitudeEntries),
+          deferPersistence: options.deferPersistence,
         }),
       });
       const data = (await response.json()) as {
+        userMessage?: ChatMessage;
         reply?: ChatMessage;
         error?: string;
         errorCode?: string;
@@ -10806,6 +10821,48 @@ function startFirstRunGuestFlow() {
       };
       if (!response.ok || !data.reply) {
         throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.answerUnavailableBody'));
+      }
+      if (options.holdUntil && Date.now() < options.holdUntil) {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = window.setTimeout(resolve, options.holdUntil! - Date.now());
+          requestController.signal.addEventListener("abort", () => {
+            window.clearTimeout(timeout);
+            reject(new DOMException("Superseded", "AbortError"));
+          }, { once: true });
+        });
+      }
+      if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
+      if (options.holdUntil) setActiveAutoModeSwitch(null);
+      if (options.deferPersistence && user) {
+        if (!data.userMessage) throw new Error("Deferred response did not include its question.");
+        const persistResponse = await fetch("/api/chat", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          signal: requestController.signal,
+          body: JSON.stringify({
+            userMessage: data.userMessage,
+            reply: data.reply,
+            preferences,
+            usedOpenAI: data.usedOpenAI,
+          }),
+        });
+        if (!persistResponse.ok) throw new Error("The final answer could not be saved.");
+      }
+      if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
+      trackClientEvent("question_asked", questionAnalytics);
+      if (questionAnalytics.followup) {
+        trackClientEvent("answer_followup_asked", { ...questionAnalytics, kind: "typed_followup" });
+      }
+      if (!user) {
+        trackClientEvent("chat_question_sent", questionAnalytics);
+        guestQuestionCountRef.current += 1;
+        if (guestQuestionCountRef.current >= 2) {
+          scheduleSignInPrompt("guest_second_question", {
+            question_count: guestQuestionCountRef.current,
+            location: "companion_ask",
+            mode: questionMode,
+          });
+        }
       }
       setMessages((current) =>
         current.map((message) => (message.id === "thinking" ? data.reply! : message))
@@ -10825,7 +10882,10 @@ function startFirstRunGuestFlow() {
           persisted: Boolean(data.persisted),
         });
       }
-    } catch {
+    } catch (error) {
+      if (requestController.signal.aborted || requestId !== chatRequestSequenceRef.current || (error instanceof DOMException && error.name === "AbortError")) {
+        return;
+      }
       trackClientEvent("error_seen", {
         area: "chat",
         kind: "answer_generation_failed",
@@ -10852,7 +10912,11 @@ function startFirstRunGuestFlow() {
         });
       }
     } finally {
-      setIsWorking(false);
+      if (requestId === chatRequestSequenceRef.current) {
+        setIsWorking(false);
+        setActiveAutoModeSwitch(null);
+        if (chatAbortControllerRef.current === requestController) chatAbortControllerRef.current = null;
+      }
     }
   }
 
@@ -10863,18 +10927,52 @@ function startFirstRunGuestFlow() {
       await askAletheia(rawQuestion, undefined, visibleQuestion);
       return;
     }
-    const suggestion = suggestModeForQuestion(trimmed, mode);
-    if (suggestion) {
-      setPendingModeSuggestion({
-        question: trimmed,
-        visibleQuestion,
-        currentMode: mode,
-        suggestedMode: suggestion.mode,
-      });
+    const originalMode = mode;
+    const isFollowUp = messages.some((message) => message.role === "user");
+    const detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined)
+      ? suggestModeForQuestion(trimmed, originalMode)
+      : null;
+    const suggestion = detectedSuggestion && (!isFollowUp || detectedSuggestion.confidence === "very_high")
+      ? detectedSuggestion
+      : null;
+    if (!suggestion) {
+      await askAletheia(trimmed, undefined, visibleQuestion, originalMode);
       return;
     }
-    setPendingModeSuggestion(null);
-    await askAletheia(trimmed, undefined, visibleQuestion);
+    const requestId = ++chatRequestSequenceRef.current;
+    const vetoUntil = Date.now() + 3500;
+    const autoSwitch = {
+      requestId,
+      vetoUntil,
+      question: trimmed,
+      visibleQuestion,
+      originalMode,
+      suggestedMode: suggestion.mode,
+    };
+    setActiveAutoModeSwitch(autoSwitch);
+    setMode(suggestion.mode);
+    trackClientEvent("mode_better_fit_started", { from_mode: originalMode, to_mode: suggestion.mode });
+    await askAletheia(trimmed, undefined, visibleQuestion, suggestion.mode, {
+      deferPersistence: true,
+      holdUntil: vetoUntil,
+      requestId,
+    });
+  }
+
+  async function keepOriginalModeForPendingAnswer() {
+    const pending = activeAutoModeSwitch;
+    if (!pending || Date.now() >= pending.vetoUntil) return;
+    const requestId = ++chatRequestSequenceRef.current;
+    chatAbortControllerRef.current?.abort();
+    setActiveAutoModeSwitch(null);
+    setMode(pending.originalMode);
+    trackClientEvent("mode_better_fit_declined", { from_mode: pending.suggestedMode, to_mode: pending.originalMode });
+    await askAletheia(pending.question, undefined, pending.visibleQuestion, pending.originalMode, {
+      deferPersistence: true,
+      replacePending: true,
+      requestId,
+      supersede: true,
+    });
   }
 
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
@@ -13146,33 +13244,14 @@ function startFirstRunGuestFlow() {
                       ui={ui}
                       query={query}
                       focusIntentions={focusIntentions}
-                      setQuery={(value) => {
-                        setQuery(value);
-                        if (pendingModeSuggestion && value.trim() !== pendingModeSuggestion.question) {
-                          setPendingModeSuggestion(null);
-                        }
-                      }}
+                      setQuery={setQuery}
                       onAsk={handleAsk}
-                      onDraftPrompt={(value) => {
-                        setPendingModeSuggestion(null);
-                        setQuery(value);
-                      }}
+                      onDraftPrompt={setQuery}
                       onModeChange={handleModeChange}
                       onListen={startVoiceInput}
                       onAskQuestion={submitQuestionWithModeCheck}
-                      pendingModeSuggestion={pendingModeSuggestion}
-                      onUseSuggestedMode={() => {
-                        if (!pendingModeSuggestion) return;
-                        const pending = pendingModeSuggestion;
-                        setPendingModeSuggestion(null);
-                        void askAletheia(pending.question, undefined, pending.visibleQuestion, pending.suggestedMode);
-                      }}
-                      onKeepCurrentMode={() => {
-                        if (!pendingModeSuggestion) return;
-                        const pending = pendingModeSuggestion;
-                        setPendingModeSuggestion(null);
-                        void askAletheia(pending.question, undefined, pending.visibleQuestion, pending.currentMode);
-                      }}
+                      activeAutoModeSwitch={activeAutoModeSwitch}
+                      onKeepOriginalMode={keepOriginalModeForPendingAnswer}
                       onClearVoiceTranscript={() => setVoiceTranscriptPreview("")}
                       onSpeak={speakLatestAletheiaReply}
                       onTogglePause={toggleSpeechPause}
@@ -27376,9 +27455,8 @@ function CompanionPanel({
   onModeChange,
   onListen,
   onAskQuestion,
-  pendingModeSuggestion,
-  onUseSuggestedMode,
-  onKeepCurrentMode,
+  activeAutoModeSwitch,
+  onKeepOriginalMode,
   onClearVoiceTranscript,
   onSpeak,
   onTogglePause,
@@ -27423,9 +27501,8 @@ function CompanionPanel({
   onModeChange: (mode: Mode) => void;
   onListen: () => void;
   onAskQuestion: (question: string) => Promise<void>;
-  pendingModeSuggestion: PendingModeSuggestion | null;
-  onUseSuggestedMode: () => void;
-  onKeepCurrentMode: () => void;
+  activeAutoModeSwitch: AutoModeSwitchState | null;
+  onKeepOriginalMode: () => void;
   onClearVoiceTranscript: () => void;
   onSpeak: () => void;
   onTogglePause: () => void;
@@ -27477,14 +27554,11 @@ function CompanionPanel({
   const voiceDraft = voiceTranscriptPreview.trim();
   const modeLensRailRef = useRef<HTMLDivElement | null>(null);
   const modeLensRailHasOverflow = useRailOverflowCue(modeLensRailRef, modeCards.length > 1, [modeCards.length, mode, preferences.language]);
-  const suggestedModeLabel = pendingModeSuggestion
-    ? localizedModeLabel(pendingModeSuggestion.suggestedMode, preferences.language)
+  const suggestedModeLabel = activeAutoModeSwitch
+    ? localizedModeLabel(activeAutoModeSwitch.suggestedMode, preferences.language)
     : "";
-  const currentModeLabel = pendingModeSuggestion
-    ? localizedModeLabel(pendingModeSuggestion.currentMode, preferences.language)
-    : "";
-  const suggestedModeFocus = pendingModeSuggestion
-    ? localizedModeProfile(pendingModeSuggestion.suggestedMode, preferences.language).focus
+  const originalModeLabel = activeAutoModeSwitch
+    ? localizedModeLabel(activeAutoModeSwitch.originalMode, preferences.language)
     : "";
 
   useEffect(() => {
@@ -27592,46 +27666,33 @@ function CompanionPanel({
                   color: theme.textPrimary,
                   boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
                 }}
-                onFocus={(e) => {
-                  const textarea = e.currentTarget;
-                  textarea.style.borderColor = theme.primary;
-                  window.requestAnimationFrame(() => textarea.scrollIntoView({ block: "center", behavior: "smooth" }));
-                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = theme.primary; }}
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
               />
             </div>
 
-            {pendingModeSuggestion ? (
+            {activeAutoModeSwitch && isWorking ? (
               <div
                 role="status"
                 aria-live="polite"
-                className="border-l-2 py-1 pl-3"
-                style={{ borderColor: theme.primary }}
+                className="overflow-hidden rounded-2xl border"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}
               >
-                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {ts('modeSuggestion.body')
-                    .replace('{mode}', suggestedModeLabel)
-                    .replace('{focus}', suggestedModeFocus)}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5">
+                  <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                    {ts('modeSuggestion.autoUsing').replace('{mode}', suggestedModeLabel)}
+                  </p>
                   <button
                     type="button"
-                    onClick={onUseSuggestedMode}
-                    disabled={isWorking}
-                    className="min-h-11 rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    onClick={onKeepOriginalMode}
+                    className="min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-sm font-semibold transition"
+                    style={{ borderColor: theme.primary, backgroundColor: theme.bgCard, color: theme.primary }}
                   >
-                    {ts('modeSuggestion.use').replace('{mode}', suggestedModeLabel)}
+                    {ts('modeSuggestion.keep').replace('{mode}', originalModeLabel)}
                   </button>
-                  <button
-                    type="button"
-                    onClick={onKeepCurrentMode}
-                    disabled={isWorking}
-                    className="min-h-11 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
-                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                  >
-                    {ts('modeSuggestion.stay').replace('{mode}', currentModeLabel)}
-                  </button>
+                </div>
+                <div className="h-0.5 overflow-hidden" style={{ backgroundColor: theme.borderLight }} aria-hidden="true">
+                  <div className="mode-switch-progress h-full w-full" style={{ backgroundColor: theme.primary }} />
                 </div>
               </div>
             ) : null}

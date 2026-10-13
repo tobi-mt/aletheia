@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "Maaaring mas bagay ang tanong na ito sa pananaw na {mode}, na nakatuon sa {focus}.",
     "use": "Gamitin ang {mode} para sa tanong na ito",
-    "stay": "Manatili sa {mode}"
+    "stay": "Manatili sa {mode}",
+    "autoUsing": "Ginagamit ang pananaw na {mode} para sa mas angkop na sagot",
+    "keep": "Panatilihin ang {mode}"
   },
   "trustLayer": "Antas ng tiwala",
   "preferencesTitle": "Wika at rehiyon",

@@ -2,7 +2,7 @@ import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 
 export type ModeSuggestion = {
   mode: Mode;
-  confidence: "high";
+  confidence: "high" | "very_high";
 };
 
 type ModeSignals = {
@@ -188,5 +188,11 @@ export function suggestModeForQuestion(question: string, currentMode: Mode): Mod
     return null;
   }
 
-  return { mode: best.mode, confidence: "high" };
+  const runnerUpScore = runnerUp?.score ?? 0;
+  return {
+    mode: best.mode,
+    confidence: best.score >= 5 && best.score - runnerUpScore >= 4 && best.score - currentScore >= 4
+      ? "very_high"
+      : "high",
+  };
 }

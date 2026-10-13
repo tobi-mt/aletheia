@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "قد يناسب هذا السؤال منظور {mode} أكثر، حيث ينصب التركيز على {focus}.",
     "use": "استخدام {mode} لهذا السؤال",
-    "stay": "البقاء مع {mode}"
+    "stay": "البقاء مع {mode}",
+    "autoUsing": "استخدام منظور {mode} لأنه أنسب للسؤال",
+    "keep": "الاحتفاظ بـ {mode}"
   },
   "trustLayer": "طبقة الثقة",
   "preferencesTitle": "اللغة والمنطقة",

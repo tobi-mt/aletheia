@@ -5,7 +5,7 @@ import { suggestModeForQuestion } from "../src/lib/mode-suggestion.ts";
 test("suggests a clearly better lens without changing an already fitting lens", () => {
   assert.deepEqual(
     suggestModeForQuestion("Should I accept this new job offer or stay in my current career?", "Money"),
-    { mode: "Work", confidence: "high" },
+    { mode: "Work", confidence: "very_high" },
   );
   assert.equal(
     suggestModeForQuestion("Should I accept this new job offer or stay in my current career?", "Work"),

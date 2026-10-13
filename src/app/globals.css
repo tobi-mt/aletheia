@@ -289,6 +289,23 @@ button, [role="button"] {
   }
 }
 
+@keyframes mode-switch-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.mode-switch-progress {
+  transform-origin: left center;
+  animation: mode-switch-progress 3.5s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-switch-progress {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
 .formation-card-home-glow {
   animation: formation-card-home-glow 6.5s ease-in-out infinite;
   will-change: box-shadow;

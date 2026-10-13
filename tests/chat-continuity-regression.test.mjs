@@ -29,3 +29,26 @@ test("Ask composer does not repeat account sync state between voice and suggesti
   assert.doesNotMatch(panel, /labels\.syncActiveFull/);
   assert.doesNotMatch(panel, /labels\.accountGuestSummary/);
 });
+
+test("mode-fit guidance auto-switches on submit with a calm, cancellable veto window", () => {
+  const submit = app.slice(app.indexOf("async function submitQuestionWithModeCheck"), app.indexOf("async function handleAsk"));
+  const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
+  assert.match(submit, /suggestModeForQuestion\(trimmed, originalMode\)/);
+  assert.match(submit, /deferPersistence: true/);
+  assert.match(submit, /const vetoUntil = Date\.now\(\) \+ 3500/);
+  assert.match(submit, /holdUntil: vetoUntil/);
+  assert.match(submit, /chatAbortControllerRef\.current\?\.abort\(\)/);
+  assert.match(submit, /replacePending: true/);
+  assert.match(panel, /modeSuggestion\.autoUsing/);
+  assert.match(panel, /modeSuggestion\.keep/);
+  assert.match(panel, /mode-switch-progress/);
+  assert.doesNotMatch(panel.slice(panel.indexOf('id="companion-question-input"'), panel.indexOf("</textarea>")), /scrollIntoView/);
+});
+
+test("provisional answers are persisted and counted only through finalization", () => {
+  assert.match(route, /deferPersistence\?: boolean/);
+  assert.match(route, /export async function PATCH/);
+  assert.match(route, /if \(user && !deferPersistence\)/);
+  assert.match(route, /deferredPersistence: Boolean\(user\) && deferPersistence/);
+  assert.match(route, /ON CONFLICT \(id\) DO NOTHING/);
+});

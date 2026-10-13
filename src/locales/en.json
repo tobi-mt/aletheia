@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "This question may fit the {mode} lens better, where the focus is {focus}.",
     "use": "Use {mode} for this question",
-    "stay": "Stay with {mode}"
+    "stay": "Stay with {mode}",
+    "autoUsing": "Using the {mode} lens for a better fit",
+    "keep": "Keep {mode}"
   },
   "trustLayer": "Trust layer",
   "preferencesTitle": "Language and region",

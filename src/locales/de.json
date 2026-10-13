@@ -41,7 +41,9 @@
   "modeSuggestion": {
     "body": "Diese Frage passt vielleicht besser zur Perspektive {mode}, mit dem Schwerpunkt {focus}.",
     "use": "Für diese Frage {mode} verwenden",
-    "stay": "Bei {mode} bleiben"
+    "stay": "Bei {mode} bleiben",
+    "autoUsing": "Für eine bessere Passung wird die Perspektive {mode} verwendet",
+    "keep": "{mode} beibehalten"
   },
   "trustLayer": "Vertrauensebene",
   "preferencesTitle": "Sprache und Region",
