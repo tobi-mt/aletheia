@@ -11,6 +11,7 @@ const skipUi = process.argv.includes("--skip-ui");
 const skipNative = process.argv.includes("--skip-native");
 const requirePhysicalDevices = process.argv.includes("--require-physical-devices");
 const archiveIos = process.argv.includes("--archive-ios");
+const storeArtifacts = process.argv.includes("--store-artifacts");
 
 function run(label, command, args, cwd = workspaceRoot) {
   console.log(`\n[release gate] ${label}`);
@@ -24,6 +25,13 @@ function run(label, command, args, cwd = workspaceRoot) {
   }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
+  }
+}
+
+function requirePath(label, targetPath) {
+  if (!existsSync(targetPath)) {
+    console.error(`\n[release gate] ${label}: ${targetPath}`);
+    process.exit(1);
   }
 }
 
@@ -44,12 +52,22 @@ if (!skipUi) {
 }
 
 if (!skipNative) {
-  run("production native web bundle", "npm", ["run", "mobile:bundle:web"]);
+  // Build and copy the exact web payload into both native projects before
+  // packaging. Building capacitor-web alone can leave Xcode/Gradle shipping
+  // an older ios/App/App/public or android/app/src/main/assets/public tree.
+  run("production native web bundle and platform sync", "npm", ["run", "mobile:sync"]);
 
   const androidRoot = path.join(workspaceRoot, "android");
   if (existsSync(path.join(androidRoot, "gradlew"))) {
     run("Android lint", "./gradlew", ["lintDebug"], androidRoot);
     run("Android debug package", "./gradlew", ["assembleDebug"], androidRoot);
+    if (storeArtifacts) {
+      requirePath("Android release signing configuration is missing", path.join(androidRoot, "keystore.properties"));
+      run("signed Android Play Store bundle", "./gradlew", ["bundleRelease"], androidRoot);
+      const androidBundle = path.join(androidRoot, "app", "build", "outputs", "bundle", "release", "app-release.aab");
+      requirePath("Android release bundle was not generated", androidBundle);
+      run("Android release signature", "jarsigner", ["-verify", androidBundle]);
+    }
   } else {
     console.log("\n[release gate] Android lint skipped: android/gradlew is unavailable.");
   }
@@ -65,15 +83,30 @@ if (!skipNative) {
       "CODE_SIGNING_ALLOWED=NO",
       "build",
     ]);
-    if (archiveIos) {
+    if (archiveIos || storeArtifacts) {
+      const archivePath = path.join(workspaceRoot, "build", "Aletheia.xcarchive");
       run("signed iOS Release archive", "xcodebuild", [
         "-project", iosProject,
         "-scheme", "App",
         "-configuration", "Release",
         "-destination", "generic/platform=iOS",
-        "-archivePath", path.join(workspaceRoot, "build", "Aletheia.xcarchive"),
+        "-archivePath", archivePath,
         "archive",
       ]);
+      if (storeArtifacts) {
+        const exportOptions = path.join(workspaceRoot, "ios", "ExportOptions-AppStore.plist");
+        requirePath("App Store export options are missing", exportOptions);
+        run("App Store Connect IPA export", "xcodebuild", [
+          "-exportArchive",
+          "-archivePath", archivePath,
+          "-exportPath", path.join(workspaceRoot, "build", "AppStoreExport"),
+          "-exportOptionsPlist", exportOptions,
+          "-allowProvisioningUpdates",
+        ]);
+        const ipaPath = path.join(workspaceRoot, "build", "AppStoreExport", "App.ipa");
+        requirePath("App Store IPA was not generated", ipaPath);
+        run("App Store IPA signature and entitlements", "node", ["scripts/verify-ios-store-export.mjs", ipaPath]);
+      }
     }
   } else {
     console.log("\n[release gate] iOS build skipped: macOS/Xcode project is unavailable.");

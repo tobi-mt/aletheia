@@ -32,7 +32,8 @@ await page.route("**/api/chat/mode-fit", async (route) => {
   }) });
 });
 
-await page.route("**/api/chat", async (route, request) => {
+await page.route("**/api/chat", async (route) => {
+  const request = route.request();
   if (request.method() === "GET") {
     await route.fulfill({
       status: 200,
@@ -92,7 +93,7 @@ try {
   const semanticRequest = semanticScenario
     ? page.waitForRequest((request) => request.url().includes("/api/chat/mode-fit"), { timeout: 5_000 })
     : null;
-  await page.locator("#companion-question-input").locator("xpath=ancestor::form").locator('button[type="submit"]').click();
+  await page.locator("#companion-question-input").locator("xpath=ancestor::form").evaluate((form) => form.requestSubmit());
   if (freshConsentScenario) {
     await page.getByRole("dialog").waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
       console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-2_000) });

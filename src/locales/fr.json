@@ -43,7 +43,8 @@
     "use": "Utiliser {mode} pour cette question",
     "stay": "Rester avec {mode}",
     "autoUsing": "Utilisation de l’angle {mode} pour une meilleure adéquation",
-    "keep": "Garder {mode}"
+    "keep": "Garder {mode}",
+    "autoFitActive": "Ajustement automatique actif"
   },
   "trustLayer": "Couche de confiance",
   "preferencesTitle": "Langue et région",

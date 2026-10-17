@@ -43,7 +43,8 @@
     "use": "Lo {mode} fún ìbéèrè yìí",
     "stay": "Dúró pẹ̀lú {mode}",
     "autoUsing": "A ń lo ojú-ìwòye {mode} nítorí ó bá a mu dáadáa",
-    "keep": "Pa {mode} mọ́"
+    "keep": "Pa {mode} mọ́",
+    "autoFitActive": "Ìbámu aládàáṣe ti ṣiṣẹ́"
   },
   "trustLayer": "Ìpele ìgbẹ́kẹ̀lé",
   "preferencesTitle": "Èdè àti agbègbè",

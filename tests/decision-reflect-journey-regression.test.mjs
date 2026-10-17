@@ -4,15 +4,18 @@ import test from "node:test";
 
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
 
-test("Reflect no longer exposes Wisdom Check as a separate section", () => {
+test("Reflect replaces Wisdom Check with focused gratitude, journal, and formation history sections", () => {
   const reflectPanel = app.slice(app.indexOf("function ReflectPanel"), app.indexOf("function GratitudeEntryModal"));
   assert.doesNotMatch(reflectPanel, /key: "check"/);
   assert.doesNotMatch(reflectPanel, /<WisdomCheck/);
   assert.match(reflectPanel, /id="reflect-gratitude"/);
   assert.match(reflectPanel, /id="reflect-journal"/);
+  assert.match(reflectPanel, /key: "formation"/);
+  assert.match(reflectPanel, /<FormationReflectionHistory/);
+  assert.match(reflectPanel, /id="reflect-formation"/);
   assert.doesNotMatch(reflectPanel, /FormationRailSection/);
   assert.match(reflectPanel, /reflectSection === "gratitude" \? \(/);
-  assert.match(reflectPanel, /\) : \(\s*<section id="reflect-journal"/);
+  assert.match(reflectPanel, /reflectSection === "journal" \? \(/);
   assert.doesNotMatch(reflectPanel, /scrollTargetBelowTopChrome\(target\)/);
 });
 

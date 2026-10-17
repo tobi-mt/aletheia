@@ -6,31 +6,36 @@ const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.me
 const homeStart = app.indexOf('{activeView === "companion" ? (');
 const homeRender = app.slice(homeStart, app.indexOf('activeView === "decisions"', homeStart));
 
-test("Home renders Today and Ask in one continuous surface", () => {
+test("Home keeps Today and Ask in one oriented, explicitly selectable surface", () => {
   assert.match(homeRender, /id="home-today"/);
   assert.match(homeRender, /<HomeDashboard/);
   assert.match(homeRender, /<CompanionPanel/);
-  assert.doesNotMatch(homeRender, /labels\.homeTodayTab/);
-  assert.doesNotMatch(homeRender, /labels\.homeAskTab/);
+  assert.match(homeRender, /value=\{homeSection\}/);
+  assert.match(homeRender, /key: "ask"/);
+  assert.match(homeRender, /key: "today"/);
+  assert.match(homeRender, /homeSection === "ask"/);
 });
 
-test("Home orients the person before presenting Ask as the primary work surface", () => {
+test("Home orients the person before offering Ask and Today workspaces", () => {
   const welcomeIndex = homeRender.indexOf("<HomeWelcomeHeader");
+  const tabsIndex = homeRender.indexOf("<ScreenTabs");
   const askIndex = homeRender.indexOf("<CompanionPanel");
   const todayIndex = homeRender.indexOf("<HomeDashboard");
-  const formationIndex = homeRender.indexOf("<FormationRailSection");
   assert.ok(welcomeIndex > 0);
+  assert.ok(tabsIndex > 0);
   assert.ok(askIndex > 0);
+  assert.ok(todayIndex > 0);
+  assert.ok(welcomeIndex < tabsIndex);
+  assert.ok(tabsIndex < askIndex);
   assert.ok(welcomeIndex < askIndex);
   assert.ok(askIndex < todayIndex);
-  assert.ok(todayIndex < formationIndex);
 });
 
 test("Today presents daily wisdom before optional personalization and formation nudges", () => {
   const dashboard = app.slice(app.indexOf("function HomeDashboard"), app.indexOf("function WeeklyReviewRailStat"));
   const todayIndex = dashboard.indexOf("<TodayVisualPanel");
   const personalizationIndex = dashboard.indexOf("personalizationContextEmpty ?");
-  const recommendationIndex = dashboard.indexOf("<ChallengeRecommendationCard");
+  const recommendationIndex = dashboard.indexOf("<TodayFormationContinuation");
   assert.ok(todayIndex > 0);
   assert.ok(todayIndex < personalizationIndex);
   assert.ok(personalizationIndex < recommendationIndex);

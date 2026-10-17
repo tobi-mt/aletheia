@@ -26,6 +26,8 @@
     "quality:release": "node scripts/release-gate.mjs",
     "quality:release:web": "node scripts/release-gate.mjs --skip-native",
     "quality:release:archive-ios": "node scripts/release-gate.mjs --archive-ios",
+    "quality:release:store-artifacts": "node scripts/release-gate.mjs --store-artifacts",
+    "quality:release:production": "node scripts/release-gate.mjs --store-artifacts --require-physical-devices",
     "quality:release:physical": "node scripts/release-gate.mjs --require-physical-devices",
     "mobile:devices:ready": "node scripts/native-device-readiness.mjs",
     "db:migrate:push-subscriptions-last-verified-at": "node scripts/migrate-push-subscriptions-last-verified-at.mjs",

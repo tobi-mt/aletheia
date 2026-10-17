@@ -16,10 +16,11 @@ function requireMatch(contents, pattern, message, failures) {
 }
 
 const failures = [];
-const [app, css, plist, appDelegate, sceneDelegate, androidBuild, androidStrings, androidAudioService, androidAudioPlugin, manifest, nativeConfig] = await Promise.all([
+const [app, css, plist, iosProject, appDelegate, sceneDelegate, androidBuild, androidStrings, androidAudioService, androidAudioPlugin, manifest, nativeConfig] = await Promise.all([
   read("src/components/aletheia-app.tsx"),
   read("src/app/globals.css"),
   read("ios/App/App/Info.plist"),
+  read("ios/App/App.xcodeproj/project.pbxproj"),
   read("ios/App/App/AppDelegate.swift"),
   read("ios/App/App/SceneDelegate.swift"),
   read("android/app/build.gradle"),
@@ -50,6 +51,15 @@ requireMatch(androidBuild, new RegExp(`namespace\\s*=\\s*"${APP_ID.replaceAll(".
 requireMatch(androidBuild, new RegExp(`applicationId\\s+"${APP_ID.replaceAll(".", "\\.")}"`), "Android applicationId drifted", failures);
 requireMatch(androidStrings, new RegExp(`<string name="custom_url_scheme">${APP_ID.replaceAll(".", "\\.")}</string>`), "Android callback scheme drifted", failures);
 requireMatch(plist, new RegExp(`<string>${APP_ID.replaceAll(".", "\\.")}</string>`), "iOS callback scheme drifted", failures);
+
+const iosMarketingVersions = [...iosProject.matchAll(/MARKETING_VERSION = ([^;]+);/g)].map((match) => match[1]);
+const iosBuildVersions = [...iosProject.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((match) => Number(match[1]));
+const androidVersionName = androidBuild.match(/versionName\s+"([^"]+)"/)?.[1];
+const androidVersionCode = Number(androidBuild.match(/versionCode\s+(\d+)/)?.[1]);
+if (!iosMarketingVersions.length || new Set(iosMarketingVersions).size !== 1) failures.push("iOS build configurations do not share one marketing version");
+if (!iosBuildVersions.length || new Set(iosBuildVersions).size !== 1) failures.push("iOS build configurations do not share one build number");
+if (androidVersionName !== iosMarketingVersions[0]) failures.push(`Android versionName ${androidVersionName ?? "missing"} does not match iOS ${iosMarketingVersions[0] ?? "missing"}`);
+if (androidVersionCode !== iosBuildVersions[0]) failures.push(`Android versionCode ${Number.isFinite(androidVersionCode) ? androidVersionCode : "missing"} does not match iOS ${iosBuildVersions[0] ?? "missing"}`);
 requireMatch(plist, /<key>UIApplicationSceneManifest<\/key>[\s\S]*<key>UISceneDelegateClassName<\/key>\s*<string>\$\(PRODUCT_MODULE_NAME\)\.SceneDelegate<\/string>/, "iOS scene configuration is missing", failures);
 for (const orientation of ["UIInterfaceOrientationPortrait", "UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"]) {
   requireMatch(plist, new RegExp(`<string>${orientation}</string>`), `iPhone orientation support is missing: ${orientation}`, failures);

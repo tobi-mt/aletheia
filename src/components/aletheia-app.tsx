@@ -27817,6 +27817,10 @@ function CompanionPanel({
                     {ui.wisdomMode}
                   </p>
                 </div>
+                <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium" style={{ color: theme.textMuted }}>
+                  <Sparkles size={12} aria-hidden="true" />
+                  {ts('modeSuggestion.autoFitActive')}
+                </span>
               </div>
               <div className="relative">
                 <div
@@ -27868,8 +27872,8 @@ function CompanionPanel({
               <div
                 role="status"
                 aria-live="polite"
-                className="overflow-hidden rounded-2xl border"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}
+                className="fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-[120] mx-auto max-w-xl overflow-hidden rounded-2xl border shadow-[0_18px_48px_rgba(7,10,8,0.22)] md:bottom-6"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
               >
                 <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5">
                   <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>

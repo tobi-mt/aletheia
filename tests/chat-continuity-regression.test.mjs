@@ -43,7 +43,9 @@ test("mode-fit guidance auto-switches on submit with a calm, cancellable veto wi
   assert.match(submit, /replacePending: true/);
   assert.match(panel, /modeSuggestion\.autoUsing/);
   assert.match(panel, /modeSuggestion\.keep/);
+  assert.match(panel, /modeSuggestion\.autoFitActive/);
   assert.match(panel, /mode-switch-progress/);
+  assert.match(panel, /bottom-\[calc\(5\.75rem\+env\(safe-area-inset-bottom\)\)\]/);
   assert.doesNotMatch(panel.slice(panel.indexOf('id="companion-question-input"'), panel.indexOf("</textarea>")), /scrollIntoView/);
 });
 

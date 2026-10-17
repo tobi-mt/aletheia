@@ -43,7 +43,8 @@
     "use": "Use {mode} for this question",
     "stay": "Stay with {mode}",
     "autoUsing": "Using the {mode} lens for a better fit",
-    "keep": "Keep {mode}"
+    "keep": "Keep {mode}",
+    "autoFitActive": "Auto-fit on"
   },
   "trustLayer": "Trust layer",
   "preferencesTitle": "Language and region",

@@ -43,7 +43,8 @@
     "use": "Usar {mode} para esta pregunta",
     "stay": "Seguir con {mode}",
     "autoUsing": "Usando el enfoque {mode} para una mejor perspectiva",
-    "keep": "Mantener {mode}"
+    "keep": "Mantener {mode}",
+    "autoFitActive": "Ajuste automático activo"
   },
   "trustLayer": "Capa de confianza",
   "preferencesTitle": "Idioma y región",

@@ -43,7 +43,8 @@
     "use": "Für diese Frage {mode} verwenden",
     "stay": "Bei {mode} bleiben",
     "autoUsing": "Für eine bessere Passung wird die Perspektive {mode} verwendet",
-    "keep": "{mode} beibehalten"
+    "keep": "{mode} beibehalten",
+    "autoFitActive": "Auto-Anpassung aktiv"
   },
   "trustLayer": "Vertrauensebene",
   "preferencesTitle": "Sprache und Region",

@@ -43,7 +43,8 @@
     "use": "استخدام {mode} لهذا السؤال",
     "stay": "البقاء مع {mode}",
     "autoUsing": "استخدام منظور {mode} لأنه أنسب للسؤال",
-    "keep": "الاحتفاظ بـ {mode}"
+    "keep": "الاحتفاظ بـ {mode}",
+    "autoFitActive": "الملاءمة التلقائية مفعّلة"
   },
   "trustLayer": "طبقة الثقة",
   "preferencesTitle": "اللغة والمنطقة",

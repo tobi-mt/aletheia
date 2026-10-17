@@ -4,12 +4,11 @@ import test from "node:test";
 
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
 
-test("challenge workflows land on Formation at Home", () => {
-  assert.match(app, /id="home-formation"/);
-  assert.match(app, /function openRecommendedChallenge[\s\S]*?showView\("companion"\)[\s\S]*?scrollToSection\("home-formation"\)/);
+test("challenge workflows land on Formation in Library", () => {
+  assert.match(app, /function openRecommendedChallenge[\s\S]*?setRequestedLibrarySection\("formation"\)[\s\S]*?showView\("library"\)/);
   const challengeNotification = app.slice(app.indexOf('notificationRoute.focus === "challenge"'), app.indexOf('notificationRoute.focus === "challenge"') + 700);
-  assert.match(challengeNotification, /setActiveView\("companion"/);
-  assert.match(challengeNotification, /scrollToSection\("home-formation"\)/);
+  assert.match(challengeNotification, /setRequestedLibrarySection\("formation"\)/);
+  assert.match(challengeNotification, /setActiveView\("library"/);
 });
 
 test("Library combines Scripture memory and saved passages", () => {

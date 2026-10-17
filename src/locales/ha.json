@@ -43,7 +43,8 @@
     "use": "Yi amfani da {mode} don tambayar nan",
     "stay": "Ci gaba da {mode}",
     "autoUsing": "Ana amfani da hangen {mode} domin ya fi dacewa",
-    "keep": "Ci gaba da {mode}"
+    "keep": "Ci gaba da {mode}",
+    "autoFitActive": "Daidaitawa ta atomatik tana kunne"
   },
   "trustLayer": "Matakin amincewa",
   "preferencesTitle": "Harshe da yanki",
