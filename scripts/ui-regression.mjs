@@ -572,13 +572,18 @@ async function checkHome(page, mobile) {
 
 async function checkFeatureDiscovery(page, mobile) {
   const failures = [];
-  const imageHasLoaded = async (image) => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const loaded = await image.evaluate((element) => (
-        element instanceof HTMLImageElement && element.complete && element.naturalWidth > 0
-      )).catch(() => false);
+  const imageHasLoaded = async (image, expectedSource = null) => {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const loaded = await image.evaluate((element, source) => {
+        if (!(element instanceof HTMLImageElement) || !element.complete || element.naturalWidth <= 0) {
+          return false;
+        }
+        if (!source) return true;
+        const resolvedSource = decodeURIComponent(element.currentSrc || element.src || '');
+        return resolvedSource.includes(source);
+      }, expectedSource).catch(() => false);
       if (loaded) return true;
-      await page.waitForTimeout(50);
+      await page.waitForTimeout(100);
     }
     return false;
   };
@@ -590,7 +595,7 @@ async function checkFeatureDiscovery(page, mobile) {
     }
     const sourceMatches = await visual.getAttribute('data-visual-src') === expectedSource;
     if (!sourceMatches) failures.push(`${label} contextual visual source is incorrect`);
-    if (!await imageHasLoaded(visual.locator('img'))) failures.push(`${label} contextual visual did not load`);
+    if (!await imageHasLoaded(visual.locator('img'), expectedSource)) failures.push(`${label} contextual visual did not load`);
   };
 
   await clickTab(page, 'Home', mobile);
