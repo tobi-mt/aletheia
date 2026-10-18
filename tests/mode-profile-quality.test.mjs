@@ -24,13 +24,11 @@ test("every wisdom mode has a complete and distinct intelligence profile", () =>
   assert.equal(new Set(profiles.map((profile) => profile.practices[0])).size, profiles.length);
 });
 
-test("Ask visibly explains how the active lens reasons", () => {
+test("Ask keeps lens guidance inside the existing selector without a duplicate panel", () => {
   const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
-  assert.match(panel, /sectionId="active-mode-intelligence"/);
-  assert.match(panel, /modeProfile\.diagnosticTracks\[0\]/);
-  assert.match(panel, /modeProfile\.blindSpots\[0\]/);
-  assert.match(panel, /modeProfile\.maturitySignals\[0\]/);
-  assert.match(panel, /modeProfile\.practices\[0\]/);
+  assert.doesNotMatch(panel, /sectionId="active-mode-intelligence"/);
+  assert.match(panel, /activeAutoModeSwitch\.reason/);
+  assert.match(panel, /modeSuggestion\.keep/);
 });
 
 test("AI counsel has an explicit mode-differentiation contract", () => {

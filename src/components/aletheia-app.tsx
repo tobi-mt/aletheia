@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
@@ -2459,14 +2459,15 @@ type ChatMessage = {
 };
 
 type AutoModeSwitchState = {
-  requestId: number;
-  vetoUntil: number;
   question: string;
   visibleQuestion?: string;
   originalMode: Mode;
   suggestedMode: Mode;
   learningTopic: string;
-  modeFitObservation: NonNullable<AskAletheiaOptions["modeFitObservation"]>;
+  reason: string;
+  questionMessageId: string;
+  answerMessageId: string;
+  persistedQuestionMessageId: string;
   consentOverride?: boolean;
 };
 
@@ -2484,6 +2485,9 @@ type AskAletheiaOptions = {
     suggestedMode: Mode;
     topic: string;
   };
+  autoFit?: boolean;
+  replaceMessageIds?: string[];
+  supersedeMessageIds?: string[];
 };
 
 type PendingAiQuestion = {
@@ -5920,6 +5924,13 @@ export function AletheiaApp({
   const [showAiConsentModal, setShowAiConsentModal] = useState(false);
   const [pendingAiQuestion, setPendingAiQuestion] = useState<PendingAiQuestion | null>(null);
   const [activeAutoModeSwitch, setActiveAutoModeSwitch] = useState<AutoModeSwitchState | null>(null);
+  const [autoFitEnabled, setAutoFitEnabled] = useState(() => {
+    try {
+      return window.localStorage.getItem("aletheia_auto_fit_enabled") !== "off";
+    } catch {
+      return true;
+    }
+  });
   const chatRequestSequenceRef = useRef(0);
   const chatAbortControllerRef = useRef<AbortController | null>(null);
   const modeFitSubmissionInFlightRef = useRef(false);
@@ -9138,6 +9149,7 @@ export function AletheiaApp({
   }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, preferences.language, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
+    setActiveAutoModeSwitch(null);
     setMode(nextMode);
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
   }
@@ -10801,6 +10813,7 @@ function startFirstRunGuestFlow() {
     }
 
     const requestId = options.requestId ?? ++chatRequestSequenceRef.current;
+    if (!options.replaceMessageIds?.length) setActiveAutoModeSwitch(null);
     chatRequestSequenceRef.current = Math.max(chatRequestSequenceRef.current, requestId);
     if (options.supersede) {
       chatAbortControllerRef.current?.abort();
@@ -10822,9 +10835,12 @@ function startFirstRunGuestFlow() {
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
       setMessages((current) => {
-        const base = options.replacePending && current.at(-1)?.id === "thinking" && current.at(-2)?.role === "user"
-          ? current.slice(0, -2)
+        const withoutReplaced = options.replaceMessageIds?.length
+          ? current.filter((message) => !options.replaceMessageIds!.includes(message.id))
           : current;
+        const base = options.replacePending && withoutReplaced.at(-1)?.id === "thinking" && withoutReplaced.at(-2)?.role === "user"
+          ? withoutReplaced.slice(0, -2)
+          : withoutReplaced;
         return [
         ...base,
         userMessage,
@@ -10849,7 +10865,8 @@ function startFirstRunGuestFlow() {
           focusIntentions,
           gratitudeContext: gratitudeContextSummary(gratitudeEntries),
           deferPersistence: options.deferPersistence,
-          autoFit: true,
+          autoFit: options.autoFit ?? autoFitEnabled,
+          supersedeMessageIds: options.supersedeMessageIds,
         }),
       });
       const data = (await response.json()) as {
@@ -10893,13 +10910,27 @@ function startFirstRunGuestFlow() {
       }
       if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
       latestModeFitObservationRef.current = options.modeFitObservation;
-      if (data.reply.mode && data.reply.mode !== questionMode) {
-        userMessage.mode = data.reply.mode;
-        setMode(data.reply.mode);
-        recordModeSwitchFeedback(window.localStorage, questionMode, data.reply.mode, data.intelligence?.safeTopic ?? "general", "accepted");
+      const switchedMode = data.reply.mode && data.reply.mode !== questionMode ? data.reply.mode : null;
+      const autoSwitched = switchedMode !== null;
+      if (switchedMode) {
+        userMessage.mode = switchedMode;
+        setMode(switchedMode);
+        setActiveAutoModeSwitch({
+          question: trimmed,
+          visibleQuestion,
+          originalMode: questionMode,
+          suggestedMode: switchedMode,
+          learningTopic: data.intelligence?.safeTopic ?? "general",
+          reason: data.intelligence?.ambiguity.reason ?? "",
+          questionMessageId: userMessage.id,
+          answerMessageId: data.reply.id,
+          persistedQuestionMessageId: data.userMessage?.id ?? userMessage.id,
+          consentOverride,
+        });
+        recordModeSwitchFeedback(window.localStorage, questionMode, switchedMode, data.intelligence?.safeTopic ?? "general", "accepted");
         trackClientEvent("mode_better_fit_accepted", {
           from_mode: questionMode,
-          to_mode: data.reply.mode,
+          to_mode: switchedMode,
           topic: data.intelligence?.safeTopic ?? "general",
           unified_pipeline: true,
         });
@@ -10936,7 +10967,7 @@ function startFirstRunGuestFlow() {
       setMessages((current) =>
         current.map((message) => (message.id === "thinking" ? data.reply! : message))
       );
-      setAnswerFocusId(data.reply.id);
+      if (!autoSwitched) setAnswerFocusId(data.reply.id);
       const responseMessage =
         data.persisted
           ? ts('notifications.answerReady')
@@ -10983,7 +11014,6 @@ function startFirstRunGuestFlow() {
     } finally {
       if (requestId === chatRequestSequenceRef.current) {
         setIsWorking(false);
-        setActiveAutoModeSwitch(null);
         if (chatAbortControllerRef.current === requestController) chatAbortControllerRef.current = null;
       }
     }
@@ -11013,9 +11043,7 @@ function startFirstRunGuestFlow() {
 
   async function keepOriginalModeForPendingAnswer() {
     const pending = activeAutoModeSwitch;
-    if (!pending || Date.now() >= pending.vetoUntil) return;
-    const requestId = ++chatRequestSequenceRef.current;
-    chatAbortControllerRef.current?.abort();
+    if (!pending || isWorking) return;
     setActiveAutoModeSwitch(null);
     setMode(pending.originalMode);
     recordModeSwitchFeedback(window.localStorage, pending.originalMode, pending.suggestedMode, pending.learningTopic, "declined");
@@ -11024,21 +11052,20 @@ function startFirstRunGuestFlow() {
       to_mode: pending.originalMode,
       topic: pending.learningTopic,
     });
-    trackClientEvent("mode_fit_outcome", {
-      prediction_id: pending.modeFitObservation.predictionId,
-      policy: "live",
-      signal: "veto",
-      value: "declined",
-      selected_mode: pending.originalMode,
-      suggested_mode: pending.suggestedMode,
-      topic: pending.learningTopic,
-    });
     await askAletheia(pending.question, pending.consentOverride, pending.visibleQuestion, pending.originalMode, {
-      deferPersistence: true,
-      replacePending: true,
-      requestId,
-      supersede: true,
-      modeFitObservation: pending.modeFitObservation,
+      autoFit: false,
+      replaceMessageIds: [pending.questionMessageId, pending.answerMessageId],
+      supersedeMessageIds: [pending.persistedQuestionMessageId, pending.answerMessageId],
+    });
+  }
+
+  function toggleAutoFit() {
+    setAutoFitEnabled((current) => {
+      const next = !current;
+      window.localStorage.setItem("aletheia_auto_fit_enabled", next ? "on" : "off");
+      if (!next) setActiveAutoModeSwitch(null);
+      trackClientEvent("mode_auto_fit_toggled", { enabled: next });
+      return next;
     });
   }
 
@@ -13318,6 +13345,8 @@ function startFirstRunGuestFlow() {
                       onListen={startVoiceInput}
                       onAskQuestion={submitQuestionWithModeCheck}
                       activeAutoModeSwitch={activeAutoModeSwitch}
+                      autoFitEnabled={autoFitEnabled}
+                      onToggleAutoFit={toggleAutoFit}
                       onKeepOriginalMode={keepOriginalModeForPendingAnswer}
                       onClearVoiceTranscript={() => setVoiceTranscriptPreview("")}
                       onSpeak={speakLatestAletheiaReply}
@@ -27565,6 +27594,8 @@ function CompanionPanel({
   onListen,
   onAskQuestion,
   activeAutoModeSwitch,
+  autoFitEnabled,
+  onToggleAutoFit,
   onKeepOriginalMode,
   onClearVoiceTranscript,
   onSpeak,
@@ -27611,6 +27642,8 @@ function CompanionPanel({
   onListen: () => void;
   onAskQuestion: (question: string) => Promise<void>;
   activeAutoModeSwitch: AutoModeSwitchState | null;
+  autoFitEnabled: boolean;
+  onToggleAutoFit: () => void;
   onKeepOriginalMode: () => void;
   onClearVoiceTranscript: () => void;
   onSpeak: () => void;
@@ -27645,6 +27678,7 @@ function CompanionPanel({
   const historyRailRef = useRef<HTMLDivElement | null>(null);
   const [selectedHistoryExchange, setSelectedHistoryExchange] = useState<ConversationExchange | null>(null);
   const [voiceDetailsOpen, setVoiceDetailsOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const exchanges = conversationExchanges(messages);
   const currentExchange = exchanges[exchanges.length - 1] ?? null;
   const history = exchanges.slice(0, -1).reverse();
@@ -27653,7 +27687,7 @@ function CompanionPanel({
     : process.env.NODE_ENV !== "production"
       ? buildQaRailSampleConversationExchanges(mode)
       : history;
-  const hasCounselSurface = Boolean(currentExchange || visibleHistory.length);
+  const hasCounselSurface = Boolean((currentExchange && currentExchange.answer.id !== "thinking") || visibleHistory.length);
   const historyRailHasOverflow = useRailOverflowCue(historyRailRef, visibleHistory.length > 1, [visibleHistory.length, selectedHistoryExchange?.id]);
   const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
@@ -27661,6 +27695,7 @@ function CompanionPanel({
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
   const CurrentLensIcon = currentModeCard.icon;
   const voiceDraft = voiceTranscriptPreview.trim();
+  const modeSelectorRef = useRef<HTMLDivElement | null>(null);
   const modeLensRailRef = useRef<HTMLDivElement | null>(null);
   const modeLensRailHasOverflow = useRailOverflowCue(modeLensRailRef, modeCards.length > 1, [modeCards.length, mode, preferences.language]);
   const suggestedModeLabel = activeAutoModeSwitch
@@ -27669,6 +27704,20 @@ function CompanionPanel({
   const originalModeLabel = activeAutoModeSwitch
     ? localizedModeLabel(activeAutoModeSwitch.originalMode, preferences.language)
     : "";
+  const OriginalLensIcon = activeAutoModeSwitch
+    ? (modeCards.find((item) => item.label === activeAutoModeSwitch.originalMode) ?? modeCards[0]).icon
+    : CurrentLensIcon;
+  const SuggestedLensIcon = activeAutoModeSwitch
+    ? (modeCards.find((item) => item.label === activeAutoModeSwitch.suggestedMode) ?? modeCards[0]).icon
+    : CurrentLensIcon;
+
+  useEffect(() => {
+    if (!activeAutoModeSwitch) return;
+    const timeout = window.setTimeout(() => {
+      modeSelectorRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    }, 80);
+    return () => window.clearTimeout(timeout);
+  }, [activeAutoModeSwitch, reduceMotion]);
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
@@ -27726,17 +27775,34 @@ function CompanionPanel({
 
         <form onSubmit={onAsk} className="p-4 sm:p-6" style={{ backgroundColor: theme.bgMain + 'E0' }}>
           <div className="space-y-5">
-            <div className="space-y-2">
+            <div ref={modeSelectorRef} className="scroll-mt-24 space-y-2">
               <div className="flex items-center justify-between gap-3 px-1">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                     {ui.wisdomMode}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium" style={{ color: theme.textMuted }}>
-                  <Sparkles size={12} aria-hidden="true" />
-                  {ts('modeSuggestion.autoFitActive')}
-                </span>
+                <button
+                  type="button"
+                  onClick={onToggleAutoFit}
+                  aria-pressed={autoFitEnabled}
+                  aria-label={ts('modeSuggestion.autoFitActive')}
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-medium transition active:scale-95"
+                  style={{ color: autoFitEnabled ? theme.primary : theme.textMuted }}
+                >
+                  <motion.span
+                    className="grid size-5 place-items-center rounded-full"
+                    style={{
+                      backgroundColor: autoFitEnabled ? theme.activeBg : "transparent",
+                      boxShadow: autoFitEnabled ? `0 0 14px ${theme.accentGold}66` : "none",
+                    }}
+                    animate={autoFitEnabled && !reduceMotion ? { rotate: [0, 8, -8, 0], scale: [1, 1.16, 1] } : { rotate: 0, scale: 1 }}
+                    transition={{ duration: 1.8, repeat: autoFitEnabled ? Infinity : 0, repeatDelay: 2.4 }}
+                  >
+                    <Sparkles size={12} aria-hidden="true" />
+                  </motion.span>
+                  {autoFitEnabled ? ts('modeSuggestion.autoFitActive') : null}
+                </button>
               </div>
               <div className="relative">
                 <div
@@ -27760,35 +27826,68 @@ function CompanionPanel({
                   </div>
                 ) : null}
               </div>
-              <DisclosureSection
-                key={`mode-intelligence-${mode}`}
-                sectionId="active-mode-intelligence"
-                eyebrow={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
-                title={modeProfile.intent}
-                summary={modeProfile.useWhen}
-                compactCollapsed
-                showDetailsLabel={ui.showDetails}
-                hideDetailsLabel={ui.hideDetails}
-                theme={theme}
-              >
-                <div className="divide-y" style={{ borderColor: theme.borderLight }}>
-                  {[
-                    { label: ui.deepChecks, value: modeProfile.diagnosticTracks[0] },
-                    { label: ui.blindSpots, value: modeProfile.blindSpots[0] },
-                    { label: ui.maturitySignals, value: modeProfile.maturitySignals[0] },
-                    { label: ui.tinyPractice, value: modeProfile.practices[0] },
-                  ].map((item) => (
-                    <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-                        {item.label}
-                      </p>
-                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {item.value}
-                      </p>
+              {isWorking && !activeAutoModeSwitch ? (
+                <ModeSelectorJourney
+                  ts={ts}
+                  theme={theme}
+                  modeLabel={localizedModeLabel(mode, preferences.language)}
+                  ModeIcon={CurrentLensIcon}
+                />
+              ) : null}
+              {activeAutoModeSwitch ? (
+                <motion.div
+                  data-testid="auto-mode-transition"
+                  className="grid min-w-0 gap-2 rounded-[1rem] border px-3 py-2.5"
+                  style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+                  role="status"
+                  aria-live="polite"
+                  initial={reduceMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
+                  animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: [0.98, 1.01, 1] }}
+                  transition={{ duration: reduceMotion ? 0 : 0.5, ease: "easeOut" }}
+                >
+                  <div className="min-w-0">
+                    <div className="mb-1.5 flex items-center gap-2" aria-hidden="true">
+                      <span className="grid size-7 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, color: theme.textMuted }}>
+                        <OriginalLensIcon size={14} />
+                      </span>
+                      <motion.span
+                        className="h-px w-8 origin-left"
+                        style={{ backgroundColor: theme.accentGold }}
+                        initial={reduceMotion ? false : { scaleX: 0, opacity: 0.4 }}
+                        animate={{ scaleX: 1, opacity: 1 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.45 }}
+                      />
+                      <motion.span
+                        className="grid size-8 place-items-center rounded-lg border"
+                        style={{ borderColor: theme.primary, backgroundColor: theme.activeBg, color: theme.primary }}
+                        initial={reduceMotion ? false : { opacity: 0, x: -10, scale: 0.8 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : 0.18 }}
+                      >
+                        <SuggestedLensIcon size={15} />
+                      </motion.span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                        {originalModeLabel} → {suggestedModeLabel}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </DisclosureSection>
+                    <p className="line-clamp-2 flex min-w-0 items-start gap-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                      <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} aria-hidden="true" />
+                      <span>{activeAutoModeSwitch.reason || ts('modeSuggestion.autoUsing').replace('{mode}', suggestedModeLabel)}</span>
+                    </p>
+                  </div>
+                  <motion.button
+                    type="button"
+                    onClick={onKeepOriginalMode}
+                    disabled={isWorking}
+                    className="min-h-10 justify-self-end rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-60"
+                    style={{ borderColor: theme.primary, backgroundColor: theme.bgCard, color: theme.primary }}
+                    animate={reduceMotion ? undefined : { boxShadow: [`0 0 0 0 ${theme.primary}00`, `0 0 0 5px ${theme.primary}22`, `0 0 0 0 ${theme.primary}00`] }}
+                    transition={{ duration: 1.8, repeat: 1, ease: "easeInOut" }}
+                  >
+                    {ts('modeSuggestion.keep').replace('{mode}', originalModeLabel)}
+                  </motion.button>
+                </motion.div>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -27813,32 +27912,6 @@ function CompanionPanel({
                 onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
               />
             </div>
-
-            {activeAutoModeSwitch && isWorking ? (
-              <div
-                role="status"
-                aria-live="polite"
-                className="fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-[120] mx-auto max-w-xl overflow-hidden rounded-2xl border shadow-[0_18px_48px_rgba(7,10,8,0.22)] md:bottom-6"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
-              >
-                <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5">
-                  <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-                    {ts('modeSuggestion.autoUsing').replace('{mode}', suggestedModeLabel)}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={onKeepOriginalMode}
-                    className="min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-sm font-semibold transition"
-                    style={{ borderColor: theme.primary, backgroundColor: theme.bgCard, color: theme.primary }}
-                  >
-                    {ts('modeSuggestion.keep').replace('{mode}', originalModeLabel)}
-                  </button>
-                </div>
-                <div className="h-0.5 overflow-hidden" style={{ backgroundColor: theme.borderLight }} aria-hidden="true">
-                  <div className="mode-switch-progress h-full w-full" style={{ backgroundColor: theme.primary }} />
-                </div>
-              </div>
-            ) : null}
 
             <div className="flex items-stretch gap-2">
               {preferences.voiceEnabled ? (
@@ -27900,8 +27973,21 @@ function CompanionPanel({
                 onMouseEnter={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primaryHover)}
                 onMouseLeave={(e) => !isWorking && (e.currentTarget.style.backgroundColor = theme.primary)}
               >
-                <Send size={17} />
-                {isWorking ? "..." : ui.askButton}
+                {isWorking ? (
+                  <motion.span
+                    className="inline-flex items-center gap-2"
+                    animate={reduceMotion ? undefined : { opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                  >
+                    <CurrentLensIcon size={17} aria-hidden="true" />
+                    {ts('labels.working')}
+                  </motion.span>
+                ) : (
+                  <>
+                    <Send size={17} />
+                    {ui.askButton}
+                  </>
+                )}
               </button>
             </div>
 
@@ -27999,7 +28085,7 @@ function CompanionPanel({
 
       {hasCounselSurface ? (
         <div className="min-w-0 space-y-4">
-          {currentExchange ? (
+          {currentExchange && currentExchange.answer.id !== "thinking" ? (
             <div ref={currentCounselRef} className="scroll-mt-24">
                 <CurrentCounselCard
                   ts={ts}
@@ -29188,6 +29274,80 @@ function RangeField({
   );
 }
 
+function ModeSelectorJourney({
+  ts,
+  theme,
+  modeLabel,
+  ModeIcon,
+}: {
+  ts: (key: string, fallback?: string) => string;
+  theme: ThemeColors;
+  modeLabel: string;
+  ModeIcon: typeof PiggyBank;
+}) {
+  const reduceMotion = useReducedMotion();
+  const [isDeepening, setIsDeepening] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setIsDeepening(true), 2400);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  const status = isDeepening
+    ? ts('notifications.questionSentBody')
+    : ts('notifications.retrievingWisdom');
+
+  return (
+    <div data-testid="mode-selector-journey" className="mt-1 overflow-hidden rounded-[1.1rem] border px-4 py-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+      <div className="relative mx-auto h-16 max-w-sm" aria-hidden="true">
+        <div
+          className="absolute inset-x-3 top-1/2 h-px -translate-y-1/2"
+          style={{ background: `linear-gradient(90deg, transparent, ${theme.borderStrong}, transparent)` }}
+        />
+        <motion.div
+          className="absolute top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-2xl border shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
+          style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+          initial={{ left: "4%", scale: 0.94 }}
+          animate={reduceMotion ? { left: "44%", scale: 1 } : { left: ["4%", "72%", "44%"], y: [0, -4, 0], scale: [0.94, 1.04, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 2.5, repeat: Infinity, repeatDelay: 0.35, ease: "easeInOut" }}
+        >
+          <ModeIcon size={20} />
+        </motion.div>
+        <motion.span
+          className="absolute left-[8%] top-1/2 size-1.5 -translate-y-1/2 rounded-full"
+          style={{ backgroundColor: theme.accentGold }}
+          animate={reduceMotion ? undefined : { opacity: [0.25, 1, 0.25], scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 1.4, repeat: Infinity }}
+        />
+        <motion.span
+          className="absolute right-[8%] top-1/2 size-1.5 -translate-y-1/2 rounded-full"
+          style={{ backgroundColor: theme.accentGold }}
+          animate={reduceMotion ? undefined : { opacity: [1, 0.25, 1], scale: [1.2, 0.8, 1.2] }}
+          transition={{ duration: 1.4, repeat: Infinity }}
+        />
+      </div>
+      <div className="mt-1 text-center" role="status" aria-live="polite" aria-atomic="true">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+          {modeLabel} · {ts('modeSuggestion.autoFitActive')}
+        </p>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.p
+            key={status}
+            className="mx-auto mt-2 max-w-sm text-sm leading-6"
+            style={{ color: theme.textSecondary }}
+            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+          >
+            {status}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 function CurrentCounselCard({
   ts,
   theme,
@@ -29285,40 +29445,6 @@ function CurrentCounselCard({
           </p>
         </div>
       ) : null}
-      {exchange.answer.intelligence && !isThinking ? (
-        <DisclosureSection
-          sectionId={`answer-lens-intelligence-${exchange.answer.id}`}
-          eyebrow={`${ui.currentLens}: ${lensLabel}`}
-          title={exchange.answer.intelligence.ambiguity.uncertain
-            ? `${lensLabel} · ${Math.round(exchange.answer.intelligence.probabilities[exchange.mode] * 100)}%`
-            : exchangeModeProfile.intent}
-          summary={exchange.answer.intelligence.ambiguity.reason}
-          compactCollapsed
-          showDetailsLabel={ui.showDetails}
-          hideDetailsLabel={ui.hideDetails}
-          theme={theme}
-        >
-          <div className="divide-y" style={{ borderColor: theme.borderLight }}>
-            {[
-              { label: ui.deepChecks, value: exchange.answer.intelligence.reasoningPlan.diagnosticQuestion },
-              { label: ui.blindSpots, value: exchange.answer.intelligence.reasoningPlan.blindSpot },
-              { label: ui.maturitySignals, value: exchange.answer.intelligence.reasoningPlan.maturitySignal },
-              { label: ui.tinyPractice, value: exchange.answer.intelligence.reasoningPlan.nextStep },
-              ...(exchange.answer.intelligence.ambiguity.alternativeMode ? [{
-                label: ui.wisdomMode,
-                value: ts('modeSuggestion.body')
-                  .replace('{mode}', localizedModeLabel(exchange.answer.intelligence.ambiguity.alternativeMode, preferences.language))
-                  .replace('{focus}', localizedModeProfile(exchange.answer.intelligence.ambiguity.alternativeMode, preferences.language).focus.toLowerCase()),
-              }] : []),
-            ].map((item) => (
-              <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{item.label}</p>
-                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </DisclosureSection>
-      ) : null}
       <article className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {preferences.voiceEnabled && !isThinking ? (
           <div className="flex flex-col items-center gap-2">
@@ -29365,15 +29491,22 @@ function CurrentCounselCard({
             </div>
           </div>
         ) : null}
-        <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
-          <ScriptureLinkedText
-            theme={theme}
-            text={answerText}
-            language={preferences.language}
-            allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
-            onScriptureOpen={onScriptureOpen}
-          />
-        </div>
+        {isThinking ? (
+          <div className="flex items-center justify-center gap-2 py-5 text-sm" style={{ color: theme.textSecondary }} role="status" aria-live="polite">
+            <span className="size-1.5 animate-pulse rounded-full motion-reduce:animate-none" style={{ backgroundColor: theme.accentGold }} aria-hidden="true" />
+            {answerText}
+          </div>
+        ) : (
+          <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
+            <ScriptureLinkedText
+              theme={theme}
+              text={answerText}
+              language={preferences.language}
+              allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
+              onScriptureOpen={onScriptureOpen}
+            />
+          </div>
+        )}
         <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {!isThinking ? (

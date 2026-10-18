@@ -18,7 +18,7 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 page.on("pageerror", (error) => console.error("PAGE ERROR", error));
-const requestedModes = [];
+const chatRequests = [];
 let legacyClassifierCalls = 0;
 
 await page.route("**/api/chat/mode-fit", async (route) => {
@@ -44,19 +44,21 @@ await page.route("**/api/chat", async (route) => {
     return;
   }
   const body = request.postDataJSON();
-  requestedModes.push(body.mode);
-  await new Promise((resolve) => setTimeout(resolve, 350));
+  chatRequests.push({ mode: body.mode, autoFit: body.autoFit, supersedeMessageIds: body.supersedeMessageIds });
+  const keptOriginal = body.autoFit === false;
+  const responseMode = keptOriginal ? "Money" : "Work";
+  await new Promise((resolve) => setTimeout(resolve, 2800));
   await route.fulfill({
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({
-      userMessage: { id: crypto.randomUUID(), role: "user", mode: "Work", text: body.message },
-      reply: { id: crypto.randomUUID(), role: "aletheia", mode: "Work", text: "UNIFIED_WORK_COUNSEL", sources: [] },
+      userMessage: { id: crypto.randomUUID(), role: "user", mode: responseMode, text: body.message },
+      reply: { id: crypto.randomUUID(), role: "aletheia", mode: responseMode, text: keptOriginal ? "ORIGINAL_MONEY_COUNSEL" : "UNIFIED_WORK_COUNSEL", sources: [] },
       persisted: false,
       deferredPersistence: false,
       usedOpenAI: true,
       intelligence: {
-        recommendedMode: "Work",
+        recommendedMode: responseMode,
         probabilities: { Money: 0.05, Work: 0.72, Purpose: 0.1, Generosity: 0.03, Life: 0.1 },
         ambiguity: { mixed: false, uncertain: false, alternativeMode: "Purpose", reason: "The central question concerns vocation, capacity, and sustainable effort." },
         safeTopic: "general",
@@ -90,29 +92,60 @@ try {
   }
   await page.getByRole("button", { name: "Ask Aletheia", exact: true }).first().click();
   await page.locator("#companion-question-input").waitFor({ state: "visible", timeout: 10_000 });
+  const autoFitControl = page.getByRole("button", { name: "Auto-fit on", exact: true });
+  assert.equal(await autoFitControl.getAttribute("aria-pressed"), "true");
+  await autoFitControl.tap();
+  assert.equal(await autoFitControl.getAttribute("aria-pressed"), "false");
+  assert.equal(await page.evaluate(() => localStorage.getItem("aletheia_auto_fit_enabled")), "off");
+  await autoFitControl.tap();
+  assert.equal(await autoFitControl.getAttribute("aria-pressed"), "true");
   await page.locator("#companion-question-input").fill(testQuestion);
   const askButton = page.locator("#companion-question-input").locator("xpath=ancestor::form").locator('button[type="submit"]');
   await askButton.tap();
   if (freshConsentScenario) {
     await page.getByRole("dialog").waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
-      console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-2_000) });
+      console.error({ chatRequests, body: (await page.locator("body").innerText()).slice(-2_000) });
       throw error;
     });
     await page.getByRole("button", { name: /Allow .* processing/i }).click();
   } else {
     await page.waitForFunction(() => document.querySelector('#companion-question-input')?.closest('form')?.querySelector('button[type="submit"]')?.getAttribute('aria-busy') === 'true');
   }
+  await page.getByTestId("mode-selector-journey").getByText("Retrieving grounded wisdom...", { exact: true }).waitFor({ state: "visible", timeout: 3_000 });
+  const journeyBox = await page.getByTestId("mode-selector-journey").boundingBox();
+  assert.ok(journeyBox && journeyBox.y >= 0 && journeyBox.y + journeyBox.height <= 852, "reasoning animation must remain inside the phone viewport");
+  await page.screenshot({ path: path.join(outputDir, "00-reasoning-journey.png"), fullPage: false });
   await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
-    console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-3_000) });
+    console.error({ chatRequests, body: (await page.locator("body").innerText()).slice(-3_000) });
     throw error;
   });
-  assert.deepEqual(requestedModes, ["Money"]);
+  assert.deepEqual(chatRequests.map(({ mode, autoFit }) => ({ mode, autoFit })), [{ mode: "Money", autoFit: true }]);
   assert.equal(legacyClassifierCalls, 0);
-  assert.equal(await page.getByText("Current lens: Work", { exact: true }).count() > 0, true);
   assert.equal(await page.getByText("The central question concerns vocation, capacity, and sustainable effort.", { exact: true }).isVisible(), true);
-  await page.screenshot({ path: path.join(outputDir, "01-unified-work-answer.png"), fullPage: true });
+  assert.equal(await page.locator('[data-testid^="answer-lens-intelligence"], [data-testid="active-mode-intelligence"]').count(), 0);
+  const keepButton = page.getByRole("button", { name: "Keep Money", exact: true });
+  assert.equal(await keepButton.isVisible(), true);
+  await keepButton.waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const button = [...document.querySelectorAll("button")].find((item) => item.textContent?.trim() === "Keep Money");
+    return button && !button.disabled;
+  });
+  const keepBox = await keepButton.boundingBox();
+  assert.ok(keepBox && keepBox.y >= 0 && keepBox.y + keepBox.height <= 852, "keep-original action must remain inside the phone viewport");
+  assert.equal(await page.getByTestId("auto-mode-transition").isVisible(), true);
+  await page.screenshot({ path: path.join(outputDir, "01-unified-work-answer.png"), fullPage: false });
 
-  console.log(`PASS unified visual mode-switch flow: ${requestedModes.length} chat request, ${legacyClassifierCalls} classifier requests`);
+  await keepButton.tap();
+  await page.getByText("ORIGINAL_MONEY_COUNSEL", { exact: true }).waitFor({ state: "visible", timeout: 5_000 });
+  assert.equal(await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).count(), 0);
+  assert.deepEqual(chatRequests.map(({ mode, autoFit }) => ({ mode, autoFit })), [
+    { mode: "Money", autoFit: true },
+    { mode: "Money", autoFit: false },
+  ]);
+  assert.equal(chatRequests[1].supersedeMessageIds?.length, 2);
+  await page.screenshot({ path: path.join(outputDir, "02-kept-money-answer.png"), fullPage: true });
+
+  console.log(`PASS unified visual mode-switch and keep-original flow: ${chatRequests.length} chat requests, ${legacyClassifierCalls} classifier requests`);
   console.log(outputDir);
 } finally {
   await browser.close();

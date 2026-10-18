@@ -7,16 +7,13 @@ import process from "node:process";
 
 const DEFAULT_PUBLIC_APP_ORIGIN = "https://aletheia.mirrortalkpodcast.com";
 
-function runBuild(rootDir, appOrigin, modeFitShadowPercent) {
+function runBuild(rootDir, appOrigin) {
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   const env = {
     ...process.env,
     AUTH_URL: process.env.AUTH_URL || appOrigin,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || appOrigin,
     NEXT_PUBLIC_NATIVE_WEB_BUNDLE: "1",
-    // Native test/release builds must visibly exercise mode-fit by default.
-    // Use the native-only override explicitly when a deliberate shadow rollout is needed.
-    NEXT_PUBLIC_MODE_FIT_SHADOW_PERCENT: modeFitShadowPercent,
   };
 
   execFileSync(npmCommand, ["run", "build"], {
@@ -26,24 +23,22 @@ function runBuild(rootDir, appOrigin, modeFitShadowPercent) {
   });
 }
 
-async function verifyNativeModeFitBundle(staticDir, expectedShadowPercent) {
+async function verifyNativeIntelligenceBundle(staticDir) {
   const chunksDir = path.join(staticDir, "chunks");
   const chunkNames = await readdir(chunksDir).catch(() => []);
-  const expectedLiteral = `Number("${expectedShadowPercent}")`;
-  let modeFitChunkFound = false;
+  let unifiedAutoFitFound = false;
 
   for (const name of chunkNames) {
     if (!name.endsWith(".js")) continue;
     const contents = await readFile(path.join(chunksDir, name), "utf8");
-    if (!contents.includes("mode_fit_prediction")) continue;
-    modeFitChunkFound = true;
-    if (!contents.includes(expectedLiteral)) {
-      throw new Error(`Native mode-fit bundle mismatch: expected shadow percent ${expectedShadowPercent}.`);
+    if (contents.includes("/api/chat/mode-fit")) {
+      throw new Error("Native intelligence bundle still contains the retired split classifier request.");
     }
+    if (contents.includes("autoFit")) unifiedAutoFitFound = true;
   }
 
-  if (!modeFitChunkFound) {
-    throw new Error("Native mode-fit bundle verification failed: runtime marker was not found.");
+  if (!unifiedAutoFitFound) {
+    throw new Error("Native intelligence bundle verification failed: unified auto-fit marker was not found.");
   }
 }
 
@@ -93,10 +88,8 @@ async function main() {
   const nextServerAppDir = path.join(rootDir, ".next", "server", "app");
   const nextStaticDir = path.join(rootDir, ".next", "static");
   const publicDir = path.join(rootDir, "public");
-  const modeFitShadowPercent = (process.env.NATIVE_MODE_FIT_SHADOW_PERCENT ?? "0").trim() || "0";
-
-  runBuild(rootDir, appOrigin, modeFitShadowPercent);
-  await verifyNativeModeFitBundle(nextStaticDir, modeFitShadowPercent);
+  runBuild(rootDir, appOrigin);
+  await verifyNativeIntelligenceBundle(nextStaticDir);
 
   await rm(capacitorWebDir, { recursive: true, force: true });
   await mkdir(capacitorWebDir, { recursive: true });
@@ -121,7 +114,7 @@ async function main() {
     )}\n`
   );
 
-  console.log(`Verified native mode-fit shadow percent: ${modeFitShadowPercent}`);
+  console.log("Verified native unified intelligence bundle: one auto-fit chat pipeline and no split classifier request.");
 }
 
 await main();

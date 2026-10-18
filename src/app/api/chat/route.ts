@@ -256,6 +256,7 @@ export async function POST(request: Request) {
     gratitudeContext?: GratitudeContextSummary;
     deferPersistence?: boolean;
     autoFit?: boolean;
+    supersedeMessageIds?: unknown;
   }>(request, { maxBytes: 24_000 });
   if (!parsedBody.ok) {
     return parsedBody.response;
@@ -467,15 +468,29 @@ export async function POST(request: Request) {
     preferences,
     memoryContext: mayUseThirdPartyAi ? memoryContext : "",
     allowModel: mayUseThirdPartyAi,
+    forceSelectedMode: body.autoFit === false,
   });
   const effectiveMode = body.autoFit === false ? mode : intelligence.recommendedMode;
   const aiText = intelligence.counsel;
+  const userMessageId = crypto.randomUUID();
+  const replyMessageId = crypto.randomUUID();
+  const supersedeMessageIds = Array.isArray(body.supersedeMessageIds)
+    ? body.supersedeMessageIds.filter(validMessageId).slice(0, 2) as string[]
+    : [];
 
   if (user && !deferPersistence) {
     const now = new Date().toISOString();
+    if (supersedeMessageIds.length) {
+      await run(
+        "DELETE FROM chat_messages WHERE user_id = ? AND id IN (?, ?)",
+        user.id,
+        supersedeMessageIds[0] ?? "",
+        supersedeMessageIds[1] ?? ""
+      );
+    }
     await run(
       "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      crypto.randomUUID(),
+      userMessageId,
       user.id,
       "user",
       effectiveMode,
@@ -485,7 +500,7 @@ export async function POST(request: Request) {
     );
     await run(
       "INSERT INTO chat_messages (id, user_id, role, mode, content, sources, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      crypto.randomUUID(),
+      replyMessageId,
       user.id,
       "aletheia",
       effectiveMode,
@@ -538,13 +553,13 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       userMessage: {
-        id: crypto.randomUUID(),
+        id: userMessageId,
         role: "user",
         text: message,
         mode: effectiveMode,
       },
       reply: {
-        id: crypto.randomUUID(),
+        id: replyMessageId,
         role: "aletheia",
         text: aiText,
         mode: effectiveMode,

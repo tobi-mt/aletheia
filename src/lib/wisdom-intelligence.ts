@@ -90,9 +90,9 @@ export function validateWisdomIntelligence(result: Omit<WisdomIntelligence, "qua
   return { passed: Object.values(checks).every(Boolean), checks };
 }
 
-function deterministic(question: string, selectedMode: Mode, sources: WisdomSource[], preferences: UserPreferences, started: number, attempts: number): WisdomIntelligence {
+function deterministic(question: string, selectedMode: Mode, sources: WisdomSource[], preferences: UserPreferences, started: number, attempts: number, forceSelectedMode = false): WisdomIntelligence {
   const suggestion = suggestModeForQuestion(question, selectedMode);
-  const recommendedMode = suggestion?.mode ?? selectedMode;
+  const recommendedMode = forceSelectedMode ? selectedMode : suggestion?.mode ?? selectedMode;
   const profile = localizedModeProfile(recommendedMode, preferences.language);
   const safeTopic = safetyTopic(question);
   const base = {
@@ -105,9 +105,9 @@ function deterministic(question: string, selectedMode: Mode, sources: WisdomSour
   return { ...base, quality: validateWisdomIntelligence(base, sources), routing: { route: "deterministic", attempts, latencyMs: Date.now() - started, circuitOpen: Date.now() < circuitOpenUntil } };
 }
 
-export async function generateWisdomIntelligence({ question, selectedMode, sources, preferences, memoryContext = "", allowModel = true }: { question: string; selectedMode: Mode; sources: WisdomSource[]; preferences: UserPreferences; memoryContext?: string; allowModel?: boolean }): Promise<WisdomIntelligence> {
+export async function generateWisdomIntelligence({ question, selectedMode, sources, preferences, memoryContext = "", allowModel = true, forceSelectedMode = false }: { question: string; selectedMode: Mode; sources: WisdomSource[]; preferences: UserPreferences; memoryContext?: string; allowModel?: boolean; forceSelectedMode?: boolean }): Promise<WisdomIntelligence> {
   const started = Date.now();
-  if (!allowModel || !client || Date.now() < circuitOpenUntil) return deterministic(question, selectedMode, sources, preferences, started, 0);
+  if (!allowModel || !client || Date.now() < circuitOpenUntil) return deterministic(question, selectedMode, sources, preferences, started, 0, forceSelectedMode);
   const sourceContext = sources.map((source, index) => {
     const localized = localizedWisdomEntry(source, preferences);
     return `${index + 1}. ${localizedScriptureReference(source.scripture, preferences.language)} | ${localized.principle} | ${localized.application}`;
@@ -130,13 +130,15 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
     try {
       attempts += 1;
       const response = await client.responses.create({ model: modelRoute.model, input: [
-        { role: "system", content: "You are Aletheia's unified wisdom engine. Classify the question, choose exactly one primary lens, plan using that lens, and write final counsel in one operation. Probabilities must sum to 1. Be calibrated: mark ambiguity when evidence is mixed. Use only supplied scripture references. Never claim divine certainty. Give a concrete next step. Maintain medical, financial, legal, pastoral and crisis boundaries. The five lenses change reasoning, not tone: Money=stewardship/risk; Work=vocation/capacity; Purpose=identity/motives/timing; Generosity=freedom/boundaries/sustainability; Life=formation/care/relationships. For crisis, prioritize urgent human help." },
-        { role: "user", content: `LENSES\n${profiles}\n\nUSER PREFERENCES\n${promptPreferenceContext(preferences)}\n\nPRIVATE CONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE\n${sourceContext}\n\nCURRENT USER-SELECTED LENS\n${selectedMode}\n\nQUESTION\n${question}` },
+        { role: "system", content: `You are Aletheia's unified wisdom engine. Classify the question, choose exactly one primary lens, plan using that lens, and write final counsel in one operation. Probabilities must sum to 1. Be calibrated: mark ambiguity when evidence is mixed. Use only supplied scripture references. Never claim divine certainty. Give a concrete next step. Maintain medical, financial, legal, pastoral and crisis boundaries. The five lenses change reasoning, not tone: Money=stewardship/risk; Work=vocation/capacity; Purpose=identity/motives/timing; Generosity=freedom/boundaries/sustainability; Life=formation/care/relationships. For crisis, prioritize urgent human help.${forceSelectedMode ? " The user explicitly chose to keep the current lens. You MUST set recommendedMode to the supplied current lens and use that lens's reasoning signature for the plan and counsel. Probabilities may still honestly reflect topical fit." : ""}` },
+        { role: "user", content: `LENSES\n${profiles}\n\nUSER PREFERENCES\n${promptPreferenceContext(preferences)}\n\nPRIVATE CONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE\n${sourceContext}\n\nCURRENT USER-SELECTED LENS\n${selectedMode}\n\nLENS POLICY\n${forceSelectedMode ? `Keep ${selectedMode}; do not switch.` : "Auto-fit may select the strongest lens."}\n\nQUESTION\n${question}` },
       ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema } } }, { signal: AbortSignal.timeout(modelRoute.timeoutMs) });
       const raw = JSON.parse(response.output_text) as Omit<WisdomIntelligence, "quality" | "routing">;
       const probabilities = normalizeModeProbabilities(raw.probabilities);
       if (!probabilities || !modes.includes(raw.recommendedMode)) throw new Error("invalid structured response");
-      const recommendedMode = raw.ambiguity.uncertain
+      const recommendedMode = forceSelectedMode
+        ? selectedMode
+        : raw.ambiguity.uncertain
         ? selectedMode
         : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed);
       const candidate = { ...raw, recommendedMode, probabilities };
@@ -153,5 +155,5 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
       if (failures >= 4) circuitOpenUntil = Date.now() + 60_000;
     }
   }
-  return deterministic(question, selectedMode, sources, preferences, started, attempts);
+  return deterministic(question, selectedMode, sources, preferences, started, attempts, forceSelectedMode);
 }
