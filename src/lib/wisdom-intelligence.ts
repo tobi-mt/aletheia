@@ -52,6 +52,25 @@ function fallbackProbabilities(mode: Mode): ModeProbabilities {
   return Object.fromEntries(modes.map((item) => [item, item === mode ? 0.68 : 0.08])) as ModeProbabilities;
 }
 
+export function resolveUnifiedRecommendedMode(probabilities: ModeProbabilities, selectedMode: Mode, mixed: boolean) {
+  const ranked = modes
+    .map((mode) => ({ mode, probability: probabilities[mode] }))
+    .sort((left, right) => right.probability - left.probability);
+  const leader = ranked[0];
+  const runnerUp = ranked[1];
+  if (!leader || leader.mode === selectedMode) return selectedMode;
+
+  // "Mixed" describes useful secondary context; it must not veto an otherwise
+  // decisive primary lens. The stronger threshold prevents casual switching.
+  const dominantDespiteOverlap = leader.probability >= 0.67
+    && leader.probability - probabilities[selectedMode] >= 0.3
+    && leader.probability - (runnerUp?.probability ?? 0) >= 0.25;
+  if (dominantDespiteOverlap) return leader.mode;
+  if (mixed) return selectedMode;
+
+  return calibrateSemanticModeFit({ probabilities, mixed: false, topic: "unified" }, selectedMode)?.mode ?? selectedMode;
+}
+
 function scriptureIntegrity(counsel: string, sources: WisdomSource[]) {
   const allowed = new Set(sources.map((source) => source.scripture.toLowerCase()));
   const references = counsel.match(/(?:[1-3]\s)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+\d{1,3}:\d{1,3}(?:[-–]\d{1,3})?/g) ?? [];
@@ -115,8 +134,9 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
       const raw = JSON.parse(response.output_text) as Omit<WisdomIntelligence, "quality" | "routing">;
       const probabilities = normalizeModeProbabilities(raw.probabilities);
       if (!probabilities || !modes.includes(raw.recommendedMode)) throw new Error("invalid structured response");
-      const calibrated = calibrateSemanticModeFit({ probabilities, mixed: raw.ambiguity.mixed, topic: raw.safeTopic }, selectedMode);
-      const recommendedMode = calibrated?.mode ?? (raw.recommendedMode === selectedMode ? selectedMode : (raw.ambiguity.uncertain || raw.ambiguity.mixed ? selectedMode : raw.recommendedMode));
+      const recommendedMode = raw.ambiguity.uncertain
+        ? selectedMode
+        : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed);
       const candidate = { ...raw, recommendedMode, probabilities };
       const quality = validateWisdomIntelligence(candidate, sources);
       if (!quality.passed) throw new Error(`quality gate: ${Object.entries(quality.checks).filter(([, ok]) => !ok).map(([name]) => name).join(",")}`);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
-import { validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
+import { resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
 
 const sources = [
   { theme: "Stewardship", scripture: "Proverbs 21:5", principle: "Patient planning matters.", context: "Planning", application: "Write the plan.", keywords: ["plan", "money"], emotions: ["pressure"], questions: ["What is the next step?"] },
@@ -14,6 +14,11 @@ test("evidence ranking combines mode, emotional, question, and scripture-diversi
   assert.equal(ranked.length, 3);
   assert.equal(new Set(ranked.map((source) => source.scripture.replace(/\s+\d.*$/, ""))).size, 2);
   assert.ok(ranked.some((source) => source.scripture === "Luke 14:28"));
+});
+
+test("a dominant primary lens switches even when secondary context makes the question mixed", () => {
+  assert.equal(resolveUnifiedRecommendedMode({ Money: 0.08, Work: 0.73, Purpose: 0.1, Generosity: 0.02, Life: 0.07 }, "Money", true), "Work");
+  assert.equal(resolveUnifiedRecommendedMode({ Money: 0.26, Work: 0.48, Purpose: 0.18, Generosity: 0.03, Life: 0.05 }, "Money", true), "Money");
 });
 
 test("quality gate accepts grounded mode-specific counsel", () => {
