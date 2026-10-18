@@ -105,7 +105,7 @@ const SIGNALS: Record<Mode, ModeSignals> = {
       "kahulugan ng buhay ko", "ano ang tawag sa akin", "walang direksyon",
     ],
     terms: [
-      "purpose", "identity", "direction", "meaning", "calling", "discernment", "values", "legacy", "vocation",
+      "purpose", "purposeful", "purposefully", "identity", "direction", "meaning", "calling", "discernment", "values", "legacy", "vocation",
       "propósito", "identidad", "dirección", "sentido", "llamado", "discernimiento", "valores",
       "but", "identité", "direction", "sens", "vocation", "discernement", "valeurs",
       "zweck", "identität", "richtung", "sinn", "berufung", "werte",

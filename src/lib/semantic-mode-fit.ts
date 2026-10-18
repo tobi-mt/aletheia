@@ -1,4 +1,5 @@
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import type { ModeSuggestion } from "@/lib/mode-suggestion";
 
 export type ModeProbabilities = Record<Mode, number>;
 
@@ -19,6 +20,18 @@ export type CalibratedSemanticSuggestion = {
 };
 
 const modes = Object.values(MODE_KEYS) as Mode[];
+
+export function resolveTrustedModeSuggestion({
+  semanticAvailable,
+  semanticSuggestion,
+  localSuggestion,
+}: {
+  semanticAvailable: boolean;
+  semanticSuggestion: CalibratedSemanticSuggestion | null;
+  localSuggestion: ModeSuggestion | null;
+}) {
+  return semanticAvailable ? semanticSuggestion : localSuggestion;
+}
 
 export function normalizeModeProbabilities(value: unknown): ModeProbabilities | null {
   if (!value || typeof value !== "object") return null;

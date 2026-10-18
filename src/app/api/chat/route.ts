@@ -4,10 +4,10 @@ import { trackServerEvent } from "@/lib/analytics";
 import { many, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { manualContextSummary, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
-import { generateWisdomResponse } from "@/lib/openai";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { detectLifeSupportConcern } from "@/lib/life-support";
-import { composeModeAwareFallbackResponse, retrieveWisdom } from "@/lib/wisdom";
+import { composeModeAwareFallbackResponse, retrieveWisdomEvidence } from "@/lib/wisdom";
+import { generateWisdomIntelligence } from "@/lib/wisdom-intelligence";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
 import { readJsonBody } from "@/lib/request";
@@ -255,6 +255,7 @@ export async function POST(request: Request) {
     focusIntentions?: unknown;
     gratitudeContext?: GratitudeContextSummary;
     deferPersistence?: boolean;
+    autoFit?: boolean;
   }>(request, { maxBytes: 24_000 });
   if (!parsedBody.ok) {
     return parsedBody.response;
@@ -271,7 +272,7 @@ export async function POST(request: Request) {
   }
 
   const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;
-  const sources = await retrieveWisdom(message, mode, 8);
+  const sources = await retrieveWisdomEvidence(message, mode, 8);
   if (lifeConcern === "self_harm") {
     const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
@@ -459,10 +460,16 @@ export async function POST(request: Request) {
       .join("\n\n");
   }
   const mayUseThirdPartyAi = preferences.thirdPartyAiConsent === true;
-  const aiText =
-    (mayUseThirdPartyAi
-      ? await generateWisdomResponse({ question: message, mode, sources, preferences, memoryContext })
-      : null) ?? composeModeAwareFallbackResponse(message, mode, sources, preferences);
+  const intelligence = await generateWisdomIntelligence({
+    question: message,
+    selectedMode: mode,
+    sources,
+    preferences,
+    memoryContext: mayUseThirdPartyAi ? memoryContext : "",
+    allowModel: mayUseThirdPartyAi,
+  });
+  const effectiveMode = body.autoFit === false ? mode : intelligence.recommendedMode;
+  const aiText = intelligence.counsel;
 
   if (user && !deferPersistence) {
     const now = new Date().toISOString();
@@ -471,7 +478,7 @@ export async function POST(request: Request) {
       crypto.randomUUID(),
       user.id,
       "user",
-      mode,
+      effectiveMode,
       message,
       null,
       now
@@ -481,7 +488,7 @@ export async function POST(request: Request) {
       crypto.randomUUID(),
       user.id,
       "aletheia",
-      mode,
+      effectiveMode,
       aiText,
       JSON.stringify(sources),
       now
@@ -490,18 +497,41 @@ export async function POST(request: Request) {
 
   if (user && !deferPersistence) {
     const analyticsMetadata = {
-      mode,
+      mode: effectiveMode,
       language: preferences.language,
       region: preferences.region,
       persisted: true,
       usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
       sourceCount: sources.length,
-      ...analyticsQuestionMetadata(message, mode),
+      ...analyticsQuestionMetadata(message, effectiveMode),
     };
     await trackServerEvent({
       userId: user.id,
       eventName: "chat_question_sent",
       metadata: analyticsMetadata,
+    });
+  }
+
+  await trackServerEvent({
+    userId: user?.id,
+    eventName: "wisdom_intelligence_completed",
+    metadata: {
+      selected_mode: mode,
+      recommended_mode: effectiveMode,
+      mixed: intelligence.ambiguity.mixed,
+      uncertain: intelligence.ambiguity.uncertain,
+      safe_topic: intelligence.safeTopic,
+      quality_passed: intelligence.quality.passed,
+      route: intelligence.routing.route,
+      attempts: intelligence.routing.attempts,
+      latency_ms: intelligence.routing.latencyMs,
+    },
+  });
+  if (intelligence.routing.route === "deterministic") {
+    await trackServerEvent({
+      userId: user?.id,
+      eventName: "wisdom_routing_fallback",
+      metadata: { circuit_open: intelligence.routing.circuitOpen, attempts: intelligence.routing.attempts },
     });
   }
 
@@ -511,18 +541,19 @@ export async function POST(request: Request) {
         id: crypto.randomUUID(),
         role: "user",
         text: message,
-        mode,
+        mode: effectiveMode,
       },
       reply: {
         id: crypto.randomUUID(),
         role: "aletheia",
         text: aiText,
-        mode,
+        mode: effectiveMode,
         sources,
       },
       persisted: Boolean(user) && !deferPersistence,
       deferredPersistence: Boolean(user) && deferPersistence,
       usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
+      intelligence,
     },
     { headers: rateLimitHeaders(rateLimit) }
   );

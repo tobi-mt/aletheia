@@ -93,6 +93,9 @@ const ALLOWED_EVENTS = new Set([
   "mode_better_fit_suppressed_by_preference",
   "mode_fit_prediction",
   "mode_fit_outcome",
+  "wisdom_intelligence_completed",
+  "wisdom_quality_gate_failed",
+  "wisdom_routing_fallback",
 ]);
 
 type AnalyticsMetadata = Record<string, string | number | boolean | null>;

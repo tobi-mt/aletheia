@@ -31,25 +31,19 @@ test("Ask composer does not repeat account sync state between voice and suggesti
   assert.doesNotMatch(panel, /labels\.accountGuestSummary/);
 });
 
-test("mode-fit guidance auto-switches on submit with a calm, cancellable veto window", () => {
+test("mode-fit and counsel use one authoritative server pipeline", () => {
   const submit = app.slice(app.indexOf("async function submitQuestionWithModeCheck"), app.indexOf("async function handleAsk"));
   const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
-  assert.match(submit, /suggestModeForQuestion\(trimmed, originalMode\)/);
-  assert.doesNotMatch(submit, /messages\.some\(\(message\) => message\.role === "user"\)/);
+  assert.match(submit, /await askAletheia\(trimmed, consentOverride, visibleQuestion, mode\)/);
+  assert.doesNotMatch(submit, /\/api\/chat\/mode-fit/);
+  assert.match(app, /autoFit: true/);
+  assert.match(app, /data\.reply\.mode !== questionMode/);
+  assert.match(app, /data\.reply\.intelligence = data\.intelligence/);
   assert.match(submit, /modeFitSubmissionInFlightRef\.current/);
   assert.match(submit, /setIsSubmittingQuestion\(true\)/);
-  assert.match(submit, /classificationController\.abort\(\), 2_500/);
-  assert.match(submit, /signal: classificationController\.signal/);
-  assert.match(submit, /deferPersistence: true/);
-  assert.match(submit, /const vetoUntil = Date\.now\(\) \+ 3500/);
-  assert.match(submit, /holdUntil: vetoUntil/);
-  assert.match(submit, /chatAbortControllerRef\.current\?\.abort\(\)/);
-  assert.match(submit, /replacePending: true/);
-  assert.match(panel, /modeSuggestion\.autoUsing/);
-  assert.match(panel, /modeSuggestion\.keep/);
   assert.match(panel, /modeSuggestion\.autoFitActive/);
-  assert.match(panel, /mode-switch-progress/);
-  assert.match(panel, /bottom-\[calc\(5\.75rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(app, /answer-lens-intelligence-/);
+  assert.match(app, /ambiguity\.alternativeMode/);
   assert.doesNotMatch(panel.slice(panel.indexOf('id="companion-question-input"'), panel.indexOf("</textarea>")), /scrollIntoView/);
   assert.match(panel, /name="question"/);
 });
@@ -68,7 +62,7 @@ test("semantic mode-fit is consent-gated, bounded, and remotely disableable", ()
   assert.match(modeFitRoute, /thirdPartyAiConsent !== true/);
   assert.match(modeFitRoute, /SEMANTIC_MODE_FIT_ENABLED === "false"/);
   assert.match(modeFitRoute, /\.slice\(0, 1_200\)/);
-  assert.match(modeFitRoute, /AbortSignal\.timeout\(1_400\)/);
+  assert.match(modeFitRoute, /AbortSignal\.timeout\(2_200\)/);
   assert.doesNotMatch(modeFitRoute, /conversationHistory|recentQuestions|userProfile/);
 });
 

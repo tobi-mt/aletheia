@@ -151,6 +151,69 @@ export async function retrieveWisdom(query: string, mode: Mode, limit = 3) {
   return searchWisdomEntries(entries, query, mode, limit);
 }
 
+const emotionalSignals: Record<string, string[]> = {
+  pressure: ["urgent", "rush", "pressure", "afraid", "anxious", "fear", "worried", "overwhelmed"],
+  grief: ["grief", "loss", "died", "mourning", "sad", "lonely"],
+  shame: ["ashamed", "guilty", "failure", "hide", "secret", "unworthy"],
+  hope: ["hope", "dream", "opportunity", "possible", "future"],
+};
+
+const questionSignals: Record<string, string[]> = {
+  decision: ["should", "choose", "decide", "option", "whether"],
+  practice: ["how", "habit", "start", "stop", "plan", "next"],
+  discernment: ["why", "calling", "purpose", "know", "peace", "wise"],
+  boundary: ["boundary", "say no", "again", "enable", "pressure", "guilt"],
+};
+
+function conceptSet(value: string) {
+  return new Set(value.toLocaleLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").match(/[\p{L}\p{N}]+/gu) ?? []);
+}
+
+/** Evidence ranking intentionally combines several independent signals. Mode fit and
+ * emotional/question context outweigh raw word overlap, while the final pass avoids
+ * returning several references from the same biblical book. */
+export function rankWisdomEvidence(entries: WisdomSource[], query: string, mode: Mode, limit = 8) {
+  const words = conceptSet(query);
+  const normalizedQuery = [...words].join(" ");
+  const emotions = Object.entries(emotionalSignals)
+    .filter(([, terms]) => terms.some((term) => normalizedQuery.includes(term)))
+    .map(([label]) => label);
+  const questionTypes = Object.entries(questionSignals)
+    .filter(([, terms]) => terms.some((term) => normalizedQuery.includes(term)))
+    .map(([label]) => label);
+
+  const ranked = entries.map((entry) => {
+    const entryWords = conceptSet([
+      entry.theme, entry.principle, entry.context, entry.application,
+      ...entry.keywords, ...entry.emotions, ...entry.questions,
+    ].join(" "));
+    const semanticOverlap = [...words].filter((word) => word.length > 3 && entryWords.has(word)).length;
+    const expanded = scriptureCounselIndex.find((item) => item.scripture === entry.scripture);
+    const modeFit = expanded?.modes.includes(mode) ? 18 : modeTerms[mode].filter((term) => entryWords.has(term)).length * 2;
+    const emotionalFit = emotions.reduce((score, emotion) =>
+      score + (entry.emotions.some((value) => conceptSet(value).has(emotion)) || entryWords.has(emotion) ? 7 : 0), 0);
+    const questionFit = questionTypes.reduce((score, type) =>
+      score + (entry.questions.some((value) => conceptSet(value).has(type)) || entryWords.has(type) ? 6 : 0), 0);
+    const directReference = normalizedQuery && entry.scripture.toLowerCase().includes(normalizedQuery) ? 30 : 0;
+    return { entry, score: modeFit + emotionalFit + questionFit + Math.min(semanticOverlap, 8) * 2 + directReference };
+  }).sort((a, b) => b.score - a.score || a.entry.scripture.localeCompare(b.entry.scripture));
+
+  const selected: WisdomSource[] = [];
+  const books = new Set<string>();
+  for (const candidate of ranked) {
+    const book = candidate.entry.scripture.replace(/\s+\d.*$/, "");
+    if (books.has(book) && ranked.some((other) => !books.has(other.entry.scripture.replace(/\s+\d.*$/, "")))) continue;
+    selected.push(candidate.entry);
+    books.add(book);
+    if (selected.length >= limit) break;
+  }
+  return selected;
+}
+
+export async function retrieveWisdomEvidence(query: string, mode: Mode, limit = 8) {
+  return rankWisdomEvidence(await getWisdomEntries(), query, mode, limit);
+}
+
 function sourceReference(source: Pick<WisdomSource, "scripture">, preferences: UserPreferences) {
   const scriptureReference = localizedScriptureReference(source.scripture, preferences.language);
   return `${scriptureReference} (${scriptureDisplayLabel(source.scripture, preferences)})`;

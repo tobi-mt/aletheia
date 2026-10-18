@@ -44,7 +44,7 @@ export async function POST(request: Request) {
           mixed: { type: "boolean" }, topic: { type: "string", maxLength: 48 },
         }, required: ["probabilities", "mixed", "topic"],
       } } },
-    }, { signal: AbortSignal.timeout(1_400) });
+    }, { signal: AbortSignal.timeout(2_200) });
     const raw = JSON.parse(response.output_text) as { probabilities?: unknown; mixed?: unknown; topic?: unknown };
     const probabilities = normalizeModeProbabilities(raw.probabilities);
     if (!probabilities || typeof raw.mixed !== "boolean" || typeof raw.topic !== "string") throw new Error("Invalid mode-fit output");

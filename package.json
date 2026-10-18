@@ -23,6 +23,7 @@
     "quality:scripture": "node scripts/scripture-quality-regression.mjs",
     "quality:scripture:strict": "QUALITY_MAX_FALLBACK_RATE=0.25 QUALITY_MIN_CITATION_RATIO=0.8 node scripts/scripture-quality-regression.mjs",
     "quality:platforms": "node scripts/platform-contract-regression.mjs",
+    "quality:intelligence": "node --test --loader ./tests/alias-loader.mjs tests/semantic-mode-fit.test.mjs tests/mode-suggestion.test.mjs tests/mode-fit-multilingual-eval.test.mjs tests/mode-profile-quality.test.mjs tests/wisdom-intelligence.test.mjs tests/intelligence-benchmark-contract.test.mjs",
     "quality:release": "node scripts/release-gate.mjs",
     "quality:release:web": "node scripts/release-gate.mjs --skip-native",
     "quality:release:archive-ios": "node scripts/release-gate.mjs --archive-ios",

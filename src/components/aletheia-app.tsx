@@ -22,7 +22,7 @@ import {
 } from "@/components/surfaces/surface-primitives";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
 import { readExperimentVariant } from "@/lib/product-experiments";
-import { modeFitPolicyForIdentity, type ModeFitPolicy } from "@/lib/mode-fit-rollout";
+import type { ModeFitPolicy } from "@/lib/mode-fit-rollout";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { NativeSupport, supportsNativeSupport, type NativeSupportProduct } from "@/lib/native-support";
@@ -109,8 +109,7 @@ import {
   type UserPreferences,
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
-import { suggestModeForQuestion } from "@/lib/mode-suggestion";
-import { recordModeSwitchFeedback, shouldApplyLearnedModeSuggestion } from "@/lib/mode-switch-learning";
+import { recordModeSwitchFeedback } from "@/lib/mode-switch-learning";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { normalizeMode, stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
@@ -2448,6 +2447,15 @@ type ChatMessage = {
   text: string;
   sources?: WisdomEntry[];
   createdAt?: string;
+  intelligence?: {
+    recommendedMode: Mode;
+    probabilities: Record<Mode, number>;
+    ambiguity: { mixed: boolean; uncertain: boolean; alternativeMode: Mode | null; reason: string };
+    safeTopic: string;
+    reasoningPlan: { tension: string; diagnosticQuestion: string; blindSpot: string; maturitySignal: string; nextStep: string };
+    quality: { passed: boolean };
+    routing: { route: "primary" | "secondary" | "deterministic"; latencyMs: number };
+  };
 };
 
 type AutoModeSwitchState = {
@@ -10841,6 +10849,7 @@ function startFirstRunGuestFlow() {
           focusIntentions,
           gratitudeContext: gratitudeContextSummary(gratitudeEntries),
           deferPersistence: options.deferPersistence,
+          autoFit: true,
         }),
       });
       const data = (await response.json()) as {
@@ -10850,10 +10859,12 @@ function startFirstRunGuestFlow() {
         errorCode?: string;
         persisted?: boolean;
         usedOpenAI?: boolean;
+        intelligence?: ChatMessage["intelligence"];
       };
       if (!response.ok || !data.reply) {
         throw new Error(resolveApiErrorMessage(data.error, data.errorCode, 'notifications.answerUnavailableBody'));
       }
+      if (data.intelligence) data.reply.intelligence = data.intelligence;
       if (options.holdUntil && Date.now() < options.holdUntil) {
         await new Promise<void>((resolve, reject) => {
           const timeout = window.setTimeout(resolve, options.holdUntil! - Date.now());
@@ -10882,6 +10893,17 @@ function startFirstRunGuestFlow() {
       }
       if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
       latestModeFitObservationRef.current = options.modeFitObservation;
+      if (data.reply.mode && data.reply.mode !== questionMode) {
+        userMessage.mode = data.reply.mode;
+        setMode(data.reply.mode);
+        recordModeSwitchFeedback(window.localStorage, questionMode, data.reply.mode, data.intelligence?.safeTopic ?? "general", "accepted");
+        trackClientEvent("mode_better_fit_accepted", {
+          from_mode: questionMode,
+          to_mode: data.reply.mode,
+          topic: data.intelligence?.safeTopic ?? "general",
+          unified_pipeline: true,
+        });
+      }
       if (options.learningTransition) {
         recordModeSwitchFeedback(
           window.localStorage,
@@ -10985,124 +11007,8 @@ function startFirstRunGuestFlow() {
       await askAletheia(rawQuestion, undefined, visibleQuestion);
       return;
     }
-    const originalMode = mode;
-    let detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined || consentOverride !== undefined)
-      ? suggestModeForQuestion(trimmed, originalMode)
-      : null;
-    let semanticProbabilities: import("@/lib/semantic-mode-fit").ModeProbabilities | null = null;
-    let semanticSuggestion: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null = null;
-    if (!detectedSuggestion && (consentOverride ?? preferences.thirdPartyAiConsent) && navigator.onLine) {
-      const classificationController = new AbortController();
-      // Railway + OpenAI typically returns this classifier in 1.5-1.7s. Keep
-      // the client deadline above the server's 1.4s model deadline so a valid
-      // response is not discarded while still bounding submission latency.
-      const classificationTimeout = window.setTimeout(() => classificationController.abort(), 2_500);
-      try {
-        const classificationResponse = await fetch("/api/chat/mode-fit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: trimmed, selectedMode: originalMode, thirdPartyAiConsent: true }),
-          signal: classificationController.signal,
-        });
-        const classification = await classificationResponse.json() as {
-          available?: boolean;
-          mixed?: boolean;
-          probabilities?: import("@/lib/semantic-mode-fit").ModeProbabilities;
-          suggestion?: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null;
-        };
-        semanticProbabilities = classification.probabilities ?? null;
-        semanticSuggestion = classification.available && !classification.mixed ? classification.suggestion ?? null : null;
-        detectedSuggestion = semanticSuggestion;
-        trackClientEvent("mode_semantic_classification_completed", {
-          available: Boolean(classification.available),
-          mixed: Boolean(classification.mixed),
-          suggested: Boolean(detectedSuggestion),
-        });
-      } catch {
-        trackClientEvent("mode_semantic_classification_completed", { available: false, mixed: false, suggested: false });
-      } finally {
-        window.clearTimeout(classificationTimeout);
-      }
-    }
-    const suggestion = detectedSuggestion && shouldApplyLearnedModeSuggestion(window.localStorage, originalMode, detectedSuggestion)
-      ? detectedSuggestion
-      : null;
-    if (detectedSuggestion && !suggestion) {
-      trackClientEvent("mode_better_fit_suppressed_by_preference", {
-        from_mode: originalMode,
-        to_mode: detectedSuggestion.mode,
-        confidence: detectedSuggestion.confidence,
-        evidence: detectedSuggestion.evidence,
-      });
-    }
-    if (!suggestion) {
-      latestModeFitObservationRef.current = undefined;
-      await askAletheia(trimmed, consentOverride, visibleQuestion, originalMode);
-      return;
-    }
-    const predictionId = crypto.randomUUID();
-    const shadowPercent = Number(process.env.NEXT_PUBLIC_MODE_FIT_SHADOW_PERCENT ?? "0");
-    const policy = modeFitPolicyForIdentity(
-      analyticsId(window.localStorage, "aletheia_anon_id"),
-      shadowPercent,
-    );
-    const observation = {
-      predictionId,
-      policy,
-      selectedMode: originalMode,
-      suggestedMode: suggestion.mode,
-      topic: suggestion.topic ?? suggestion.evidence,
-    };
-    trackClientEvent("mode_fit_prediction", {
-      prediction_id: predictionId,
-      policy,
-      selected_mode: originalMode,
-      suggested_mode: suggestion.mode,
-      topic: observation.topic,
-      confidence: suggestion.confidence,
-      evidence: suggestion.evidence,
-      threshold_version: "v1",
-      leading_probability: semanticSuggestion?.leadingProbability ?? null,
-      selected_probability: semanticSuggestion?.selectedProbability ?? null,
-      margin: semanticSuggestion?.margin ?? null,
-      probability_money: semanticProbabilities?.Money ?? null,
-      probability_work: semanticProbabilities?.Work ?? null,
-      probability_purpose: semanticProbabilities?.Purpose ?? null,
-      probability_generosity: semanticProbabilities?.Generosity ?? null,
-      probability_life: semanticProbabilities?.Life ?? null,
-    });
-    if (policy === "shadow") {
-      await askAletheia(trimmed, consentOverride, visibleQuestion, originalMode, { modeFitObservation: observation });
-      return;
-    }
-    const requestId = ++chatRequestSequenceRef.current;
-    const vetoUntil = Date.now() + 3500;
-    const autoSwitch = {
-      requestId,
-      vetoUntil,
-      question: trimmed,
-      visibleQuestion,
-      originalMode,
-      suggestedMode: suggestion.mode,
-      learningTopic: suggestion.topic ?? suggestion.evidence,
-      modeFitObservation: observation,
-      consentOverride,
-    };
-    setActiveAutoModeSwitch(autoSwitch);
-    setMode(suggestion.mode);
-    trackClientEvent("mode_better_fit_started", {
-      from_mode: originalMode,
-      to_mode: suggestion.mode,
-      confidence: suggestion.confidence,
-      evidence: suggestion.evidence,
-    });
-    await askAletheia(trimmed, consentOverride, visibleQuestion, suggestion.mode, {
-      deferPersistence: true,
-      holdUntil: vetoUntil,
-      requestId,
-      learningTransition: { originalMode, suggestedMode: suggestion.mode, topic: suggestion.topic ?? suggestion.evidence },
-      modeFitObservation: observation,
-    });
+    latestModeFitObservationRef.current = undefined;
+    await askAletheia(trimmed, consentOverride, visibleQuestion, mode);
   }
 
   async function keepOriginalModeForPendingAnswer() {
@@ -27854,6 +27760,35 @@ function CompanionPanel({
                   </div>
                 ) : null}
               </div>
+              <DisclosureSection
+                key={`mode-intelligence-${mode}`}
+                sectionId="active-mode-intelligence"
+                eyebrow={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
+                title={modeProfile.intent}
+                summary={modeProfile.useWhen}
+                compactCollapsed
+                showDetailsLabel={ui.showDetails}
+                hideDetailsLabel={ui.hideDetails}
+                theme={theme}
+              >
+                <div className="divide-y" style={{ borderColor: theme.borderLight }}>
+                  {[
+                    { label: ui.deepChecks, value: modeProfile.diagnosticTracks[0] },
+                    { label: ui.blindSpots, value: modeProfile.blindSpots[0] },
+                    { label: ui.maturitySignals, value: modeProfile.maturitySignals[0] },
+                    { label: ui.tinyPractice, value: modeProfile.practices[0] },
+                  ].map((item) => (
+                    <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                        {item.label}
+                      </p>
+                      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </DisclosureSection>
             </div>
 
             <div className="space-y-2">
@@ -29349,6 +29284,40 @@ function CurrentCounselCard({
             {cleanDisplayText(question)}
           </p>
         </div>
+      ) : null}
+      {exchange.answer.intelligence && !isThinking ? (
+        <DisclosureSection
+          sectionId={`answer-lens-intelligence-${exchange.answer.id}`}
+          eyebrow={`${ui.currentLens}: ${lensLabel}`}
+          title={exchange.answer.intelligence.ambiguity.uncertain
+            ? `${lensLabel} · ${Math.round(exchange.answer.intelligence.probabilities[exchange.mode] * 100)}%`
+            : exchangeModeProfile.intent}
+          summary={exchange.answer.intelligence.ambiguity.reason}
+          compactCollapsed
+          showDetailsLabel={ui.showDetails}
+          hideDetailsLabel={ui.hideDetails}
+          theme={theme}
+        >
+          <div className="divide-y" style={{ borderColor: theme.borderLight }}>
+            {[
+              { label: ui.deepChecks, value: exchange.answer.intelligence.reasoningPlan.diagnosticQuestion },
+              { label: ui.blindSpots, value: exchange.answer.intelligence.reasoningPlan.blindSpot },
+              { label: ui.maturitySignals, value: exchange.answer.intelligence.reasoningPlan.maturitySignal },
+              { label: ui.tinyPractice, value: exchange.answer.intelligence.reasoningPlan.nextStep },
+              ...(exchange.answer.intelligence.ambiguity.alternativeMode ? [{
+                label: ui.wisdomMode,
+                value: ts('modeSuggestion.body')
+                  .replace('{mode}', localizedModeLabel(exchange.answer.intelligence.ambiguity.alternativeMode, preferences.language))
+                  .replace('{focus}', localizedModeProfile(exchange.answer.intelligence.ambiguity.alternativeMode, preferences.language).focus.toLowerCase()),
+              }] : []),
+            ].map((item) => (
+              <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>{item.label}</p>
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
       ) : null}
       <article className="rounded-[1.25rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
         {preferences.voiceEnabled && !isThinking ? (
