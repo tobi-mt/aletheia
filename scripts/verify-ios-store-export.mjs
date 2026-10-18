@@ -35,9 +35,9 @@ try {
   if (!signature.includes("Identifier=com.tobi.aletheia.app")) throw new Error("IPA bundle identifier is incorrect");
   if (!entitlements.match(/<key>aps-environment<\/key>\s*<string>production<\/string>/)) throw new Error("IPA does not use production push entitlements");
   if (!entitlements.match(/<key>get-task-allow<\/key>\s*<false\s*\/>/)) throw new Error("IPA unexpectedly permits debugging");
-  if (!info.includes(Buffer.from("1.1.1")) || !info.includes(Buffer.from("10019"))) throw new Error("IPA version is not 1.1.1 (10019)");
+  if (!info.includes(Buffer.from("1.1.2")) || !info.includes(Buffer.from("10020"))) throw new Error("IPA version is not 1.1.2 (10020)");
 
-  console.log("Verified App Store IPA: Apple Distribution, production push, debugging disabled, version 1.1.1 (10019).");
+  console.log("Verified App Store IPA: Apple Distribution, production push, debugging disabled, version 1.1.2 (10020).");
 } finally {
   rmSync(extractionRoot, { recursive: true, force: true });
 }

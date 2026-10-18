@@ -34,8 +34,12 @@ test("Ask composer does not repeat account sync state between voice and suggesti
 test("mode-fit guidance auto-switches on submit with a calm, cancellable veto window", () => {
   const submit = app.slice(app.indexOf("async function submitQuestionWithModeCheck"), app.indexOf("async function handleAsk"));
   const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
-  assert.match(submit, /suggestModeForQuestion\(trimmed, originalMode, \{ followUp: isFollowUp \}\)/);
+  assert.match(submit, /suggestModeForQuestion\(trimmed, originalMode\)/);
+  assert.doesNotMatch(submit, /messages\.some\(\(message\) => message\.role === "user"\)/);
   assert.match(submit, /modeFitSubmissionInFlightRef\.current/);
+  assert.match(submit, /setIsSubmittingQuestion\(true\)/);
+  assert.match(submit, /classificationController\.abort\(\), 2_500/);
+  assert.match(submit, /signal: classificationController\.signal/);
   assert.match(submit, /deferPersistence: true/);
   assert.match(submit, /const vetoUntil = Date\.now\(\) \+ 3500/);
   assert.match(submit, /holdUntil: vetoUntil/);
@@ -47,6 +51,17 @@ test("mode-fit guidance auto-switches on submit with a calm, cancellable veto wi
   assert.match(panel, /mode-switch-progress/);
   assert.match(panel, /bottom-\[calc\(5\.75rem\+env\(safe-area-inset-bottom\)\)\]/);
   assert.doesNotMatch(panel.slice(panel.indexOf('id="companion-question-input"'), panel.indexOf("</textarea>")), /scrollIntoView/);
+  assert.match(panel, /name="question"/);
+});
+
+test("Ask submits the live form value and exposes immediate busy feedback", () => {
+  const handler = app.slice(app.indexOf("async function handleAsk"), app.indexOf("async function handleAuth"));
+  const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
+  assert.match(handler, /new FormData\(event\.currentTarget\)\.get\("question"\)/);
+  assert.match(handler, /submitQuestionWithModeCheck\(typeof submittedQuestion === "string" \? submittedQuestion : query\)/);
+  assert.match(panel, /aria-busy=\{isWorking\}/);
+  assert.match(panel, /event\.pointerType !== "touch"/);
+  assert.match(panel, /event\.currentTarget\.form\?\.requestSubmit\(event\.currentTarget\)/);
 });
 
 test("semantic mode-fit is consent-gated, bounded, and remotely disableable", () => {

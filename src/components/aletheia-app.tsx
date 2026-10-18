@@ -5903,6 +5903,7 @@ export function AletheiaApp({
   const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void } | null>(null);
   const [selectedScripture, setSelectedScripture] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
+  const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [workflowNotice, setWorkflowNotice] = useState<WorkflowNoticeState | null>(null);
   const [authPromptState, setAuthPromptState] = useState<AuthPromptState>(DEFAULT_AUTH_PROMPT_STATE);
@@ -10969,10 +10970,12 @@ function startFirstRunGuestFlow() {
   async function submitQuestionWithModeCheck(rawQuestion: string, visibleQuestion?: string, consentOverride?: boolean) {
     if (isWorking || modeFitSubmissionInFlightRef.current) return;
     modeFitSubmissionInFlightRef.current = true;
+    setIsSubmittingQuestion(true);
     try {
       await submitQuestionWithModeCheckOnce(rawQuestion, visibleQuestion, consentOverride);
     } finally {
       modeFitSubmissionInFlightRef.current = false;
+      setIsSubmittingQuestion(false);
     }
   }
 
@@ -10983,19 +10986,23 @@ function startFirstRunGuestFlow() {
       return;
     }
     const originalMode = mode;
-    const isFollowUp = messages.some((message) => message.role === "user");
     let detectedSuggestion = (preferences.thirdPartyAiConsent || aiConsentDeclined || consentOverride !== undefined)
-      ? suggestModeForQuestion(trimmed, originalMode, { followUp: isFollowUp })
+      ? suggestModeForQuestion(trimmed, originalMode)
       : null;
     let semanticProbabilities: import("@/lib/semantic-mode-fit").ModeProbabilities | null = null;
     let semanticSuggestion: import("@/lib/semantic-mode-fit").CalibratedSemanticSuggestion | null = null;
     if (!detectedSuggestion && (consentOverride ?? preferences.thirdPartyAiConsent) && navigator.onLine) {
+      const classificationController = new AbortController();
+      // Railway + OpenAI typically returns this classifier in 1.5-1.7s. Keep
+      // the client deadline above the server's 1.4s model deadline so a valid
+      // response is not discarded while still bounding submission latency.
+      const classificationTimeout = window.setTimeout(() => classificationController.abort(), 2_500);
       try {
         const classificationResponse = await fetch("/api/chat/mode-fit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: trimmed, selectedMode: originalMode, thirdPartyAiConsent: true }),
-          signal: AbortSignal.timeout(1_700),
+          signal: classificationController.signal,
         });
         const classification = await classificationResponse.json() as {
           available?: boolean;
@@ -11013,6 +11020,8 @@ function startFirstRunGuestFlow() {
         });
       } catch {
         trackClientEvent("mode_semantic_classification_completed", { available: false, mixed: false, suggested: false });
+      } finally {
+        window.clearTimeout(classificationTimeout);
       }
     }
     const suggestion = detectedSuggestion && shouldApplyLearnedModeSuggestion(window.localStorage, originalMode, detectedSuggestion)
@@ -11129,7 +11138,8 @@ function startFirstRunGuestFlow() {
 
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await submitQuestionWithModeCheck(query);
+    const submittedQuestion = new FormData(event.currentTarget).get("question");
+    await submitQuestionWithModeCheck(typeof submittedQuestion === "string" ? submittedQuestion : query);
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -13406,7 +13416,7 @@ function startFirstRunGuestFlow() {
                       onClearVoiceTranscript={() => setVoiceTranscriptPreview("")}
                       onSpeak={speakLatestAletheiaReply}
                       onTogglePause={toggleSpeechPause}
-                      isWorking={isWorking}
+                      isWorking={isWorking || isSubmittingQuestion}
                       isListening={isListening}
                       isSpeaking={isSpeaking}
                       speechLoading={speechLoading}
@@ -27852,6 +27862,7 @@ function CompanionPanel({
               </p>
                 <textarea
                   id="companion-question-input"
+                  name="question"
                   aria-label={ui.yourQuestion}
                   value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -27940,6 +27951,12 @@ function CompanionPanel({
               <button
                 type="submit"
                 disabled={isWorking}
+                aria-busy={isWorking}
+                onPointerUp={(event) => {
+                  if (event.pointerType !== "touch") return;
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit(event.currentTarget);
+                }}
                 className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition disabled:opacity-60 sm:flex-none"
                 style={{
                   backgroundColor: theme.primary,

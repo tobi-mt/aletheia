@@ -25,6 +25,7 @@ page.on("pageerror", (error) => console.error("PAGE ERROR", error));
 const requestedModes = [];
 
 await page.route("**/api/chat/mode-fit", async (route) => {
+  if (semanticScenario) await new Promise((resolve) => setTimeout(resolve, 1_650));
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
     available: true, mixed: false,
     probabilities: { Money: 0.05, Work: 0.72, Purpose: 0.1, Generosity: 0.03, Life: 0.1 },
@@ -93,13 +94,16 @@ try {
   const semanticRequest = semanticScenario
     ? page.waitForRequest((request) => request.url().includes("/api/chat/mode-fit"), { timeout: 5_000 })
     : null;
-  await page.locator("#companion-question-input").locator("xpath=ancestor::form").evaluate((form) => form.requestSubmit());
+  const askButton = page.locator("#companion-question-input").locator("xpath=ancestor::form").locator('button[type="submit"]');
+  await askButton.tap();
   if (freshConsentScenario) {
     await page.getByRole("dialog").waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
       console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-2_000) });
       throw error;
     });
     await page.getByRole("button", { name: /Allow .* processing/i }).click();
+  } else {
+    await page.waitForFunction(() => document.querySelector('#companion-question-input')?.closest('form')?.querySelector('button[type="submit"]')?.getAttribute('aria-busy') === 'true');
   }
   if (semanticRequest) await semanticRequest;
 
@@ -114,7 +118,7 @@ try {
   } else {
 
   const notice = page.getByText("Using the Work lens for a better fit", { exact: true });
-  await notice.waitFor({ state: "visible", timeout: 2_000 }).catch(async (error) => {
+  await notice.waitFor({ state: "visible", timeout: 4_000 }).catch(async (error) => {
     console.error({ requestedModes, body: (await page.locator("body").innerText()).slice(-3_000) });
     throw error;
   });

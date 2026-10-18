@@ -19,7 +19,7 @@ test("does not inherit suppression from the retired classifier policy", () => {
   storage.setItem("aletheia_mode_switch_learning_v1", JSON.stringify({
     "Money>Work:explicit_phrase": { accepted: 0, declined: 20, updatedAt: Date.now() },
   }));
-  assert.equal(modeSwitchLearningStorageKey, "aletheia_mode_switch_learning_v2");
+  assert.equal(modeSwitchLearningStorageKey, "aletheia_mode_switch_learning_v3");
   assert.equal(shouldApplyLearnedModeSuggestion(storage, "Money", explicitWork), true);
 });
 
