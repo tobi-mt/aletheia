@@ -62,9 +62,9 @@ export function resolveUnifiedRecommendedMode(probabilities: ModeProbabilities, 
 
   // "Mixed" describes useful secondary context; it must not veto an otherwise
   // decisive primary lens. The stronger threshold prevents casual switching.
-  const dominantDespiteOverlap = leader.probability >= 0.67
-    && leader.probability - probabilities[selectedMode] >= 0.3
-    && leader.probability - (runnerUp?.probability ?? 0) >= 0.25;
+  const dominantDespiteOverlap = leader.probability >= 0.5
+    && leader.probability - probabilities[selectedMode] >= 0.25
+    && leader.probability - (runnerUp?.probability ?? 0) >= 0.2;
   if (dominantDespiteOverlap) return leader.mode;
   if (mixed) return selectedMode;
 
@@ -119,12 +119,14 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
   const primaryModel = process.env.OPENAI_WISDOM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
   const secondaryModel = process.env.OPENAI_WISDOM_FALLBACK_MODEL || "gpt-4o-mini";
   const routes = [
-    { model: primaryModel, route: "primary" as const, timeoutMs: 8_000 },
-    { model: primaryModel, route: "primary" as const, timeoutMs: 8_000 },
-    { model: secondaryModel, route: "secondary" as const, timeoutMs: 6_000 },
+    { model: primaryModel, route: "primary" as const, timeoutMs: 7_000, retry: false },
+    { model: primaryModel, route: "primary" as const, timeoutMs: 5_000, retry: true },
+    { model: secondaryModel, route: "secondary" as const, timeoutMs: 5_000, retry: false },
   ];
   let attempts = 0;
+  let skipPrimaryRetry = false;
   for (const modelRoute of routes) {
+    if (modelRoute.retry && skipPrimaryRetry) continue;
     try {
       attempts += 1;
       const response = await client.responses.create({ model: modelRoute.model, input: [
@@ -142,8 +144,12 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
       if (!quality.passed) throw new Error(`quality gate: ${Object.entries(quality.checks).filter(([, ok]) => !ok).map(([name]) => name).join(",")}`);
       failures = 0;
       return { ...candidate, quality, routing: { route: modelRoute.route, attempts, latencyMs: Date.now() - started, circuitOpen: false } };
-    } catch {
+    } catch (error) {
       failures += 1;
+      const message = error instanceof Error ? error.message : "";
+      if (modelRoute.route === "primary" && !modelRoute.retry && /quality gate|invalid structured response/i.test(message)) {
+        skipPrimaryRetry = true;
+      }
       if (failures >= 4) circuitOpenUntil = Date.now() + 60_000;
     }
   }
