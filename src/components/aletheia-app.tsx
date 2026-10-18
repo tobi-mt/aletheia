@@ -11072,6 +11072,8 @@ function startFirstRunGuestFlow() {
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const submittedQuestion = new FormData(event.currentTarget).get("question");
+    event.currentTarget.querySelector<HTMLTextAreaElement>('textarea[name="question"]')?.blur();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     await submitQuestionWithModeCheck(typeof submittedQuestion === "string" ? submittedQuestion : query);
   }
 
@@ -14666,6 +14668,7 @@ function ModeLensCard({
   return (
     <button
       type="button"
+      data-mode={item.label}
       aria-pressed={active}
       onClick={onClick}
       className={`premium-tap-card flex border text-left shadow-sm transition hover:-translate-y-0.5 ${stretch ? "min-h-[4.75rem] w-full items-start gap-3 rounded-xl p-3 sm:p-3.5" : compactCard ? "min-h-[5.75rem] w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2 sm:w-[13.5rem] sm:p-2.5" : "min-h-24 w-[12.75rem] shrink-0 snap-start flex-col justify-between rounded-xl p-2.5 sm:w-[13.5rem]"}`}
@@ -27713,21 +27716,38 @@ function CompanionPanel({
 
   useEffect(() => {
     if (!activeAutoModeSwitch) return;
-    const timeout = window.setTimeout(() => {
+    const transitionTimeout = window.setTimeout(() => {
       modeSelectorRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      const rail = modeLensRailRef.current;
+      const selectedCard = rail?.querySelector<HTMLElement>(`[data-mode="${activeAutoModeSwitch.suggestedMode}"]`);
+      selectedCard?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "center" });
     }, 80);
-    return () => window.clearTimeout(timeout);
-  }, [activeAutoModeSwitch, reduceMotion]);
+    const answerTimeout = window.setTimeout(() => {
+      currentCounselRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }, reduceMotion ? 700 : 2400);
+    const cancelAnswerHandoff = () => window.clearTimeout(answerTimeout);
+    window.addEventListener("pointerdown", cancelAnswerHandoff, { once: true });
+    window.addEventListener("wheel", cancelAnswerHandoff, { once: true });
+    window.addEventListener("keydown", cancelAnswerHandoff, { once: true });
+    return () => {
+      window.clearTimeout(transitionTimeout);
+      window.clearTimeout(answerTimeout);
+      window.removeEventListener("pointerdown", cancelAnswerHandoff);
+      window.removeEventListener("wheel", cancelAnswerHandoff);
+      window.removeEventListener("keydown", cancelAnswerHandoff);
+    };
+  }, [activeAutoModeSwitch, currentExchange?.answer.id, reduceMotion]);
 
   useEffect(() => {
     if (!answerFocusId || !currentExchange?.question) {
       return;
     }
-    window.setTimeout(() => {
-      currentCounselRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const timeout = window.setTimeout(() => {
+      currentCounselRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
       onAnswerFocused();
-    }, 60);
-  }, [answerFocusId, currentExchange?.id, currentExchange?.answer.id, currentExchange?.question, onAnswerFocused]);
+    }, 320);
+    return () => window.clearTimeout(timeout);
+  }, [answerFocusId, currentExchange?.id, currentExchange?.answer.id, currentExchange?.question, onAnswerFocused, reduceMotion]);
 
   return (
     <div className="space-y-4">
@@ -27807,6 +27827,7 @@ function CompanionPanel({
               <div className="relative">
                 <div
                   ref={modeLensRailRef}
+                  data-testid="mode-lens-rail"
                   className={`flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${modeLensRailHasOverflow ? "pr-8" : ""}`.trim()}
                   aria-label={ui.wisdomMode}
                 >

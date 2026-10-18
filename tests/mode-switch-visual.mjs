@@ -111,6 +111,7 @@ try {
   } else {
     await page.waitForFunction(() => document.querySelector('#companion-question-input')?.closest('form')?.querySelector('button[type="submit"]')?.getAttribute('aria-busy') === 'true');
   }
+  assert.notEqual(await page.evaluate(() => document.activeElement?.id), "companion-question-input");
   await page.getByTestId("mode-selector-journey").getByText("Retrieving grounded wisdom...", { exact: true }).waitFor({ state: "visible", timeout: 3_000 });
   const journeyBox = await page.getByTestId("mode-selector-journey").boundingBox();
   assert.ok(journeyBox && journeyBox.y >= 0 && journeyBox.y + journeyBox.height <= 852, "reasoning animation must remain inside the phone viewport");
@@ -133,7 +134,19 @@ try {
   const keepBox = await keepButton.boundingBox();
   assert.ok(keepBox && keepBox.y >= 0 && keepBox.y + keepBox.height <= 852, "keep-original action must remain inside the phone viewport");
   assert.equal(await page.getByTestId("auto-mode-transition").isVisible(), true);
+  await page.waitForFunction(() => {
+    const card = document.querySelector('[data-testid="mode-lens-rail"] [data-mode="Work"]');
+    if (!card) return false;
+    const box = card.getBoundingClientRect();
+    return box.left >= 0 && box.right <= window.innerWidth;
+  });
+  const workCardBox = await page.locator('[data-testid="mode-lens-rail"] [data-mode="Work"]').boundingBox();
+  assert.ok(workCardBox && workCardBox.x >= 0 && workCardBox.x + workCardBox.width <= 393, "auto-selected mode card must be horizontally onscreen");
   await page.screenshot({ path: path.join(outputDir, "01-unified-work-answer.png"), fullPage: false });
+  await page.waitForTimeout(2600);
+  const answerBox = await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).boundingBox();
+  assert.ok(answerBox && answerBox.y >= 0 && answerBox.y <= 852, "completed answer must be guided into the phone viewport");
+  await page.screenshot({ path: path.join(outputDir, "02-answer-onscreen.png"), fullPage: false });
 
   await keepButton.tap();
   await page.getByText("ORIGINAL_MONEY_COUNSEL", { exact: true }).waitFor({ state: "visible", timeout: 5_000 });
