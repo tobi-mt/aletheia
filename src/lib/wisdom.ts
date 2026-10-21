@@ -2,7 +2,9 @@ import "server-only";
 import { many } from "@/lib/db";
 import {
   defaultPreferences,
+  hasCompleteLocalizedWisdomEntry,
   localizedCrisisSupportCopy,
+  localizedWisdomResponseCopy,
   localizedModeProfile,
   localizedScriptureRead,
   localizedScriptureReference,
@@ -226,14 +228,13 @@ export function composeFallbackResponse(
 ) {
   const lifeConcern = detectLifeSupportConcern(question);
   const crisisCopy = localizedCrisisSupportCopy(preferences.language);
+  const copy = localizedWisdomResponseCopy(preferences.language);
   const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
   const secondary = localizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences);
+  const primaryIsLocalized = hasCompleteLocalizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences.language);
+  const secondaryIsLocalized = hasCompleteLocalizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences.language);
   const primaryRead = localizedScriptureRead(primary.scripture, preferences);
   const secondaryRead = localizedScriptureRead(secondary.scripture, preferences);
-  const asksAboutDebt = /debt|borrow|loan|credit/i.test(question);
-  const asksAboutWork = /job|career|business|startup|quit|leave|work/i.test(question);
-  const asksAboutGreed = /greed|wealth|rich|money|comparison|contentment/i.test(question);
-
   const opening = lifeConcern === "self_harm"
     ? crisisCopy.selfHarmOpening
     : lifeConcern === "addiction"
@@ -244,49 +245,45 @@ export function composeFallbackResponse(
           ? crisisCopy.lonelinessOpening
           : lifeConcern === "holiness"
             ? crisisCopy.holinessOpening
-            : asksAboutDebt
-    ? "That is worth slowing down for. Debt is not automatically wrong, but it can quietly reduce freedom if it is taken on from pressure, fear, or speed."
-    : asksAboutWork
-      ? "That kind of decision can carry both hope and weight. It makes sense to want clarity without forcing yourself into a rushed yes or no."
-      : asksAboutGreed
-        ? "That is a very human question. Wanting to build responsibly is not the same as being greedy, but the heart can drift if money becomes a source of identity or security."
-        : `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer.`;
+          : copy.opening;
 
   return [
     opening,
     "",
     lifeConcern === "self_harm"
       ? crisisCopy.selfHarmFollowUp
-      : `${sourceReference(primary, preferences)} gives a helpful anchor here: ${primary.principle.toLowerCase()} In ordinary life, that means ${primary.application.toLowerCase()}`,
+      : `${copy.primaryAnchor(sourceReference(primary, preferences), primaryIsLocalized ? primary.principle : "")} ${primaryIsLocalized ? copy.ordinaryLife(primary.application) : ""}`,
     lifeConcern === "self_harm"
       ? crisisCopy.selfHarmImmediate
       : "",
     lifeConcern === "self_harm"
       ? ""
       : primaryRead.kind === "passage"
-        ? `Scripture text: ${primaryRead.text}`
+        ? copy.scriptureText(primaryRead.text)
         : "",
     "",
     lifeConcern === "self_harm"
       ? ""
-      : `${sourceReference(secondary, preferences)} adds another layer: ${secondary.principle.toLowerCase()} So a wise next step is not to ask, "Can I make this work?" only, but also, "What kind of person will this decision train me to become?"`,
+      : `${copy.secondAnchor(sourceReference(secondary, preferences), secondaryIsLocalized ? secondary.principle : "")} ${copy.nextStepQuestion}`,
     lifeConcern === "self_harm"
       ? ""
       : secondaryRead.kind === "passage"
-        ? `Scripture text: ${secondaryRead.text}`
+        ? copy.scriptureText(secondaryRead.text)
         : "",
     lifeConcern === "self_harm" || sources.length < 3
       ? ""
-      : `${sourceReference(sources[2], preferences)} widens the counsel: ${localizedWisdomEntry(sources[2], preferences).principle.toLowerCase()}`,
+      : copy.widerCounsel(sourceReference(sources[2], preferences), hasCompleteLocalizedWisdomEntry(sources[2], preferences.language) ? localizedWisdomEntry(sources[2], preferences).principle : ""),
     lifeConcern === "self_harm" || sources.length < 4
       ? ""
-      : `${sourceReference(sources[3], preferences)} gives a second witness: ${localizedWisdomEntry(sources[3], preferences).principle.toLowerCase()}`,
+      : copy.additionalWitness(sourceReference(sources[3], preferences), hasCompleteLocalizedWisdomEntry(sources[3], preferences.language) ? localizedWisdomEntry(sources[3], preferences).principle : ""),
     lifeConcern === "self_harm"
       ? ""
-      : `A few questions may help: ${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`,
+      : primaryIsLocalized && secondaryIsLocalized
+        ? copy.reflectionQuestions(`${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`)
+        : "",
     lifeConcern === "self_harm"
       ? ""
-      : "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the numbers and the plan to someone qualified and trustworthy before you act.",
+      : copy.disclaimer,
     lifeConcern === "addiction"
       ? crisisCopy.addictionNext
       : "",
@@ -309,6 +306,7 @@ export function composeModeAwareFallbackResponse(
   preferences: UserPreferences = defaultPreferences
 ) {
   const profile = localizedModeProfile(mode, preferences.language);
+  const copy = localizedWisdomResponseCopy(preferences.language);
   const base = composeFallbackResponse(question, sources, preferences);
   if (mode === MODE_KEYS.LIFE && detectLifeSupportConcern(question) === "self_harm") {
     return base;
@@ -316,10 +314,10 @@ export function composeModeAwareFallbackResponse(
   return [
     base,
     "",
-    `Because you are in ${mode} mode, I would look at this through ${profile.lens.toLowerCase()}`,
+    copy.modeLens(profile.displayLabel, profile.lens),
     "",
-    `The deeper diagnostic is: ${profile.diagnosticTracks[0]} ${profile.diagnosticTracks[1]}`,
+    copy.diagnostic(profile.diagnosticTracks[0], profile.diagnosticTracks[1]),
     "",
-    `A possible blind spot to watch: ${profile.blindSpots[0].toLowerCase()}. A maturity signal would be this: ${profile.maturitySignals[0].toLowerCase()}.`,
+    copy.formationSignal(profile.blindSpots[0], profile.maturitySignals[0]),
   ].join("\n");
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
-import { localizedModeProfile, localizedScriptureReference, localizedWisdomEntry, promptPreferenceContext, type UserPreferences } from "@/lib/localization";
+import { localizedModeProfile, localizedScriptureReference, localizedWisdomEntry, promptPreferenceContext, responseLanguageContract, type LanguageCode, type UserPreferences } from "@/lib/localization";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 import { suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { calibrateSemanticModeFit, normalizeModeProbabilities, type ModeProbabilities } from "@/lib/semantic-mode-fit";
@@ -13,6 +13,7 @@ let circuitOpenUntil = 0;
 
 export type SafeTopic = "general" | "financial" | "medical" | "legal" | "pastoral" | "crisis";
 export type WisdomIntelligence = {
+  responseLanguage: LanguageCode;
   recommendedMode: Mode;
   probabilities: ModeProbabilities;
   ambiguity: { mixed: boolean; uncertain: boolean; alternativeMode: Mode | null; reason: string };
@@ -23,9 +24,11 @@ export type WisdomIntelligence = {
   routing: { route: "primary" | "secondary" | "deterministic"; attempts: number; latencyMs: number; circuitOpen: boolean };
 };
 
-const schema = {
+function responseSchema(language: LanguageCode) {
+  return {
   type: "object", additionalProperties: false,
   properties: {
+    responseLanguage: { type: "string", enum: [language] },
     recommendedMode: { type: "string", enum: modes },
     probabilities: { type: "object", additionalProperties: false, properties: Object.fromEntries(modes.map((mode) => [mode, { type: "number", minimum: 0, maximum: 1 }])), required: modes },
     ambiguity: { type: "object", additionalProperties: false, properties: {
@@ -36,8 +39,9 @@ const schema = {
       tension: { type: "string" }, diagnosticQuestion: { type: "string" }, blindSpot: { type: "string" }, maturitySignal: { type: "string" }, nextStep: { type: "string" },
     }, required: ["tension", "diagnosticQuestion", "blindSpot", "maturitySignal", "nextStep"] },
     counsel: { type: "string" },
-  }, required: ["recommendedMode", "probabilities", "ambiguity", "safeTopic", "reasoningPlan", "counsel"],
-} as const;
+  }, required: ["responseLanguage", "recommendedMode", "probabilities", "ambiguity", "safeTopic", "reasoningPlan", "counsel"],
+  } as const;
+}
 
 function safetyTopic(question: string): SafeTopic {
   if (/suicid|self[- ]?harm|overdose|immediate danger|kill myself/i.test(question)) return "crisis";
@@ -77,9 +81,10 @@ function scriptureIntegrity(counsel: string, sources: WisdomSource[]) {
   return references.every((reference) => allowed.has(reference.toLowerCase()));
 }
 
-export function validateWisdomIntelligence(result: Omit<WisdomIntelligence, "quality" | "routing">, sources: WisdomSource[]) {
+export function validateWisdomIntelligence(result: Omit<WisdomIntelligence, "quality" | "routing">, sources: WisdomSource[], expectedLanguage?: LanguageCode) {
   const planParts = Object.values(result.reasoningPlan).map((part) => part.trim());
   const checks = {
+    responseLanguage: !expectedLanguage || result.responseLanguage === expectedLanguage,
     modeAdherence: modes.includes(result.recommendedMode) && planParts.every((part) => part.length >= 10) && new Set(planParts).size === planParts.length,
     sourceIntegrity: scriptureIntegrity(result.counsel, sources),
     calibratedCertainty: !/god (?:told|promises) you|guaranteed|certainly will|cannot fail/i.test(result.counsel),
@@ -96,8 +101,14 @@ function deterministic(question: string, selectedMode: Mode, sources: WisdomSour
   const profile = localizedModeProfile(recommendedMode, preferences.language);
   const safeTopic = safetyTopic(question);
   const base = {
+    responseLanguage: preferences.language,
     recommendedMode, probabilities: fallbackProbabilities(recommendedMode),
-    ambiguity: { mixed: false, uncertain: !suggestion, alternativeMode: null, reason: suggestion ? `The question's strongest signal fits ${recommendedMode}.` : `The available signal does not justify overriding ${selectedMode}.` },
+    ambiguity: {
+      mixed: false,
+      uncertain: !suggestion,
+      alternativeMode: null,
+      reason: suggestion ? profile.useWhen : profile.promptCue,
+    },
     safeTopic,
     reasoningPlan: { tension: profile.diagnosticTracks[0], diagnosticQuestion: profile.diagnosticTracks[1], blindSpot: profile.blindSpots[0], maturitySignal: profile.maturitySignals[0], nextStep: profile.practices[0] },
     counsel: composeModeAwareFallbackResponse(question, recommendedMode, sources, preferences),
@@ -130,9 +141,9 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
     try {
       attempts += 1;
       const response = await client.responses.create({ model: modelRoute.model, input: [
-        { role: "system", content: `You are Aletheia's unified wisdom engine. Classify the question, choose exactly one primary lens, plan using that lens, and write final counsel in one operation. Probabilities must sum to 1. Be calibrated: mark ambiguity when evidence is mixed. Use only supplied scripture references. Never claim divine certainty. Give a concrete next step. Maintain medical, financial, legal, pastoral and crisis boundaries. The five lenses change reasoning, not tone: Money=stewardship/risk; Work=vocation/capacity; Purpose=identity/motives/timing; Generosity=freedom/boundaries/sustainability; Life=formation/care/relationships. For crisis, prioritize urgent human help.${forceSelectedMode ? " The user explicitly chose to keep the current lens. You MUST set recommendedMode to the supplied current lens and use that lens's reasoning signature for the plan and counsel. Probabilities may still honestly reflect topical fit." : ""}` },
+        { role: "system", content: `${responseLanguageContract(preferences.language)}\n\nYou are Aletheia's unified wisdom engine. Classify the question, choose exactly one primary lens, plan using that lens, and write final counsel in one operation. Probabilities must sum to 1. Be calibrated: mark ambiguity when evidence is mixed. Use only supplied scripture references. Never claim divine certainty. Give a concrete next step. Maintain medical, financial, legal, pastoral and crisis boundaries. The five lenses change reasoning, not tone: Money=stewardship/risk; Work=vocation/capacity; Purpose=identity/motives/timing; Generosity=freedom/boundaries/sustainability; Life=formation/care/relationships. For crisis, prioritize urgent human help.${forceSelectedMode ? " The user explicitly chose to keep the current lens. You MUST set recommendedMode to the supplied current lens and use that lens's reasoning signature for the plan and counsel. Probabilities may still honestly reflect topical fit." : ""}\n\n${responseLanguageContract(preferences.language)}` },
         { role: "user", content: `LENSES\n${profiles}\n\nUSER PREFERENCES\n${promptPreferenceContext(preferences)}\n\nPRIVATE CONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE\n${sourceContext}\n\nCURRENT USER-SELECTED LENS\n${selectedMode}\n\nLENS POLICY\n${forceSelectedMode ? `Keep ${selectedMode}; do not switch.` : "Auto-fit may select the strongest lens."}\n\nQUESTION\n${question}` },
-      ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema } } }, { signal: AbortSignal.timeout(modelRoute.timeoutMs) });
+      ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema: responseSchema(preferences.language) } } }, { signal: AbortSignal.timeout(modelRoute.timeoutMs) });
       const raw = JSON.parse(response.output_text) as Omit<WisdomIntelligence, "quality" | "routing">;
       const probabilities = normalizeModeProbabilities(raw.probabilities);
       if (!probabilities || !modes.includes(raw.recommendedMode)) throw new Error("invalid structured response");
@@ -142,7 +153,7 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
         ? selectedMode
         : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed);
       const candidate = { ...raw, recommendedMode, probabilities };
-      const quality = validateWisdomIntelligence(candidate, sources);
+      const quality = validateWisdomIntelligence(candidate, sources, preferences.language);
       if (!quality.passed) throw new Error(`quality gate: ${Object.entries(quality.checks).filter(([, ok]) => !ok).map(([name]) => name).join(",")}`);
       failures = 0;
       return { ...candidate, quality, routing: { route: modelRoute.route, attempts, latencyMs: Date.now() - started, circuitOpen: false } };

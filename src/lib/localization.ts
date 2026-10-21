@@ -4802,6 +4802,19 @@ export function localizedWisdomEntry(entry: WisdomEntryData, preferences: UserPr
   };
 }
 
+export function hasCompleteLocalizedWisdomEntry(entry: WisdomEntryData, language: LanguageCode) {
+  if (language === "en") return true;
+  const canonical = canonicalScriptureReference(entry.scripture);
+  const localized = localizedWisdomLibraryEntries[language]?.[canonical];
+  const questions = localized?.questions ?? localizedWisdomQuestions[language]?.[canonical];
+  return Boolean(
+    localized?.principle?.trim()
+    && localized.context?.trim()
+    && localized.application?.trim()
+    && questions?.length
+  );
+}
+
 export function localizedWisdomLibraryEntry(entry: WisdomEntryData, preferences: UserPreferences): LocalizedWisdomEntry {
   return localizedWisdomEntry(entry, preferences);
 }
@@ -4894,4 +4907,197 @@ export function promptPreferenceContext(preferences: UserPreferences) {
     "When a curated public-domain scripture reading is available in the user's chosen language, use that language label and keep the reference exact.",
     "If the requested language does not have a safe public-domain scripture text available, keep scripture references accurate and translate only the explanation around the reference.",
   ].join("\n");
+}
+
+type WisdomResponseCopy = {
+  opening: string;
+  primaryAnchor: (reference: string, principle: string) => string;
+  ordinaryLife: (application: string) => string;
+  scriptureText: (text: string) => string;
+  secondAnchor: (reference: string, principle: string) => string;
+  nextStepQuestion: string;
+  widerCounsel: (reference: string, principle: string) => string;
+  additionalWitness: (reference: string, principle: string) => string;
+  reflectionQuestions: (questions: string) => string;
+  disclaimer: string;
+  modeLens: (mode: string, lens: string) => string;
+  diagnostic: (first: string, second: string) => string;
+  formationSignal: (blindSpot: string, maturitySignal: string) => string;
+};
+
+const wisdomResponseCopy: Record<LanguageCode, WisdomResponseCopy> = {
+  en: {
+    opening: "It makes sense to bring care to this. This question deserves more than a rushed answer.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} gives a helpful anchor here: ${principle}` : `${reference} gives a helpful biblical anchor for discernment.`,
+    ordinaryLife: (application) => `In ordinary life, that means: ${application}`,
+    scriptureText: (text) => `Scripture text: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} adds another layer: ${principle}` : `${reference} adds another biblical perspective for discernment.`,
+    nextStepQuestion: 'A wise next step is to ask not only, "Can I make this work?", but also, "What kind of person will this decision train me to become?"',
+    widerCounsel: (reference, principle) => principle ? `${reference} widens the counsel: ${principle}` : `${reference} widens the biblical counsel.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} offers another witness: ${principle}` : `${reference} offers another biblical witness.`,
+    reflectionQuestions: (questions) => `A few questions may help: ${questions}`,
+    disclaimer: "This is wisdom support, not financial or legal advice. If the stakes are significant, bring the facts and the plan to someone qualified and trustworthy before you act.",
+    modeLens: (mode, lens) => `In ${mode} mode, consider this through this lens: ${lens}`,
+    diagnostic: (first, second) => `The deeper diagnostic is: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `A possible blind spot to watch is ${blindSpot}. A sign of maturity would be: ${maturitySignal}`,
+  },
+  de: {
+    opening: "Es ist gut, diese Frage mit Sorgfalt zu betrachten. Sie verdient mehr als eine übereilte Antwort.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} gibt hier eine hilfreiche Orientierung: ${principle}` : `${reference} gibt hier eine hilfreiche biblische Orientierung.`,
+    ordinaryLife: (application) => `Im Alltag bedeutet das: ${application}`,
+    scriptureText: (text) => `Bibeltext: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} ergänzt eine weitere Perspektive: ${principle}` : `${reference} ergänzt eine weitere biblische Perspektive.`,
+    nextStepQuestion: 'Ein kluger nächster Schritt ist, nicht nur zu fragen: „Kann ich das umsetzen?“, sondern auch: „Zu was für einem Menschen wird mich diese Entscheidung formen?“',
+    widerCounsel: (reference, principle) => principle ? `${reference} erweitert den Rat: ${principle}` : `${reference} erweitert den biblischen Rat.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} gibt eine weitere Bestätigung: ${principle}` : `${reference} gibt eine weitere biblische Bestätigung.`,
+    reflectionQuestions: (questions) => `Diese Fragen können helfen: ${questions}`,
+    disclaimer: "Dies ist eine Weisheitshilfe und keine Finanz- oder Rechtsberatung. Wenn viel auf dem Spiel steht, besprich die Fakten und den Plan vor dem Handeln mit einer qualifizierten und vertrauenswürdigen Person.",
+    modeLens: (mode, lens) => `Betrachte dies im Modus ${mode} durch folgende Perspektive: ${lens}`,
+    diagnostic: (first, second) => `Die tiefergehende Prüfungsfrage lautet: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Ein möglicher blinder Fleck ist ${blindSpot}. Ein Zeichen von Reife wäre: ${maturitySignal}`,
+  },
+  es: {
+    opening: "Tiene sentido abordar esta pregunta con cuidado. Merece más que una respuesta apresurada.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} ofrece una orientación útil: ${principle}` : `${reference} ofrece una orientación bíblica útil.`,
+    ordinaryLife: (application) => `En la vida cotidiana, esto significa: ${application}`,
+    scriptureText: (text) => `Texto bíblico: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} añade otra perspectiva: ${principle}` : `${reference} añade otra perspectiva bíblica.`,
+    nextStepQuestion: 'Un siguiente paso sabio es preguntar no solo «¿Puedo hacer que funcione?», sino también «¿En qué tipo de persona me formará esta decisión?»',
+    widerCounsel: (reference, principle) => principle ? `${reference} amplía el consejo: ${principle}` : `${reference} amplía el consejo bíblico.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} aporta otro testimonio: ${principle}` : `${reference} aporta otro testimonio bíblico.`,
+    reflectionQuestions: (questions) => `Estas preguntas pueden ayudar: ${questions}`,
+    disclaimer: "Este es un apoyo de sabiduría, no asesoramiento financiero ni legal. Si hay mucho en juego, revisa los hechos y el plan con una persona cualificada y de confianza antes de actuar.",
+    modeLens: (mode, lens) => `En el modo ${mode}, considera esto desde esta perspectiva: ${lens}`,
+    diagnostic: (first, second) => `El análisis más profundo es: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Un posible punto ciego es ${blindSpot}. Una señal de madurez sería: ${maturitySignal}`,
+  },
+  fr: {
+    opening: "Il est juste d'aborder cette question avec soin. Elle mérite mieux qu'une réponse précipitée.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} offre ici un repère utile : ${principle}` : `${reference} offre ici un repère biblique utile.`,
+    ordinaryLife: (application) => `Dans la vie quotidienne, cela signifie : ${application}`,
+    scriptureText: (text) => `Texte biblique : ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} ajoute une autre perspective : ${principle}` : `${reference} ajoute une autre perspective biblique.`,
+    nextStepQuestion: 'Une prochaine étape sage consiste à demander non seulement « Puis-je faire fonctionner cela ? », mais aussi « Quel genre de personne cette décision va-t-elle former en moi ? »',
+    widerCounsel: (reference, principle) => principle ? `${reference} élargit le conseil : ${principle}` : `${reference} élargit le conseil biblique.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} apporte un autre témoignage : ${principle}` : `${reference} apporte un autre témoignage biblique.`,
+    reflectionQuestions: (questions) => `Quelques questions peuvent aider : ${questions}`,
+    disclaimer: "Ceci est un soutien de sagesse, et non un conseil financier ou juridique. Si les enjeux sont importants, examine les faits et le plan avec une personne qualifiée et digne de confiance avant d'agir.",
+    modeLens: (mode, lens) => `Dans le mode ${mode}, considère ceci sous cet angle : ${lens}`,
+    diagnostic: (first, second) => `Le discernement plus profond est : ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Un angle mort possible est ${blindSpot}. Un signe de maturité serait : ${maturitySignal}`,
+  },
+  pt: {
+    opening: "Faz sentido tratar esta pergunta com cuidado. Ela merece mais do que uma resposta apressada.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} oferece uma orientação útil: ${principle}` : `${reference} oferece uma orientação bíblica útil.`,
+    ordinaryLife: (application) => `Na vida cotidiana, isso significa: ${application}`,
+    scriptureText: (text) => `Texto bíblico: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} acrescenta outra perspectiva: ${principle}` : `${reference} acrescenta outra perspectiva bíblica.`,
+    nextStepQuestion: 'Um próximo passo sábio é perguntar não apenas “Posso fazer isso funcionar?”, mas também “Que tipo de pessoa esta decisão me ajudará a formar?”',
+    widerCounsel: (reference, principle) => principle ? `${reference} amplia o conselho: ${principle}` : `${reference} amplia o conselho bíblico.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} oferece outro testemunho: ${principle}` : `${reference} oferece outro testemunho bíblico.`,
+    reflectionQuestions: (questions) => `Algumas perguntas podem ajudar: ${questions}`,
+    disclaimer: "Este é um apoio de sabedoria, não aconselhamento financeiro ou jurídico. Se houver muito em jogo, analise os fatos e o plano com uma pessoa qualificada e confiável antes de agir.",
+    modeLens: (mode, lens) => `No modo ${mode}, considere isto por esta perspectiva: ${lens}`,
+    diagnostic: (first, second) => `O discernimento mais profundo é: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Um possível ponto cego é ${blindSpot}. Um sinal de maturidade seria: ${maturitySignal}`,
+  },
+  yo: {
+    opening: "Ó yẹ kí a fi ìṣọ́ra wo ìbéèrè yìí. Ó ju ohun tí a lè fi ìdáhùn kánkán dá lọ.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} fún wa ní ìtọ́sọ́nà tó wúlò: ${principle}` : `${reference} fún wa ní ìtọ́sọ́nà Bíbélì tó wúlò.`,
+    ordinaryLife: (application) => `Nínú ìgbésí ayé ojoojúmọ́, èyí túmọ̀ sí: ${application}`,
+    scriptureText: (text) => `Ọ̀rọ̀ Ìwé Mímọ́: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} fi ojú-ìwòye míì kún un: ${principle}` : `${reference} fi ojú-ìwòye Bíbélì míì kún un.`,
+    nextStepQuestion: 'Ìgbésẹ̀ ọgbọ́n ni láti béèrè pé, “Ṣé mo lè mú èyí ṣiṣẹ́?” àti pé, “Irú ẹni wo ni ìpinnu yìí yóò mú mi dà?”',
+    widerCounsel: (reference, principle) => principle ? `${reference} mú ìmọ̀ràn náà gbòòrò sí i: ${principle}` : `${reference} mú ìmọ̀ràn Bíbélì náà gbòòrò sí i.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} tún jẹ́ ẹ̀rí míì: ${principle}` : `${reference} tún jẹ́ ẹ̀rí Bíbélì míì.`,
+    reflectionQuestions: (questions) => `Àwọn ìbéèrè wọ̀nyí lè ràn ọ́ lọ́wọ́: ${questions}`,
+    disclaimer: "Èyí jẹ́ ìrànlọ́wọ́ ọgbọ́n, kì í ṣe ìmọ̀ràn owó tàbí òfin. Bí ọ̀ràn náà bá ṣe pàtàkì, bá ẹni tó ní ìmọ̀ àti ẹni tí o fọkàn tán ṣàyẹ̀wò òtítọ́ àti ètò náà kí o tó gbé ìgbésẹ̀.",
+    modeLens: (mode, lens) => `Nínú ipò ${mode}, wo ọ̀ràn yìí láti ojú-ìwòye yìí: ${lens}`,
+    diagnostic: (first, second) => `Ìbéèrè ìwádìí tó jinlẹ̀ ni: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Ohun tí ojú lè má rí ni ${blindSpot}. Àmì ìdàgbàsókè kan ni: ${maturitySignal}`,
+  },
+  ig: {
+    opening: "Ọ dị mma iji nlezianya leba anya n'ajụjụ a. O kwesịghị inweta azịza e mere ọsọ ọsọ.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} na-enye nduzi bara uru ebe a: ${principle}` : `${reference} na-enye nduzi Akwụkwọ Nsọ bara uru.`,
+    ordinaryLife: (application) => `N'ime ndụ kwa ụbọchị, nke a pụtara: ${application}`,
+    scriptureText: (text) => `Akwụkwọ Nsọ: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} na-agbakwụnye echiche ọzọ: ${principle}` : `${reference} na-agbakwụnye echiche Akwụkwọ Nsọ ọzọ.`,
+    nextStepQuestion: 'Nzọụkwụ amamihe bụ ịjụ ọ bụghị naanị, “M̀ nwere ike ime ka nke a rụọ ọrụ?”, kamakwa, “Ụdị mmadụ dị aṅaa ka mkpebi a ga-akpụ m ịbụ?”',
+    widerCounsel: (reference, principle) => principle ? `${reference} na-eme ka ndụmọdụ ahụ gbasaa: ${principle}` : `${reference} na-eme ka ndụmọdụ Akwụkwọ Nsọ gbasaa.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} na-enyekwa akaebe ọzọ: ${principle}` : `${reference} na-enyekwa akaebe Akwụkwọ Nsọ ọzọ.`,
+    reflectionQuestions: (questions) => `Ajụjụ ndị a nwere ike inye aka: ${questions}`,
+    disclaimer: "Nke a bụ nkwado amamihe, ọ bụghị ndụmọdụ ego ma ọ bụ iwu. Ọ bụrụ na ihe dị ukwuu dị n'ihe ize ndụ, gị na onye ruru eru na onye a pụrụ ịtụkwasị obi nyochaa eziokwu na atụmatụ ahụ tupu i mee ihe.",
+    modeLens: (mode, lens) => `N'ụdị ${mode}, leba anya na nke a site n'echiche a: ${lens}`,
+    diagnostic: (first, second) => `Nnyocha miri emi bụ: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Ebe nwere ike zoo anya bụ ${blindSpot}. Ihe ịrịba ama ntozu okè ga-abụ: ${maturitySignal}`,
+  },
+  ha: {
+    opening: "Ya dace a duba wannan tambaya da kulawa. Ta cancanci fiye da amsa ta gaggawa.",
+    primaryAnchor: (reference, principle) => principle ? `${reference} ya ba da jagora mai amfani a nan: ${principle}` : `${reference} ya ba da jagorar Littafi Mai Tsarki mai amfani.`,
+    ordinaryLife: (application) => `A rayuwar yau da kullum, wannan yana nufin: ${application}`,
+    scriptureText: (text) => `Nassin Littafi Mai Tsarki: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} ya ƙara wani hangen nesa: ${principle}` : `${reference} ya ƙara wani hangen Littafi Mai Tsarki.`,
+    nextStepQuestion: 'Mataki na hikima shi ne a tambayi ba kawai, “Zan iya sa wannan ya yi aiki?” ba, har ma, “Wane irin mutum wannan shawarar za ta horar da ni in zama?”',
+    widerCounsel: (reference, principle) => principle ? `${reference} ya faɗaɗa shawarar: ${principle}` : `${reference} ya faɗaɗa shawarar Littafi Mai Tsarki.`,
+    additionalWitness: (reference, principle) => principle ? `${reference} ya ƙara wata shaida: ${principle}` : `${reference} ya ƙara wata shaidar Littafi Mai Tsarki.`,
+    reflectionQuestions: (questions) => `Waɗannan tambayoyin za su iya taimakawa: ${questions}`,
+    disclaimer: "Wannan taimakon hikima ne, ba shawarar kuɗi ko ta shari'a ba. Idan lamarin yana da muhimmanci, ka duba gaskiya da shirin tare da ƙwararren mutum mai aminci kafin ka ɗauki mataki.",
+    modeLens: (mode, lens) => `A yanayin ${mode}, duba wannan ta wannan fuskar: ${lens}`,
+    diagnostic: (first, second) => `Bincike mai zurfi shi ne: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Wani abin da ba a iya gani shi ne ${blindSpot}. Alamar balaga za ta kasance: ${maturitySignal}`,
+  },
+  tl: {
+    opening: "Makabubuting pag-isipan ito nang maingat. Higit pa sa minadaling sagot ang nararapat sa tanong na ito.",
+    primaryAnchor: (reference, principle) => principle ? `Nagbibigay ang ${reference} ng mahalagang gabay: ${principle}` : `Nagbibigay ang ${reference} ng mahalagang gabay mula sa Biblia.`,
+    ordinaryLife: (application) => `Sa pang-araw-araw na buhay, ang ibig sabihin nito ay: ${application}`,
+    scriptureText: (text) => `Teksto ng Kasulatan: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `Nagdaragdag ang ${reference} ng isa pang pananaw: ${principle}` : `Nagdaragdag ang ${reference} ng isa pang pananaw mula sa Biblia.`,
+    nextStepQuestion: 'Isang matalinong susunod na hakbang ang itanong hindi lamang, “Mapapagana ko ba ito?”, kundi pati, “Anong uri ng tao ang mahuhubog sa akin ng pasyang ito?”',
+    widerCounsel: (reference, principle) => principle ? `Pinalalawak ng ${reference} ang payo: ${principle}` : `Pinalalawak ng ${reference} ang payo ng Biblia.`,
+    additionalWitness: (reference, principle) => principle ? `Nagbibigay ang ${reference} ng isa pang patotoo: ${principle}` : `Nagbibigay ang ${reference} ng isa pang patotoo mula sa Biblia.`,
+    reflectionQuestions: (questions) => `Maaaring makatulong ang mga tanong na ito: ${questions}`,
+    disclaimer: "Ito ay gabay sa karunungan, hindi payong pinansyal o legal. Kung malaki ang nakataya, suriin ang mga katotohanan at plano kasama ang isang kwalipikado at mapagkakatiwalaang tao bago kumilos.",
+    modeLens: (mode, lens) => `Sa mode na ${mode}, tingnan ito mula sa pananaw na ito: ${lens}`,
+    diagnostic: (first, second) => `Ang mas malalim na pagsusuri ay: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `Ang isang posibleng hindi napapansin ay ${blindSpot}. Isang tanda ng pagkamaygulang ang: ${maturitySignal}`,
+  },
+  ar: {
+    opening: "من الحكمة أن نتعامل مع هذا السؤال بعناية. فهو يستحق أكثر من إجابة متسرعة.",
+    primaryAnchor: (reference, principle) => principle ? `يقدّم ${reference} مرتكزًا مفيدًا هنا: ${principle}` : `يقدّم ${reference} مرتكزًا كتابيًا مفيدًا للتمييز.`,
+    ordinaryLife: (application) => `في الحياة اليومية، يعني ذلك: ${application}`,
+    scriptureText: (text) => `نص الكتاب المقدس: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `يضيف ${reference} منظورًا آخر: ${principle}` : `يضيف ${reference} منظورًا كتابيًا آخر للتمييز.`,
+    nextStepQuestion: 'الخطوة الحكيمة التالية هي ألا تسأل فقط: «هل أستطيع إنجاح هذا؟»، بل أيضًا: «أي نوع من الأشخاص سيصنع مني هذا القرار؟»',
+    widerCounsel: (reference, principle) => principle ? `يوسّع ${reference} المشورة: ${principle}` : `يوسّع ${reference} المشورة الكتابية.`,
+    additionalWitness: (reference, principle) => principle ? `يقدّم ${reference} شاهدًا آخر: ${principle}` : `يقدّم ${reference} شاهدًا كتابيًا آخر.`,
+    reflectionQuestions: (questions) => `قد تساعد هذه الأسئلة: ${questions}`,
+    disclaimer: "هذا دعم قائم على الحكمة، وليس مشورة مالية أو قانونية. إذا كانت المخاطر كبيرة، فراجع الحقائق والخطة مع شخص مؤهل وجدير بالثقة قبل أن تتصرف.",
+    modeLens: (mode, lens) => `في وضع ${mode}، انظر إلى الأمر من هذه الزاوية: ${lens}`,
+    diagnostic: (first, second) => `السؤال الأعمق للفحص هو: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `قد تكون النقطة العمياء هي ${blindSpot}. ومن علامات النضج: ${maturitySignal}`,
+  },
+  hi: {
+    opening: "इस प्रश्न पर सावधानी से विचार करना उचित है। यह जल्दबाज़ी में दिए गए उत्तर से कहीं अधिक का अधिकारी है।",
+    primaryAnchor: (reference, principle) => principle ? `${reference} यहाँ उपयोगी दिशा देता है: ${principle}` : `${reference} यहाँ समझ के लिए उपयोगी बाइबिलीय दिशा देता है।`,
+    ordinaryLife: (application) => `रोज़मर्रा के जीवन में इसका अर्थ है: ${application}`,
+    scriptureText: (text) => `पवित्रशास्त्र का पाठ: ${text}`,
+    secondAnchor: (reference, principle) => principle ? `${reference} एक और दृष्टिकोण जोड़ता है: ${principle}` : `${reference} एक और बाइबिलीय दृष्टिकोण जोड़ता है।`,
+    nextStepQuestion: 'बुद्धिमानी का अगला कदम केवल यह पूछना नहीं है, “क्या मैं इसे सफल बना सकता हूँ?”, बल्कि यह भी, “यह निर्णय मुझे किस प्रकार का व्यक्ति बनाएगा?”',
+    widerCounsel: (reference, principle) => principle ? `${reference} इस सलाह को और व्यापक करता है: ${principle}` : `${reference} बाइबिलीय सलाह को और व्यापक करता है।`,
+    additionalWitness: (reference, principle) => principle ? `${reference} एक और साक्ष्य देता है: ${principle}` : `${reference} एक और बाइबिलीय साक्ष्य देता है।`,
+    reflectionQuestions: (questions) => `ये प्रश्न सहायक हो सकते हैं: ${questions}`,
+    disclaimer: "यह बुद्धि-आधारित सहायता है, वित्तीय या कानूनी सलाह नहीं। यदि दाँव बड़ा है, तो कदम उठाने से पहले तथ्यों और योजना की किसी योग्य और विश्वसनीय व्यक्ति के साथ समीक्षा करें।",
+    modeLens: (mode, lens) => `${mode} मोड में इसे इस दृष्टिकोण से देखें: ${lens}`,
+    diagnostic: (first, second) => `गहरी जाँच का प्रश्न है: ${first} ${second}`,
+    formationSignal: (blindSpot, maturitySignal) => `एक संभावित अनदेखा पक्ष है ${blindSpot}। परिपक्वता का संकेत होगा: ${maturitySignal}`,
+  },
+};
+
+export function localizedWisdomResponseCopy(language: LanguageCode) {
+  return wisdomResponseCopy[language] ?? wisdomResponseCopy.en;
+}
+
+export function responseLanguageContract(language: LanguageCode) {
+  const selected = languages[language] ?? languages.en;
+  return `OUTPUT LANGUAGE CONTRACT: Write every user-visible word in ${selected.name} (${selected.nativeName}; locale ${language}). This includes counsel, reasoning-plan fields, and explanations. Do not mix in English or any other language, even when the instructions or private context are written in English. Proper names, exact scripture references, and the selected Bible translation's verbatim text are the only exceptions. The app language takes priority over the language of the question unless the user explicitly asks for a different response language in that question.`;
 }

@@ -24,6 +24,7 @@ test("a dominant primary lens switches even when secondary context makes the que
 
 test("quality gate accepts grounded mode-specific counsel", () => {
   const result = {
+    responseLanguage: "en",
     recommendedMode: "Work",
     probabilities: { Money: 0.05, Work: 0.72, Purpose: 0.1, Generosity: 0.03, Life: 0.1 },
     ambiguity: { mixed: false, uncertain: false, alternativeMode: "Purpose", reason: "The central decision concerns vocation and capacity." },
@@ -42,6 +43,7 @@ test("quality gate accepts grounded mode-specific counsel", () => {
 
 test("quality gate rejects invented references, false certainty, and boundary failures", () => {
   const result = {
+    responseLanguage: "en",
     recommendedMode: "Money",
     probabilities: { Money: 0.8, Work: 0.05, Purpose: 0.05, Generosity: 0.05, Life: 0.05 },
     ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "Financial decision." },
@@ -54,4 +56,25 @@ test("quality gate rejects invented references, false certainty, and boundary fa
   assert.equal(quality.checks.sourceIntegrity, false);
   assert.equal(quality.checks.calibratedCertainty, false);
   assert.equal(quality.checks.safetyBoundary, false);
+});
+
+test("quality gate rejects a response that declares a different language than the app locale", () => {
+  const result = {
+    responseLanguage: "en",
+    recommendedMode: "Work",
+    probabilities: { Money: 0.05, Work: 0.72, Purpose: 0.1, Generosity: 0.03, Life: 0.1 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "The decision concerns sustainable work." },
+    safeTopic: "general",
+    reasoningPlan: {
+      tension: "The opportunity is competing with sustainable capacity.",
+      diagnosticQuestion: "What happens if the work takes twice as long?",
+      blindSpot: "Restlessness can look like a new calling.",
+      maturitySignal: "The tradeoffs remain honest after patient review.",
+      nextStep: "Write the smallest reversible experiment and ask a trusted critic to review it.",
+    },
+    counsel: "This deserves patient attention rather than a rushed answer. Proverbs 15:22 points toward tested counsel. Write the smallest reversible experiment, name its real costs, and ask one grounded person to challenge the fragile assumptions before you commit to the opportunity.",
+  };
+  const quality = validateWisdomIntelligence(result, sources, "de");
+  assert.equal(quality.passed, false);
+  assert.equal(quality.checks.responseLanguage, false);
 });
