@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
-import { resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
+import { requiredBiblicalEvidenceCount, resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
+import { defaultPreferences, normalizePreferences } from "../src/lib/localization.ts";
 
 const sources = [
   { theme: "Stewardship", scripture: "Proverbs 21:5", principle: "Patient planning matters.", context: "Planning", application: "Write the plan.", keywords: ["plan", "money"], emotions: ["pressure"], questions: ["What is the next step?"] },
@@ -36,9 +37,13 @@ test("quality gate accepts grounded mode-specific counsel", () => {
       maturitySignal: "The tradeoffs remain honest after patient review.",
       nextStep: "Write the smallest reversible experiment and ask a trusted critic to review it.",
     },
+    biblicalEvidence: [
+      { reference: "Proverbs 15:22", connection: "Proverbs 15:22 points toward tested counsel" },
+      { reference: "Luke 14:28", connection: "Luke 14:28 asks you to count the real cost" },
+    ],
     counsel: "This deserves patient attention rather than a rushed yes. Proverbs 15:22 points toward tested counsel, while Luke 14:28 asks you to count the real cost. Write the smallest reversible experiment, name its time and relationship costs, and ask one grounded person to challenge the fragile assumptions before you commit.",
   };
-  assert.equal(validateWisdomIntelligence(result, sources).passed, true);
+  assert.equal(validateWisdomIntelligence(result, sources, defaultPreferences, 2).passed, true);
 });
 
 test("quality gate rejects invented references, false certainty, and boundary failures", () => {
@@ -49,11 +54,12 @@ test("quality gate rejects invented references, false certainty, and boundary fa
     ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "Financial decision." },
     safeTopic: "financial",
     reasoningPlan: { tension: "Financial pressure needs attention.", diagnosticQuestion: "What is the true cost?", blindSpot: "Debt capacity is not permission.", maturitySignal: "The numbers remain visible.", nextStep: "Write down the complete repayment plan today." },
+    biblicalEvidence: [{ reference: "Philippians 4:99", connection: "Philippians 4:99 supposedly guarantees this result" }],
     counsel: "God promises you this investment certainly will succeed. Philippians 4:99 proves it, so act immediately on your own. This sentence is deliberately long enough to reach the specificity threshold while remaining unsafe and unsupported for the validator regression test.",
   };
-  const quality = validateWisdomIntelligence(result, sources);
+  const quality = validateWisdomIntelligence(result, sources, defaultPreferences, 1);
   assert.equal(quality.passed, false);
-  assert.equal(quality.checks.sourceIntegrity, false);
+  assert.equal(quality.checks.biblicalGrounding, false);
   assert.equal(quality.checks.calibratedCertainty, false);
   assert.equal(quality.checks.safetyBoundary, false);
 });
@@ -72,9 +78,37 @@ test("quality gate rejects a response that declares a different language than th
       maturitySignal: "The tradeoffs remain honest after patient review.",
       nextStep: "Write the smallest reversible experiment and ask a trusted critic to review it.",
     },
+    biblicalEvidence: [{ reference: "Proverbs 15:22", connection: "Proverbs 15:22 points toward tested counsel" }],
     counsel: "This deserves patient attention rather than a rushed answer. Proverbs 15:22 points toward tested counsel. Write the smallest reversible experiment, name its real costs, and ask one grounded person to challenge the fragile assumptions before you commit to the opportunity.",
   };
-  const quality = validateWisdomIntelligence(result, sources, "de");
+  const quality = validateWisdomIntelligence(result, sources, normalizePreferences({ language: "de" }), 1);
   assert.equal(quality.passed, false);
   assert.equal(quality.checks.responseLanguage, false);
+});
+
+test("quality gate rejects counsel with no biblical evidence", () => {
+  const result = {
+    responseLanguage: "en",
+    recommendedMode: "Purpose",
+    probabilities: { Money: 0.05, Work: 0.1, Purpose: 0.72, Generosity: 0.03, Life: 0.1 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "The question concerns direction." },
+    safeTopic: "general",
+    reasoningPlan: {
+      tension: "Direction needs patient discernment.", diagnosticQuestion: "Which motive is strongest?",
+      blindSpot: "Urgency can imitate clarity.", maturitySignal: "The direction remains peaceful after waiting.",
+      nextStep: "Write down the smallest faithful next step.",
+    },
+    biblicalEvidence: [],
+    counsel: "Slow down, clarify your values, and take one proportionate next step. Ask a trusted person to challenge your assumptions before you make a commitment that would be difficult to reverse. Give the decision time rather than treating urgency as proof of clarity.",
+  };
+  const quality = validateWisdomIntelligence(result, sources, defaultPreferences, 1);
+  assert.equal(quality.passed, false);
+  assert.equal(quality.checks.biblicalGrounding, false);
+});
+
+test("biblical evidence requirements scale with question substance and preserve a crisis reference", () => {
+  assert.equal(requiredBiblicalEvidenceCount("Should I wait?", 8, "general"), 1);
+  assert.equal(requiredBiblicalEvidenceCount("How should I weigh this opportunity, its cost, my motives, and its effect on my family?", 8, "general"), 2);
+  assert.equal(requiredBiblicalEvidenceCount("I may hurt myself", 8, "crisis"), 1);
+  assert.equal(requiredBiblicalEvidenceCount("Any question", 0, "general"), 0);
 });

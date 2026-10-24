@@ -45,6 +45,14 @@ Use all three perspectives together when making decisions about code, tests, beh
 - Formation-practice nudges should favor one concise status line over stacked status pills or repeated metadata chips; keep the card calm, readable, and immediately actionable.
 - If a decision or counsel area needs more detail, expand in place or open a focused modal or tray rather than stacking cards inside cards.
 
+## Ask Aletheia Answer Quality
+
+- Always produce high-quality counsel grounded in relevant biblical wisdom; generic advice without meaningful Scripture grounding is not acceptable.
+- Simple answers require at least one approved, localized, explained passage; substantive discernment normally requires at least two distinct passages.
+- Validate biblical evidence structurally: references must be retrieved and approved, visible in the answer, localized correctly, relevant to the question, and explained rather than presented as a verse dump.
+- Apply the same standard to AI output and deterministic fallback output in all supported languages.
+- For crisis responses, prioritize immediate human safety and qualified help, then provide one gentle, relevant biblical anchor without treating Scripture as a substitute for urgent care.
+
 ## Before Starting Any Feature
 
 1. Check **[IMPLEMENTATION_INVENTORY.md](IMPLEMENTATION_INVENTORY.md)** for current status

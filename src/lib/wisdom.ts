@@ -257,7 +257,7 @@ export function composeFallbackResponse(
       ? crisisCopy.selfHarmImmediate
       : "",
     lifeConcern === "self_harm"
-      ? ""
+      ? copy.primaryAnchor(sourceReference(primary, preferences), primaryIsLocalized ? primary.principle : "")
       : primaryRead.kind === "passage"
         ? copy.scriptureText(primaryRead.text)
         : "",

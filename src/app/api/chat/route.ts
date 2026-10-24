@@ -273,8 +273,20 @@ export async function POST(request: Request) {
   }
 
   const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;
-  const sources = await retrieveWisdomEvidence(message, mode, 8);
+  let sources = await retrieveWisdomEvidence(message, mode, 8);
   if (lifeConcern === "self_harm") {
+    const crisisCandidates = await retrieveWisdomEvidence(
+      "Isaiah 41:10 fear help presence suffering anxiety care hope",
+      mode,
+      8
+    );
+    const crisisPriority = ["Isaiah 41:10", "1 Peter 5:6-7", "Psalm 23:1-6", "Lamentations 3:22-24"];
+    const crisisAnchor = crisisPriority
+      .map((reference) => crisisCandidates.find((source) => source.scripture === reference))
+      .find(Boolean);
+    if (crisisAnchor) {
+      sources = [crisisAnchor, ...sources.filter((source) => source.scripture !== crisisAnchor.scripture)].slice(0, 8);
+    }
     const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
 
     if (user && !deferPersistence) {
