@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const analytics = readFileSync(new URL("../src/lib/analytics.ts", import.meta.url), "utf8");
+const dashboard = readFileSync(new URL("../src/app/internal/analytics/analytics-dashboard.tsx", import.meta.url), "utf8");
 
 test("human analytics excludes cron traffic and uses a real rolling 24-hour window", () => {
   assert.match(analytics, /COALESCE\(\$\{alias\}\.source, ''\) <> 'cron'/);
@@ -11,6 +12,8 @@ test("human analytics excludes cron traffic and uses a real rolling 24-hour wind
 });
 
 test("journey funnel requires milestones to happen in sequence", () => {
+  assert.match(analytics, /MIN\(created_at\) AS opened_at[\s\S]*?event_name = 'app_opened'/);
+  assert.match(analytics, /opened_at::date >= \$\{startDateSql\}/);
   assert.match(analytics, /onboarded_at >= opened_at/);
   assert.match(analytics, /asked_at >= onboarded_at/);
   assert.doesNotMatch(analytics, /CASE WHEN authenticated_at >= opened_at/);
@@ -26,6 +29,8 @@ test("retention measures return windows only after cohorts mature", () => {
 });
 
 test("dashboard exposes privacy-safe audience and product-health dimensions", () => {
+  assert.match(analytics, /'anonymous_only_devices_30d'/);
+  assert.match(analytics, /NOT EXISTS \([\s\S]*?identified_events\.user_id IS NOT NULL/);
   assert.match(analytics, /'runtime' AS dimension/);
   assert.match(analytics, /'device', COALESCE\(NULLIF\(metadata->>'device_class'/);
   assert.match(analytics, /'country', COALESCE\(NULLIF\(metadata->>'geo_country'/);
@@ -46,6 +51,16 @@ test("dashboard reports impact experiments and diagnosable authentication failur
   assert.match(analytics, /authFailures30d: authFailureRows/);
   assert.match(analytics, /metadata->>'method'/);
   assert.match(analytics, /metadata->>'reason'/);
+});
+
+test("dashboard turns measurements into prioritized actions without double-counting active people", () => {
+  assert.match(dashboard, /function buildDashboardInsights/);
+  assert.match(dashboard, /Decision briefing/);
+  assert.match(dashboard, /conversion_from_previous_pct/);
+  assert.match(dashboard, /averageUsers:[\s\S]*?unique_people/);
+  assert.doesNotMatch(dashboard, /totals\.users/);
+  assert.match(dashboard, /setSelectedPeriod/);
+  assert.match(dashboard, /Intl\.DateTimeFormat\("en-GB"/);
 });
 
 test("mode-fit calibration events are accepted and reported without question text", () => {

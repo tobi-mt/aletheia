@@ -102,6 +102,36 @@ type AuthFailureRow = {
   unique_people: number;
 };
 
+type TopicRow = {
+  topic: string;
+  count: number;
+  unique_people: number;
+  helpful_rate: number;
+};
+
+type DistributionRow = {
+  language?: string;
+  theme?: string;
+  count: number;
+  unique_people: number;
+};
+
+type FrictionRow = {
+  area: string;
+  count: number;
+  unique_people: number;
+};
+
+type AuthPromptOverview = {
+  shown_count: number;
+  dismissed_count: number;
+  cta_count: number;
+  unique_shown_people: number;
+  unique_cta_people: number;
+  dismiss_rate_pct: number;
+  cta_rate_pct: number;
+};
+
 type NotificationSyncFailureCauseRow = {
   cause: string;
   count: number;
@@ -141,6 +171,11 @@ type AnalyticsPayload = {
   impactBreakdowns?: ImpactBreakdownRow[];
   experiments?: ExperimentRow[];
   authFailures30d?: AuthFailureRow[];
+  topics30d?: TopicRow[];
+  languageDistribution30d?: DistributionRow[];
+  themeDistribution30d?: DistributionRow[];
+  frictionSignals30d?: FrictionRow[];
+  authPrompts30d?: { overview: AuthPromptOverview };
   generatedAt?: string;
 };
 
@@ -232,6 +267,15 @@ type ChartSeries = {
   values: number[];
 };
 
+type DashboardInsight = {
+  priority: number;
+  eyebrow: string;
+  title: string;
+  detail: string;
+  action: string;
+  tone: "rose" | "amber" | "blue" | "teal";
+};
+
 function formatLabel(value: string) {
   return value
     .split("_")
@@ -301,7 +345,7 @@ function formatRangeLabel(range?: { startDate: string; endDate: string } | null,
     return reportTs ? reportTs("internalAnalytics.selectedRange") : "";
   }
 
-  const formatter = new Intl.DateTimeFormat(undefined, {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -423,11 +467,100 @@ function buildUsageSeries(rows: UsageTrendRow[]) {
     ] satisfies ChartSeries[],
     totals: {
       events: rows.reduce((sum, row) => sum + row.events, 0),
-      users: rows.reduce((sum, row) => sum + row.unique_people, 0),
+      averageUsers: rows.length > 0 ? rows.reduce((sum, row) => sum + row.unique_people, 0) / rows.length : 0,
       newUsers: rows.reduce((sum, row) => sum + row.new_users, 0),
       peakEvents: rows.reduce((max, row) => Math.max(max, row.events), 0),
     },
   };
+}
+
+function percentageChange(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function buildRangeMomentum(rows: UsageTrendRow[]) {
+  const midpoint = Math.floor(rows.length / 2);
+  const previous = rows.slice(0, midpoint);
+  const current = rows.slice(midpoint);
+  const average = (values: UsageTrendRow[], key: "events" | "unique_people") =>
+    values.length > 0 ? values.reduce((sum, row) => sum + row[key], 0) / values.length : 0;
+  return {
+    eventChange: percentageChange(average(current, "events"), average(previous, "events")),
+    activeUserChange: percentageChange(average(current, "unique_people"), average(previous, "unique_people")),
+  };
+}
+
+function formatDelta(value: number | null) {
+  if (value === null) return "New";
+  if (value === 0) return "Flat";
+  return `${value > 0 ? "+" : ""}${value}%`;
+}
+
+function buildDashboardInsights({ funnelRows, growthMetrics, notificationIssues, authFailureRows, authPrompt, latestRetention }: {
+  funnelRows: FunnelStage[];
+  growthMetrics: Record<string, GrowthMetricRow>;
+  notificationIssues: number;
+  authFailureRows: AuthFailureRow[];
+  authPrompt?: AuthPromptOverview;
+  latestRetention?: CohortBreakdownRow;
+}): DashboardInsight[] {
+  const insights: DashboardInsight[] = [];
+  const largestDrop = funnelRows.slice(1).map((stage, index) => ({
+    stage,
+    previous: funnelRows[index],
+    drop: Math.max(0, 100 - stage.conversion_from_previous_pct),
+  })).sort((a, b) => b.drop - a.drop)[0];
+
+  if (largestDrop && largestDrop.drop > 0) insights.push({
+    priority: largestDrop.drop >= 50 ? 100 : 70,
+    eyebrow: "Journey",
+    title: `Reduce the ${formatLabel(largestDrop.previous.stage)} → ${formatLabel(largestDrop.stage.stage)} drop`,
+    detail: `${largestDrop.drop.toFixed(1)}% did not reach the next step; ${formatCount(largestDrop.stage.unique_people)} continued.`,
+    action: "Review this transition first, then test one focused change and measure the same conversion again.",
+    tone: largestDrop.drop >= 50 ? "rose" : "amber",
+  });
+
+  const activation = growthMetrics.activation_rate;
+  if (activation && activation.denominator > 0 && activation.rate < 40 && (!largestDrop || largestDrop.drop < 50)) insights.push({
+    priority: 90, eyebrow: "Activation", title: "Help more people reach a first meaningful action",
+    detail: `${activation.rate}% activated (${formatCount(activation.numerator)} of ${formatCount(activation.denominator)} people).`,
+    action: "Shorten the path from app open to asking, deciding, reflecting, gratitude, or Scripture.", tone: "rose",
+  });
+
+  const impact = growthMetrics.impact_rate;
+  if (impact && impact.denominator > 0 && impact.rate < 25) insights.push({
+    priority: 80, eyebrow: "Impact measurement", title: "Close the outcome-measurement gap",
+    detail: `${formatCount(impact.numerator)} of ${formatCount(impact.denominator)} active people recorded a meaningful outcome; this does not prove that value was absent.`,
+    action: "Ask for a lightweight outcome after counsel is applied, then separate response coverage from positive-outcome rate.", tone: "amber",
+  });
+
+  if (notificationIssues > 0) insights.push({
+    priority: 85, eyebrow: "Reliability", title: "Restore notification reach",
+    detail: `${formatCount(notificationIssues)} users currently have a delivery blocker.`,
+    action: "Start with rejected endpoints, missing recipient rows, and VAPID failures shown in the delivery report.", tone: "rose",
+  });
+
+  const leadingAuthFailure = [...authFailureRows].sort((a, b) => b.unique_people - a.unique_people || b.count - a.count)[0];
+  if (leadingAuthFailure) insights.push({
+    priority: 85, eyebrow: "Access", title: `Fix ${formatLabel(leadingAuthFailure.method)} ${formatLabel(leadingAuthFailure.flow)} failures`,
+    detail: `${formatCount(leadingAuthFailure.count)} ${formatLabel(leadingAuthFailure.reason)} events affected ${formatCount(leadingAuthFailure.unique_people)} people.`,
+    action: "Reproduce this exact provider and flow first, then verify both affected people and event volume decline.", tone: "rose",
+  });
+
+  if (authPrompt && authPrompt.shown_count >= 5 && authPrompt.cta_count === 0) insights.push({
+    priority: 78, eyebrow: "Guest conversion", title: "Rework the post-answer account prompt",
+    detail: `${formatCount(authPrompt.shown_count)} prompts produced no account CTA clicks; ${authPrompt.dismiss_rate_pct}% were dismissed.`,
+    action: "Test timing and value framing after the user receives counsel, while keeping the sample-size caveat visible.", tone: "amber",
+  });
+
+  if (latestRetention && latestRetention.signups >= 5 && latestRetention.retention_pct < 20) insights.push({
+    priority: 65, eyebrow: "Retention", title: "Strengthen the return loop",
+    detail: `The latest mature cohort retained ${latestRetention.retention_pct}% after 30 days (${formatCount(latestRetention.retained)} of ${formatCount(latestRetention.signups)}).`,
+    action: "Connect the first meaningful action to a clear next visit, reminder, or counsel follow-up.", tone: "blue",
+  });
+
+  return insights.sort((a, b) => b.priority - a.priority).slice(0, 3);
 }
 
 function buildFeatureSeries(rows: FeatureTrendRow[]) {
@@ -679,6 +812,7 @@ export default function AnalyticsDashboard() {
   const [rangeDraft, setRangeDraft] = useState(DEFAULT_DATE_RANGE);
   const [appliedRange, setAppliedRange] = useState(DEFAULT_DATE_RANGE);
   const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("daily");
   const skipNextAutoRefreshRef = useRef(false);
 
   const trafficModeLabel = includeAutomation ? "All traffic" : "Human-only";
@@ -899,6 +1033,10 @@ export default function AnalyticsDashboard() {
   const impactRows = payload?.impactBreakdowns ?? [];
   const experimentRows = payload?.experiments ?? [];
   const authFailureRows = payload?.authFailures30d ?? [];
+  const topicRows = payload?.topics30d ?? [];
+  const languageRows = payload?.languageDistribution30d ?? [];
+  const frictionRows = payload?.frictionSignals30d ?? [];
+  const authPromptOverview = payload?.authPrompts30d?.overview;
   const topScreensMax = topScreens.reduce((max, row) => Math.max(max, row.count), 0);
   const notificationReport = payload?.notificationDeliveryReport ?? null;
   const notificationReportRows = notificationReport?.rows ?? [];
@@ -929,6 +1067,17 @@ export default function AnalyticsDashboard() {
   }, [analyticsTranslations]);
   const notificationSyncFailureTrend = buildNotificationSyncFailureSeries(notificationSyncFailureTrendRows, reportTs);
   const notificationSyncFailureSpike = buildNotificationSyncFailureSpike(notificationSyncFailureTrendRows);
+  const selectedUsageCard = usageCards.find((card) => card.period === selectedPeriod) ?? usageCards[0];
+  const rangeMomentum = buildRangeMomentum(payload?.usageTrends?.daily ?? []);
+  const actionInsights = buildDashboardInsights({
+    funnelRows,
+    growthMetrics,
+    notificationIssues: notificationReportSummary?.usersWithIssues ?? 0,
+    authFailureRows,
+    authPrompt: authPromptOverview,
+    latestRetention: monthlyCohorts.at(-1),
+  });
+  const activePeople = growthMetrics.activation_rate?.denominator ?? 0;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -1055,11 +1204,63 @@ export default function AnalyticsDashboard() {
         </header>
 
         <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard label="Active Users" value={formatCount(overview.identified_active_users_30d ?? 0)} tone="teal" />
-          <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" />
-          <MetricCard label="Tracked Features" value={formatCount(payload?.features30d.length ?? 0)} tone="amber" />
-          <MetricCard label="Top Screens" value={formatCount(topScreens.length)} tone="slate" />
+          <MetricCard label="Active people" value={formatCount(activePeople)} tone="teal" />
+          <MetricCard label="Registered accounts" value={formatCount(overview.registered_users ?? 0)} tone="blue" />
+          <MetricCard label="Activation rate" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="amber" />
+          <MetricCard label="30-day retention" value={monthlyCohorts.at(-1) ? `${monthlyCohorts.at(-1)?.retention_pct}%` : "Not mature"} tone="slate" />
         </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold">Identity and account mix</h2>
+            <p className="text-sm text-slate-600">Accounts represent people; anonymous counts represent devices and can include the same person on multiple devices.</p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCard label="Registered accounts" value={formatCount(overview.registered_users ?? 0)} tone="blue" />
+            <MetricCard label="Active signed-in users" value={formatCount(overview.identified_active_users_30d ?? 0)} tone="teal" />
+            <MetricCard label="Anonymous-only devices" value={formatCount(overview.anonymous_only_devices_30d ?? 0)} tone="amber" />
+            <MetricCard label="New accounts" value={formatCount(overview.new_users_30d ?? 0)} tone="slate" />
+          </div>
+        </section>
+
+        {payload ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Decision briefing</h2>
+                <p className="text-sm text-slate-600">The highest-signal actions supported by the selected range.</p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Daily people {formatDelta(rangeMomentum.activeUserChange)}</span>
+                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Daily events {formatDelta(rangeMomentum.eventChange)}</span>
+              </div>
+            </div>
+            {actionInsights.length > 0 ? (
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                {actionInsights.map((insight) => {
+                  const toneClasses = {
+                    rose: "border-rose-200 bg-rose-50 text-rose-950",
+                    amber: "border-amber-200 bg-amber-50 text-amber-950",
+                    blue: "border-blue-200 bg-blue-50 text-blue-950",
+                    teal: "border-teal-200 bg-teal-50 text-teal-950",
+                  } as const;
+                  return (
+                    <article key={`${insight.eyebrow}-${insight.title}`} className={`rounded-xl border p-4 ${toneClasses[insight.tone]}`}>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide opacity-70">{insight.eyebrow}</p>
+                      <h3 className="mt-1 font-semibold leading-snug">{insight.title}</h3>
+                      <p className="mt-2 text-sm leading-5 opacity-80">{insight.detail}</p>
+                      <p className="mt-3 border-t border-current/10 pt-3 text-sm font-medium leading-5">Next: {insight.action}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
+                No high-confidence issue is visible yet. Keep collecting data and watch the trend view below for movement.
+              </p>
+            )}
+          </section>
+        ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div>
@@ -1372,46 +1573,61 @@ export default function AnalyticsDashboard() {
           )}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          {usageCards.map((card) => (
-            <article key={card.period} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Usage trend granularity">
+                {PERIOD_ORDER.map((period) => (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setSelectedPeriod(period)}
+                    aria-pressed={selectedPeriod === period}
+                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
+                      selectedPeriod === period ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {PERIOD_META[period].title.replace(" Usage", "")}
+                  </button>
+                ))}
+              </div>
+              {selectedUsageCard ? <>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">{card.meta.title}</h2>
+                  <h2 className="text-lg font-semibold">{selectedUsageCard.meta.title}</h2>
                   <p className="text-sm text-slate-600">{formatRangeLabel(selectedRange, reportTs)}</p>
                 </div>
                 <div className="text-right text-xs text-slate-500">
-                  <p>{card.usageRows.length} buckets</p>
-                  <p>{formatCount(card.usage.totals.events)} total events</p>
+                  <p>{selectedUsageCard.usageRows.length} buckets</p>
+                  <p>{formatCount(selectedUsageCard.usage.totals.events)} total events</p>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <p className="text-[11px] uppercase text-slate-500">Events</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(card.usage.totals.events)}</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(selectedUsageCard.usage.totals.events)}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] uppercase text-slate-500">Active Users</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(card.usage.totals.users)}</p>
+                  <p className="text-[11px] uppercase text-slate-500">Average active people / bucket</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(Math.round(selectedUsageCard.usage.totals.averageUsers))}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <p className="text-[11px] uppercase text-slate-500">New Users</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(card.usage.totals.newUsers)}</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(selectedUsageCard.usage.totals.newUsers)}</p>
                 </div>
               </div>
 
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Usage trend</p>
-                <LineChart labels={card.usage.labels.map((bucket) => formatPeriodBucket(card.period, bucket))} series={card.usage.series} />
+                <LineChart labels={selectedUsageCard.usage.labels.map((bucket) => formatPeriodBucket(selectedUsageCard.period, bucket))} series={selectedUsageCard.usage.series} />
               </div>
 
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Feature usage trend</p>
-                <LineChart labels={card.features.labels.map((bucket) => formatPeriodBucket(card.period, bucket))} series={card.features.series} height={200} />
+                <LineChart labels={selectedUsageCard.features.labels.map((bucket) => formatPeriodBucket(selectedUsageCard.period, bucket))} series={selectedUsageCard.features.series} height={200} />
               </div>
+              </> : null}
             </article>
-          ))}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
@@ -1449,9 +1665,9 @@ export default function AnalyticsDashboard() {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Journey Funnel</h2>
-                <p className="text-sm text-slate-600">Open app, activate, create value, and share.</p>
+                <p className="text-sm text-slate-600">First-time entrants who opened the app, completed onboarding, and asked a question.</p>
               </div>
-              <p className="text-xs text-slate-500">Selected-range conversion by step</p>
+              <p className="text-xs text-slate-500">Cohorted by first-ever app open</p>
             </div>
 
             <div className="mt-4 space-y-3">
@@ -1476,10 +1692,10 @@ export default function AnalyticsDashboard() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Feature Adoption</h2>
-                <p className="text-sm text-slate-600">Which features are used most often in the selected range.</p>
+                <h2 className="text-lg font-semibold">Feature reach</h2>
+                <p className="text-sm text-slate-600">How much of the active audience used each core capability.</p>
               </div>
-            <p className="text-xs text-slate-500">Actions and unique people by feature</p>
+            <p className="text-xs text-slate-500">Unique people; repeat actions shown as context</p>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1487,15 +1703,56 @@ export default function AnalyticsDashboard() {
               <article key={row.feature} className="rounded-xl border border-slate-100 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-slate-800">{formatLabel(row.feature)}</p>
-                  <p className="text-sm text-slate-600">{formatCount(row.unique_people)} users</p>
+                  <p className="text-sm text-slate-600">{activePeople > 0 ? Math.round((row.unique_people / activePeople) * 100) : 0}% reach</p>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  {formatCount(row.actions)} actions · {row.event_name}
+                  {formatCount(row.unique_people)} people · {formatCount(row.actions)} actions
                 </p>
               </article>
             ))}
             {payload && payload.features30d.length === 0 ? <p className="text-sm text-slate-500">No feature adoption data yet.</p> : null}
           </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Audience needs</h2>
+            <p className="text-sm text-slate-600">Question themes by people reached, with event volume as supporting context.</p>
+            <div className="mt-4 space-y-3">
+              {topicRows.slice(0, 6).map((row) => (
+                <div key={row.topic} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                  <span className="font-medium text-slate-800">{formatLabel(row.topic)}</span>
+                  <span className="text-sm text-slate-600">{formatCount(row.unique_people)} people · {formatCount(row.count)} events</span>
+                </div>
+              ))}
+              {topicRows.length === 0 ? <p className="text-sm text-slate-500">No question-theme data yet.</p> : null}
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Conversion and friction signals</h2>
+            <p className="text-sm text-slate-600">Small samples stay visible so directional signals are not mistaken for proof.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 p-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Account prompt CTA</p>
+                <p className="mt-1 text-xl font-semibold">{authPromptOverview?.cta_rate_pct ?? 0}%</p>
+                <p className="mt-1 text-xs text-slate-500">{formatCount(authPromptOverview?.shown_count ?? 0)} prompt impressions</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Languages observed</p>
+                <p className="mt-1 text-xl font-semibold">{formatCount(languageRows.length)}</p>
+                <p className="mt-1 text-xs text-slate-500">{languageRows.slice(0, 4).map((row) => row.language?.toUpperCase()).filter(Boolean).join(" · ") || "No data yet"}</p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              {frictionRows.filter((row) => row.area !== "app_view_changed").slice(0, 4).map((row) => (
+                <div key={row.area} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-slate-700">{formatLabel(row.area)}</span>
+                  <span className="text-slate-500">{formatCount(row.count)} events · {formatCount(row.unique_people)} people</span>
+                </div>
+              ))}
+            </div>
+          </article>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">

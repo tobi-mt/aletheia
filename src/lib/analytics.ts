@@ -467,6 +467,23 @@ export async function analyticsSummary(
        SELECT 'anonymous_devices_30d', COUNT(DISTINCT anon_id)::int FROM analytics_events
           WHERE anon_id IS NOT NULL AND ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
+       SELECT 'anonymous_only_devices_30d', COUNT(DISTINCT anonymous_events.anon_id)::int
+         FROM analytics_events AS anonymous_events
+        WHERE anonymous_events.anon_id IS NOT NULL
+          AND anonymous_events.user_id IS NULL
+          AND anonymous_events.created_at::date >= ${startDateSql}::date
+          AND anonymous_events.created_at::date <= ${endDateSql}::date
+          AND ${trafficFilterWhere(includeAutomation, "anonymous_events")}
+          AND NOT EXISTS (
+            SELECT 1
+              FROM analytics_events AS identified_events
+             WHERE identified_events.anon_id = anonymous_events.anon_id
+               AND identified_events.user_id IS NOT NULL
+               AND identified_events.created_at::date >= ${startDateSql}::date
+               AND identified_events.created_at::date <= ${endDateSql}::date
+               AND ${trafficFilterWhere(includeAutomation, "identified_events")}
+          )
+       UNION ALL
        SELECT 'identified_active_users_30d', COUNT(DISTINCT user_id)::int FROM analytics_events
           WHERE user_id IS NOT NULL AND ${selectedDateFilter} AND ${trafficFilter}
        UNION ALL
@@ -556,22 +573,33 @@ export async function analyticsSummary(
        ORDER BY unique_people DESC, actions DESC`
     ),
     many<{ stage: string; stage_order: number; unique_people: number }>(
-      `WITH recent_events AS (
-         SELECT event_name,
-                created_at,
-                COALESCE(anon_id, user_id, session_id) AS person_id
+      `WITH first_opens AS (
+         SELECT COALESCE(anon_id, user_id, session_id) AS person_id,
+                MIN(created_at) AS opened_at
          FROM analytics_events
-         WHERE ${selectedDateFilter}
-           AND ${trafficFilter}
+         WHERE event_name = 'app_opened'
            AND COALESCE(anon_id, user_id, session_id) IS NOT NULL
+           AND ${trafficFilter}
+         GROUP BY COALESCE(anon_id, user_id, session_id)
+       ),
+       entrants AS (
+         SELECT person_id, opened_at
+         FROM first_opens
+         WHERE opened_at::date >= ${startDateSql}::date
+           AND opened_at::date <= ${endDateSql}::date
        ),
        milestones AS (
-         SELECT person_id,
-                MIN(created_at) FILTER (WHERE event_name = 'app_opened') AS opened_at,
-                MIN(created_at) FILTER (WHERE event_name = 'onboarding_completed') AS onboarded_at,
-                MIN(created_at) FILTER (WHERE event_name IN ('question_asked', 'chat_question_sent')) AS asked_at
-         FROM recent_events
-         GROUP BY person_id
+         SELECT entrants.person_id,
+                entrants.opened_at,
+                MIN(analytics_events.created_at) FILTER (WHERE analytics_events.event_name = 'onboarding_completed') AS onboarded_at,
+                MIN(analytics_events.created_at) FILTER (WHERE analytics_events.event_name IN ('question_asked', 'chat_question_sent')) AS asked_at
+         FROM entrants
+         LEFT JOIN analytics_events
+           ON COALESCE(analytics_events.anon_id, analytics_events.user_id, analytics_events.session_id) = entrants.person_id
+          AND analytics_events.created_at >= entrants.opened_at
+          AND analytics_events.created_at < (${endDateSql}::date + interval '1 day')
+          AND ${trafficFilter}
+         GROUP BY entrants.person_id, entrants.opened_at
        ),
        ordered AS (
          SELECT person_id,
