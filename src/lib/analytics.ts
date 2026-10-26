@@ -1244,6 +1244,7 @@ export async function analyticsSummary(
   const firstStage = funnelSorted[0]?.unique_people ?? 0;
 
   return {
+    generatedAt: new Date().toISOString(),
     overview: Object.fromEntries(overviewRows.map((row) => [row.metric, row.value])),
     events30d: eventRows,
     modes30d: modeRows.filter((row) => row.mode),

@@ -29,6 +29,7 @@ test("retention measures return windows only after cohorts mature", () => {
 });
 
 test("dashboard exposes privacy-safe audience and product-health dimensions", () => {
+  assert.match(analytics, /generatedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(analytics, /'anonymous_only_devices_30d'/);
   assert.match(analytics, /NOT EXISTS \([\s\S]*?identified_events\.user_id IS NOT NULL/);
   assert.match(analytics, /'runtime' AS dimension/);
@@ -61,6 +62,13 @@ test("dashboard turns measurements into prioritized actions without double-count
   assert.doesNotMatch(dashboard, /totals\.users/);
   assert.match(dashboard, /setSelectedPeriod/);
   assert.match(dashboard, /Intl\.DateTimeFormat\("en-GB"/);
+  assert.match(dashboard, /onPointerMove=\{inspectPointer\}/);
+  assert.match(dashboard, /onKeyDown=\{inspectWithKeyboard\}/);
+  assert.match(dashboard, /Hover, drag, or use the arrow keys to inspect values/);
+  assert.match(dashboard, /buildFeatureSeries\(featureRows, usageRows\.map/);
+  assert.match(dashboard, /No activity was recorded for this chart/);
+  assert.match(dashboard, /Measurement coverage/);
+  assert.match(dashboard, /rangeDraft\.startDate > rangeDraft\.endDate/);
 });
 
 test("mode-fit calibration events are accepted and reported without question text", () => {

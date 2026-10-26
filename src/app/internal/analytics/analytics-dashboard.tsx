@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getTranslation, loadTranslationsWithFallbackSync, type TranslationData } from "@/lib/translations";
 import { type LanguageCode } from "@/lib/localization";
 import { installNativeWebFetchProxy } from "@/lib/native-web";
@@ -243,11 +243,11 @@ type NotificationDeliveryReportPayload = {
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
 const PERIOD_ORDER: PeriodKey[] = ["daily", "weekly", "monthly", "yearly"];
-const PERIOD_META: Record<PeriodKey, { title: string; subtitle: string }> = {
-  daily: { title: "Daily Usage", subtitle: "Last 30 days" },
-  weekly: { title: "Weekly Usage", subtitle: "Last 12 weeks" },
-  monthly: { title: "Monthly Usage", subtitle: "Last 12 months" },
-  yearly: { title: "Yearly Usage", subtitle: "Last 5 years" },
+const PERIOD_META: Record<PeriodKey, { title: string; controlLabel: string }> = {
+  daily: { title: "Daily trend", controlLabel: "Day" },
+  weekly: { title: "Weekly trend", controlLabel: "Week" },
+  monthly: { title: "Monthly trend", controlLabel: "Month" },
+  yearly: { title: "Yearly trend", controlLabel: "Year" },
 };
 
 const FEATURE_SERIES = [
@@ -302,6 +302,13 @@ function formatPeriodBucket(period: PeriodKey, bucketStart: string) {
 
 function formatCount(value: number) {
   return value.toLocaleString();
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? value
+    : date.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function normalizeAnalyticsLanguage(value: string | undefined | null): LanguageCode {
@@ -563,8 +570,7 @@ function buildDashboardInsights({ funnelRows, growthMetrics, notificationIssues,
   return insights.sort((a, b) => b.priority - a.priority).slice(0, 3);
 }
 
-function buildFeatureSeries(rows: FeatureTrendRow[]) {
-  const labels = Array.from(new Set(rows.map((row) => row.bucket_start)));
+function buildFeatureSeries(rows: FeatureTrendRow[], labels: string[]) {
   const valuesByFeature = new Map<string, number[]>(FEATURE_SERIES.map((series) => [series.key, Array(labels.length).fill(0)]));
   const bucketIndex = new Map(labels.map((label, index) => [label, index]));
 
@@ -584,7 +590,7 @@ function buildFeatureSeries(rows: FeatureTrendRow[]) {
       label: definition.label,
       color: definition.color,
       values: valuesByFeature.get(definition.key) ?? Array(labels.length).fill(0),
-    })) satisfies ChartSeries[],
+    })).filter((row) => row.values.some((value) => value > 0)) satisfies ChartSeries[],
   };
 }
 
@@ -671,11 +677,13 @@ function LineChart({
   series: ChartSeries[];
   height?: number;
 }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const width = 640;
-  const paddingX = 18;
+  const paddingLeft = 46;
+  const paddingRight = 18;
   const paddingTop = 16;
   const paddingBottom = 30;
-  const plotWidth = width - paddingX * 2;
+  const plotWidth = width - paddingLeft - paddingRight;
   const plotHeight = height - paddingTop - paddingBottom;
   const maxValue = Math.max(1, ...series.flatMap((row) => row.values));
   const xStep = labels.length > 1 ? plotWidth / (labels.length - 1) : 0;
@@ -687,7 +695,7 @@ function LineChart({
   const seriesPaths = series.map((row) => {
     const path = row.values
       .map((value, index) => {
-        const x = paddingX + index * xStep;
+        const x = paddingLeft + index * xStep;
         const y = paddingTop + plotHeight - (value / maxValue) * plotHeight;
         return `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
       })
@@ -696,13 +704,32 @@ function LineChart({
     return {
       ...row,
       path,
-      lastX: paddingX + Math.max(0, row.values.length - 1) * xStep,
+      lastX: paddingLeft + Math.max(0, row.values.length - 1) * xStep,
       lastY: paddingTop + plotHeight - ((row.values[row.values.length - 1] ?? 0) / maxValue) * plotHeight,
     };
   });
+  const inspectedIndex = hoveredIndex !== null && labels[hoveredIndex] !== undefined ? hoveredIndex : null;
+  const inspectedX = inspectedIndex !== null ? paddingLeft + inspectedIndex * xStep : null;
+
+  function inspectPointer(event: ReactPointerEvent<SVGSVGElement>) {
+    if (labels.length === 0) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const svgX = ((event.clientX - bounds.left) / bounds.width) * width;
+    const nextIndex = labels.length === 1 ? 0 : Math.round((svgX - paddingLeft) / xStep);
+    setHoveredIndex(Math.max(0, Math.min(labels.length - 1, nextIndex)));
+  }
+
+  function inspectWithKeyboard(event: KeyboardEvent<SVGSVGElement>) {
+    if (labels.length === 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Home") return setHoveredIndex(0);
+    if (event.key === "End") return setHoveredIndex(labels.length - 1);
+    const current = hoveredIndex ?? labels.length - 1;
+    setHoveredIndex(Math.max(0, Math.min(labels.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
+  }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex flex-wrap gap-3 text-[11px] text-slate-600">
         {series.map((row) => (
           <span key={row.label} className="inline-flex items-center gap-1">
@@ -711,10 +738,57 @@ function LineChart({
           </span>
         ))}
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 h-44 w-full" role="img" aria-label="Analytics trend chart">
+      {series.length === 0 || labels.length === 0 ? (
+        <div className="mt-3 flex h-36 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 text-center text-sm text-slate-500">
+          No activity was recorded for this chart in the selected range.
+        </div>
+      ) : (
+      <>
+      {inspectedIndex !== null && inspectedX !== null ? (
+        <div
+          className="pointer-events-none absolute top-11 z-10 min-w-36 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur"
+          style={{
+            left: `${(inspectedX / width) * 100}%`,
+            transform: inspectedIndex < labels.length / 2 ? "translateX(0)" : "translateX(-100%)",
+          }}
+          aria-live="polite"
+        >
+          <p className="font-semibold text-slate-900">{labels[inspectedIndex]}</p>
+          <div className="mt-1 space-y-1">
+            {series.map((row) => (
+              <p key={row.label} className="flex items-center justify-between gap-4 text-slate-600">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} />
+                  {row.label}
+                </span>
+                <strong className="text-slate-900">{formatCount(row.values[inspectedIndex] ?? 0)}</strong>
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="mt-2 h-44 w-full touch-pan-y cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+        role="img"
+        aria-label="Analytics trend chart. Hover, drag, or use the arrow keys to inspect values."
+        tabIndex={labels.length > 0 ? 0 : -1}
+        onPointerMove={inspectPointer}
+        onPointerDown={inspectPointer}
+        onPointerLeave={() => setHoveredIndex(null)}
+        onFocus={() => labels.length > 0 && setHoveredIndex((current) => current ?? labels.length - 1)}
+        onBlur={() => setHoveredIndex(null)}
+        onKeyDown={inspectWithKeyboard}
+      >
         {Array.from({ length: 4 }, (_, index) => {
           const y = paddingTop + (plotHeight / 3) * index;
-          return <line key={index} x1={paddingX} x2={width - paddingX} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />;
+          const value = Math.round(maxValue * (1 - index / 3));
+          return (
+            <g key={index} aria-hidden="true">
+              <text x={paddingLeft - 8} y={y + 3} textAnchor="end" className="fill-slate-400 text-[9px]">{formatCount(value)}</text>
+              <line x1={paddingLeft} x2={width - paddingRight} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+            </g>
+          );
         })}
         {seriesPaths.map((row) => (
           <g key={row.label}>
@@ -722,12 +796,22 @@ function LineChart({
             {row.values.length > 0 ? <circle cx={row.lastX} cy={row.lastY} r="2.8" fill={row.color} /> : null}
           </g>
         ))}
+        {inspectedIndex !== null && inspectedX !== null ? (
+          <g aria-hidden="true">
+            <line x1={inspectedX} x2={inspectedX} y1={paddingTop} y2={paddingTop + plotHeight} stroke="#64748b" strokeWidth="1" strokeDasharray="4 4" />
+            {series.map((row) => {
+              const value = row.values[inspectedIndex] ?? 0;
+              const y = paddingTop + plotHeight - (value / maxValue) * plotHeight;
+              return <circle key={row.label} cx={inspectedX} cy={y} r="4" fill={row.color} stroke="white" strokeWidth="2" />;
+            })}
+          </g>
+        ) : null}
         {labels.map((label, index) => {
           if (!labelIndices.has(index)) {
             return null;
           }
 
-          const x = paddingX + index * xStep;
+          const x = paddingLeft + index * xStep;
           const y = height - 10;
           return (
             <text key={`${label}-${index}`} x={x} y={y} textAnchor={index === 0 ? "start" : index === labels.length - 1 ? "end" : "middle"} className="fill-slate-500 text-[10px]">
@@ -736,6 +820,8 @@ function LineChart({
           );
         })}
       </svg>
+      </>
+      )}
     </div>
   );
 }
@@ -775,10 +861,10 @@ function BreakdownList({ title, rows }: { title: string; rows: Array<{ dimension
           <div key={`${row.dimension}-${row.value}`}>
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="font-medium text-slate-700">{formatLabel(row.value)}</span>
-              <span className="text-slate-500">{formatCount(row.unique_people)} people</span>
+              <span className="text-slate-500">{formatCount(row.unique_people)} identities</span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-blue-600" style={{ width: `${max > 0 ? Math.max(2, (row.unique_people / max) * 100) : 0}%` }} />
+              <div className="h-full rounded-full bg-blue-600" style={{ width: `${row.unique_people > 0 && max > 0 ? Math.max(2, (row.unique_people / max) * 100) : 0}%` }} />
             </div>
           </div>
         ))}
@@ -827,7 +913,7 @@ export default function AnalyticsDashboard() {
           period,
           meta: PERIOD_META[period],
           usage: buildUsageSeries(usageRows),
-          features: buildFeatureSeries(featureRows),
+          features: buildFeatureSeries(featureRows, usageRows.map((row) => row.bucket_start)),
           usageRows,
         };
       }),
@@ -911,6 +997,10 @@ export default function AnalyticsDashboard() {
 
   async function applyRange(event: FormEvent) {
     event.preventDefault();
+    if (!rangeDraft.startDate || !rangeDraft.endDate || rangeDraft.startDate > rangeDraft.endDate) {
+      setError("Choose a valid date range with the start date on or before the end date.");
+      return;
+    }
     const token = secret.trim() || lastSuccessfulSecret.trim();
     if (!token) {
       setError("Enter the analytics admin secret before applying a date range.");
@@ -1078,6 +1168,13 @@ export default function AnalyticsDashboard() {
     latestRetention: monthlyCohorts.at(-1),
   });
   const activePeople = growthMetrics.activation_rate?.denominator ?? 0;
+  const countryRows = audienceRows.filter((row) => row.dimension === "country");
+  const browserRows = audienceRows.filter((row) => row.dimension === "browser");
+  const countryObservations = countryRows.reduce((sum, row) => sum + row.unique_people, 0);
+  const knownCountryObservations = countryRows.filter((row) => row.value !== "unknown").reduce((sum, row) => sum + row.unique_people, 0);
+  const browserObservations = browserRows.reduce((sum, row) => sum + row.unique_people, 0);
+  const classifiedBrowserObservations = browserRows.filter((row) => row.value !== "other" && row.value !== "unknown").reduce((sum, row) => sum + row.unique_people, 0);
+  const coverageRate = (numerator: number, denominator: number) => denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -1112,9 +1209,9 @@ export default function AnalyticsDashboard() {
               {lastLoaded ? (
                 <div className="space-y-0.5 text-xs text-slate-500">
                   <p>
-                    Last loaded in {lastLoaded.mode}: {lastLoaded.atIso}
+                    Last loaded in {lastLoaded.mode}: {formatTimestamp(lastLoaded.atIso)}
                   </p>
-                  {payload?.generatedAt ? <p>Data generated at: {payload.generatedAt}</p> : null}
+                  {payload?.generatedAt ? <p>Data generated at: {formatTimestamp(payload.generatedAt)}</p> : null}
               <p>Range: {formatRangeLabel(selectedRange, reportTs)}</p>
                 </div>
               ) : null}
@@ -1124,6 +1221,7 @@ export default function AnalyticsDashboard() {
           <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={loadAnalytics}>
             <input
               type="password"
+              aria-label="Analytics admin secret"
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
               placeholder="Analytics admin secret"
@@ -1153,6 +1251,7 @@ export default function AnalyticsDashboard() {
                 Start date
                 <input
                   type="date"
+                  max={rangeDraft.endDate}
                   value={rangeDraft.startDate}
                   onChange={(event) =>
                     setRangeDraft((current) => ({
@@ -1167,6 +1266,7 @@ export default function AnalyticsDashboard() {
                 End date
                 <input
                   type="date"
+                  min={rangeDraft.startDate}
                   value={rangeDraft.endDate}
                   onChange={(event) =>
                     setRangeDraft((current) => ({
@@ -1205,7 +1305,7 @@ export default function AnalyticsDashboard() {
 
         <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCard label="Active people" value={formatCount(activePeople)} tone="teal" />
-          <MetricCard label="Registered accounts" value={formatCount(overview.registered_users ?? 0)} tone="blue" />
+          <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" />
           <MetricCard label="Activation rate" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="amber" />
           <MetricCard label="30-day retention" value={monthlyCohorts.at(-1) ? `${monthlyCohorts.at(-1)?.retention_pct}%` : "Not mature"} tone="slate" />
         </section>
@@ -1222,6 +1322,22 @@ export default function AnalyticsDashboard() {
             <MetricCard label="New accounts" value={formatCount(overview.new_users_30d ?? 0)} tone="slate" />
           </div>
         </section>
+
+        {payload ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold">Measurement coverage</h2>
+              <p className="text-sm text-slate-600">How complete the evidence is before using it for product decisions.</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard label="Signed-in coverage" value={`${coverageRate(overview.identified_active_users_30d ?? 0, activePeople)}%`} tone="blue" />
+              <MetricCard label="Known country" value={`${coverageRate(knownCountryObservations, countryObservations)}%`} tone={knownCountryObservations > 0 ? "teal" : "rose"} />
+              <MetricCard label="Classified browser" value={`${coverageRate(classifiedBrowserObservations, browserObservations)}%`} tone="amber" />
+              <MetricCard label="Outcome signal" value={`${growthMetrics.impact_rate?.rate ?? 0}%`} tone={(growthMetrics.impact_rate?.rate ?? 0) > 0 ? "teal" : "rose"} />
+            </div>
+            <p className="mt-3 text-xs text-slate-500">Coverage describes observability, not product success. Low coverage should trigger instrumentation work before causal conclusions.</p>
+          </section>
+        ) : null}
 
         {payload ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -1586,7 +1702,7 @@ export default function AnalyticsDashboard() {
                       selectedPeriod === period ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {PERIOD_META[period].title.replace(" Usage", "")}
+                    {PERIOD_META[period].controlLabel}
                   </button>
                 ))}
               </div>
@@ -1612,7 +1728,7 @@ export default function AnalyticsDashboard() {
                   <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(Math.round(selectedUsageCard.usage.totals.averageUsers))}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] uppercase text-slate-500">New Users</p>
+                  <p className="text-[11px] uppercase text-slate-500">New accounts</p>
                   <p className="mt-1 text-lg font-semibold text-slate-900">{formatCount(selectedUsageCard.usage.totals.newUsers)}</p>
                 </div>
               </div>
@@ -1652,7 +1768,7 @@ export default function AnalyticsDashboard() {
                       </span>
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-teal-600" style={{ width: `${Math.max(2, width)}%` }} />
+                      <div className="h-full rounded-full bg-teal-600" style={{ width: `${row.count > 0 ? Math.max(2, width) : 0}%` }} />
                     </div>
                   </div>
                 );
@@ -1680,7 +1796,7 @@ export default function AnalyticsDashboard() {
                     </span>
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.max(2, stage.conversion_from_first_pct)}%` }} />
+                    <div className="h-full rounded-full bg-emerald-600" style={{ width: `${stage.conversion_from_first_pct > 0 ? Math.max(2, stage.conversion_from_first_pct) : 0}%` }} />
                   </div>
                 </div>
               ))}
@@ -1784,7 +1900,7 @@ export default function AnalyticsDashboard() {
                       <td className="py-2">
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
-                            <div className="h-full rounded-full bg-violet-600" style={{ width: `${Math.max(2, Math.min(100, row.retention_pct || 0))}%` }} />
+                            <div className="h-full rounded-full bg-violet-600" style={{ width: `${row.retention_pct > 0 ? Math.max(2, Math.min(100, row.retention_pct)) : 0}%` }} />
                           </div>
                           <span>{row.retention_pct}%</span>
                         </div>
@@ -1825,7 +1941,7 @@ export default function AnalyticsDashboard() {
                       <td className="py-2">
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
-                            <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.max(2, Math.min(100, row.retention_pct || 0))}%` }} />
+                            <div className="h-full rounded-full bg-emerald-600" style={{ width: `${row.retention_pct > 0 ? Math.max(2, Math.min(100, row.retention_pct)) : 0}%` }} />
                           </div>
                           <span>{row.retention_pct}%</span>
                         </div>
