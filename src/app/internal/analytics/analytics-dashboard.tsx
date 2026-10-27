@@ -899,6 +899,7 @@ export default function AnalyticsDashboard() {
   const [appliedRange, setAppliedRange] = useState(DEFAULT_DATE_RANGE);
   const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("daily");
+  const [notificationReportLoading, setNotificationReportLoading] = useState(false);
   const skipNextAutoRefreshRef = useRef(false);
 
   const trafficModeLabel = includeAutomation ? "All traffic" : "Human-only";
@@ -928,33 +929,42 @@ export default function AnalyticsDashboard() {
     params.set("startDate", range.startDate);
     params.set("endDate", range.endDate);
 
-    const reportParams = new URLSearchParams();
-    reportParams.set("lookbackDays", "30");
-
-    const [summaryResponse, reportResponse] = await Promise.all([
-      fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      }),
-      fetch(`/api/analytics/notification-delivery-report?${reportParams.toString()}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      }).catch(() => null),
-    ]);
+    const summaryResponse = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
 
     if (!summaryResponse.ok) {
       throw new Error(summaryResponse.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load analytics data.");
     }
 
-    const summary = (await summaryResponse.json()) as AnalyticsPayload;
-    const report = reportResponse?.ok ? ((await reportResponse.json()) as NotificationDeliveryReportPayload) : null;
+    return (await summaryResponse.json()) as AnalyticsPayload;
+  }
 
-    return {
-      ...summary,
-      notificationDeliveryReport: report,
-    } as AnalyticsPayload;
+  async function loadNotificationDeliveryReport(token: string) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch("/api/analytics/notification-delivery-report?lookbackDays=30", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      return response.ok ? ((await response.json()) as NotificationDeliveryReportPayload) : null;
+    } catch {
+      return null;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function hydrateNotificationDeliveryReport(token: string) {
+    setNotificationReportLoading(true);
+    const report = await loadNotificationDeliveryReport(token);
+    setPayload((current) => current ? { ...current, notificationDeliveryReport: report } : current);
+    setNotificationReportLoading(false);
   }
 
   async function loadAnalytics(event?: FormEvent, nextRange = rangeDraft, tokenOverride?: string) {
@@ -981,6 +991,7 @@ export default function AnalyticsDashboard() {
       setLastLoaded({ atIso: new Date().toISOString(), mode: trafficModeLabel });
       setLastSuccessfulSecret(token);
       skipNextAutoRefreshRef.current = true;
+      void hydrateNotificationDeliveryReport(token);
 
       try {
         window.sessionStorage.setItem(SECRET_KEY, token);
@@ -1083,6 +1094,13 @@ export default function AnalyticsDashboard() {
           current.startDate === normalizedRange.startDate && current.endDate === normalizedRange.endDate ? current : normalizedRange
         );
         setLastLoaded({ atIso: new Date().toISOString(), mode: trafficModeLabel });
+        setNotificationReportLoading(true);
+        void loadNotificationDeliveryReport(token).then((report) => {
+          if (!cancelled) {
+            setPayload((current) => current ? { ...current, notificationDeliveryReport: report } : current);
+            setNotificationReportLoading(false);
+          }
+        });
       } catch (err) {
         if (cancelled) {
           return;
@@ -1636,7 +1654,9 @@ export default function AnalyticsDashboard() {
               </div>
             </>
           ) : (
-            <p className="mt-4 text-sm text-slate-500">{reportTs("internalAnalytics.reportUnavailable")}</p>
+            <p className="mt-4 text-sm text-slate-500">
+              {notificationReportLoading ? "Loading delivery diagnostics…" : reportTs("internalAnalytics.reportUnavailable")}
+            </p>
           )}
         </section>
 

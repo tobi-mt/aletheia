@@ -69,6 +69,8 @@ test("dashboard turns measurements into prioritized actions without double-count
   assert.match(dashboard, /No activity was recorded for this chart/);
   assert.match(dashboard, /Measurement coverage/);
   assert.match(dashboard, /rangeDraft\.startDate > rangeDraft\.endDate/);
+  assert.doesNotMatch(dashboard, /Promise\.all\(\[[\s\S]*?analytics\/summary[\s\S]*?notification-delivery-report/);
+  assert.match(dashboard, /void hydrateNotificationDeliveryReport\(token\)/);
 });
 
 test("mode-fit calibration events are accepted and reported without question text", () => {
