@@ -618,7 +618,8 @@ export async function analyticsSummary(
       `WITH scoped_events AS MATERIALIZED (
          SELECT COALESCE(anon_id, user_id, session_id) AS person_id,
                 created_at,
-                event_name
+                event_name,
+                metadata
          FROM analytics_events
          WHERE created_at < (${endDateSql}::date + interval '1 day')
            AND COALESCE(anon_id, user_id, session_id) IS NOT NULL

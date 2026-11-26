@@ -791,6 +791,16 @@ async function initializeDatabase() {
 async function ensurePushSubscriptionSchema() {
   await withDbRetry("notification schema", () =>
     pool.query(`
+    -- Some production databases predate structured analytics metadata. These
+    -- additive repairs must run even when full bootstrap is disabled.
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS anon_id TEXT;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS session_id TEXT;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS path TEXT;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS referrer TEXT;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS source TEXT;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS user_agent TEXT;
+
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_local_hour INTEGER NOT NULL DEFAULT 8;
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS preferred_timezone TEXT NOT NULL DEFAULT 'UTC';
     ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS timezone_mode TEXT NOT NULL DEFAULT 'auto';
@@ -882,7 +892,19 @@ async function queryWithRetry<T extends QueryResultRow>(
   operation: string
 ): Promise<QueryResult<T>> {
   await ensureDbReady();
-  return withDbRetry(operation, () => pool.query<T>(postgresParams(sql), params));
+  try {
+    return await withDbRetry(operation, () => pool.query<T>(postgresParams(sql), params));
+  } catch (error) {
+    if (error && typeof error === "object" && (error as { code?: string }).code === "42703") {
+      console.error("Database query referenced a missing column", {
+        operation,
+        // SQL contains only application-owned query structure. Never include
+        // bound values, which can contain user or authentication data.
+        queryPreview: sql.replace(/\s+/g, " ").trim().slice(0, 500),
+      });
+    }
+    throw error;
+  }
 }
 
 export async function one<T extends Record<string, unknown>>(

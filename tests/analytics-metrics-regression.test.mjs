@@ -14,6 +14,7 @@ test("human analytics excludes cron traffic and uses a real rolling 24-hour wind
 });
 
 test("journey funnel requires milestones to happen in sequence", () => {
+  assert.match(analytics, /WITH scoped_events AS MATERIALIZED \([\s\S]*?event_name,\s+metadata[\s\S]*?FROM analytics_events/);
   assert.match(analytics, /MIN\(created_at\) AS opened_at[\s\S]*?event_name = 'app_opened'/);
   assert.match(analytics, /metadata->>'onboarding_required' = 'true'/);
   assert.match(analytics, /opened_at::date >= \$\{startDateSql\}/);
