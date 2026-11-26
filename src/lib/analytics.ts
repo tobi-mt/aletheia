@@ -369,6 +369,29 @@ function trafficFilterWhere(includeAutomation: boolean, alias = "analytics_event
   `;
 }
 
+type AnalyticsSegments = {
+  identity?: "all" | "signed_in" | "anonymous";
+  device?: string;
+  country?: string;
+  acquisition?: string;
+  language?: string;
+};
+
+function sqlTextLiteral(value: string) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function segmentFilterWhere(segments: AnalyticsSegments = {}, alias = "analytics_events") {
+  const filters: string[] = [];
+  if (segments.identity === "signed_in") filters.push(`${alias}.user_id IS NOT NULL`);
+  if (segments.identity === "anonymous") filters.push(`${alias}.user_id IS NULL AND ${alias}.anon_id IS NOT NULL`);
+  if (segments.device) filters.push(`COALESCE(${alias}.metadata->>'device_class', 'unknown') = ${sqlTextLiteral(segments.device)}`);
+  if (segments.country) filters.push(`COALESCE(${alias}.metadata->>'geo_country', 'unknown') = ${sqlTextLiteral(segments.country)}`);
+  if (segments.acquisition) filters.push(`COALESCE(${alias}.source, 'direct') = ${sqlTextLiteral(segments.acquisition)}`);
+  if (segments.language) filters.push(`COALESCE(${alias}.metadata->>'language', 'unknown') = ${sqlTextLiteral(segments.language)}`);
+  return filters.length ? filters.join(" AND ") : "TRUE";
+}
+
 export async function trackEvent(input: AnalyticsEventInput) {
   if (!ALLOWED_EVENTS.has(input.eventName)) {
     return;
@@ -405,7 +428,7 @@ export async function trackServerEvent(input: Omit<AnalyticsEventInput, "userAge
 }
 
 export async function analyticsSummary(
-  options: { includeAutomation?: boolean; startDate?: string; endDate?: string } = {}
+  options: { includeAutomation?: boolean; startDate?: string; endDate?: string; segments?: AnalyticsSegments } = {}
 ) {
   const includeAutomation = options.includeAutomation ?? false;
   const dateRange = normalizeAnalyticsDateRange({ startDate: options.startDate, endDate: options.endDate });
@@ -413,11 +436,12 @@ export async function analyticsSummary(
   const endDateSql = sqlDateLiteral(dateRange.endDate);
   const selectedDateFilter = `created_at::date >= ${startDateSql}::date AND created_at::date <= ${endDateSql}::date`;
   const trafficFilter = trafficFilterWhere(includeAutomation, "analytics_events");
+  const trendFilter = `${trafficFilter} AND ${segmentFilterWhere(options.segments, "analytics_events")}`;
   const usageTrendPromises = (Object.keys(TIME_SERIES_CONFIG) as AnalyticsPeriod[]).map((period) =>
-    many<TimeSeriesRow>(buildUsageTrendQuery(period, dateRange, trafficFilter))
+    many<TimeSeriesRow>(buildUsageTrendQuery(period, dateRange, trendFilter))
   );
   const featureTrendPromises = (Object.keys(TIME_SERIES_CONFIG) as AnalyticsPeriod[]).map((period) =>
-    many<FeatureTrendRow>(buildFeatureTrendQuery(period, dateRange, trafficFilter))
+    many<FeatureTrendRow>(buildFeatureTrendQuery(period, dateRange, trendFilter))
   );
 
   const [
@@ -453,6 +477,9 @@ export async function analyticsSummary(
     growthMetricRows,
     impactBreakdownRows,
     experimentRows,
+    releaseAnnotationRows,
+    eventCoverageRows,
+    acquisitionRetentionRows,
     usageTrendRows,
     featureTrendRows,
     notificationHealthRows,
@@ -1179,6 +1206,57 @@ export async function analyticsSummary(
        GROUP BY experiment, variant
        ORDER BY experiment ASC, variant ASC`
     ),
+    many<{ date: string; version: string; events: number }>(
+      `SELECT created_at::date::text AS date,
+              COALESCE(NULLIF(metadata->>'version', ''), NULLIF(metadata->>'build_version', ''), 'release') AS version,
+              COUNT(*)::int AS events
+       FROM analytics_events
+       WHERE event_name = 'app_update_refresh_landed'
+         AND ${selectedDateFilter}
+         AND ${trafficFilter}
+       GROUP BY created_at::date, COALESCE(NULLIF(metadata->>'version', ''), NULLIF(metadata->>'build_version', ''), 'release')
+       ORDER BY created_at::date ASC`
+    ),
+    many<{ event_name: string; count: number; last_seen_at: string | null }>(
+      `SELECT event_name, COUNT(*)::int AS count, MAX(created_at)::text AS last_seen_at
+       FROM analytics_events
+       WHERE ${trafficFilter}
+       GROUP BY event_name
+       ORDER BY event_name ASC`
+    ),
+    many<{ acquisition: string; signups: number; retained_7d: number; retained_30d: number; retention_7d_pct: number; retention_30d_pct: number }>(
+      `WITH signups AS (
+         SELECT users.id AS user_id,
+                users.created_at AS signup_at,
+                COALESCE(NULLIF(first_open.source, ''), NULLIF(first_open.metadata->>'acquisition', ''), 'direct') AS acquisition
+         FROM users
+         LEFT JOIN LATERAL (
+           SELECT source, metadata
+           FROM analytics_events
+           WHERE analytics_events.user_id = users.id
+             AND event_name = 'app_opened'
+             AND ${trafficFilter}
+           ORDER BY analytics_events.created_at ASC
+           LIMIT 1
+         ) first_open ON TRUE
+         WHERE users.created_at::date >= ${startDateSql}::date
+           AND users.created_at::date <= ${endDateSql}::date
+       ), retention AS (
+         SELECT signups.*,
+                EXISTS (SELECT 1 FROM analytics_events WHERE analytics_events.user_id = signups.user_id AND analytics_events.created_at >= signups.signup_at + interval '7 days' AND analytics_events.created_at < signups.signup_at + interval '14 days' AND ${trafficFilter}) AS retained_7d,
+                EXISTS (SELECT 1 FROM analytics_events WHERE analytics_events.user_id = signups.user_id AND analytics_events.created_at >= signups.signup_at + interval '30 days' AND analytics_events.created_at < signups.signup_at + interval '37 days' AND ${trafficFilter}) AS retained_30d
+         FROM signups
+       )
+       SELECT acquisition,
+              COUNT(*)::int AS signups,
+              COUNT(*) FILTER (WHERE retained_7d)::int AS retained_7d,
+              COUNT(*) FILTER (WHERE retained_30d)::int AS retained_30d,
+              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE retained_7d) / NULLIF(COUNT(*), 0))::numeric, 1), 0)::double precision AS retention_7d_pct,
+              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE retained_30d) / NULLIF(COUNT(*), 0))::numeric, 1), 0)::double precision AS retention_30d_pct
+       FROM retention
+       GROUP BY acquisition
+       ORDER BY signups DESC, acquisition ASC`
+    ),
     Promise.all(usageTrendPromises),
     Promise.all(featureTrendPromises),
     (async () => {
@@ -1280,6 +1358,13 @@ export async function analyticsSummary(
     growthMetrics: growthMetricRows,
     impactBreakdowns: impactBreakdownRows,
     experiments: experimentRows,
+    releaseAnnotations: releaseAnnotationRows,
+    eventCoverage: [...ALLOWED_EVENTS].sort().map((eventName) => {
+      const observed = eventCoverageRows.find((row) => row.event_name === eventName);
+      return { event_name: eventName, count: observed?.count ?? 0, last_seen_at: observed?.last_seen_at ?? null };
+    }),
+    acquisitionRetention: acquisitionRetentionRows,
+    appliedSegments: options.segments ?? {},
     paths30d: pathRows,
     hourlyUsage30d: hourlyRows,
     retentionWeekly: retentionRows,

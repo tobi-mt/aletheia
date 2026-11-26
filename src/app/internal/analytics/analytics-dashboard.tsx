@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getTranslation, loadTranslationsWithFallbackSync, type TranslationData } from "@/lib/translations";
 import { type LanguageCode } from "@/lib/localization";
@@ -11,6 +10,25 @@ installNativeWebFetchProxy();
 const SUPPORTED_ANALYTICS_LANGUAGES: LanguageCode[] = ["en", "es", "fr", "pt", "de", "yo", "ig", "ha", "tl", "ar", "hi"];
 
 type PeriodKey = "daily" | "weekly" | "monthly" | "yearly";
+type DashboardView = "overview" | "audience" | "engagement" | "journeys" | "operations";
+type RangePreset = "all" | "7" | "30" | "90" | "365" | "custom";
+type TrendSegments = { identity: "all" | "signed_in" | "anonymous"; device: string; country: string; acquisition: string; language: string };
+
+type UserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  login_count: number;
+  last_seen_at: string | null;
+  created_at: string;
+};
+
+type UsersPayload = {
+  users: UserRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
 
 type FunnelStage = {
   stage: string;
@@ -176,6 +194,10 @@ type AnalyticsPayload = {
   themeDistribution30d?: DistributionRow[];
   frictionSignals30d?: FrictionRow[];
   authPrompts30d?: { overview: AuthPromptOverview };
+  releaseAnnotations?: Array<{ date: string; version: string; events: number }>;
+  eventCoverage?: Array<{ event_name: string; count: number; last_seen_at: string | null }>;
+  acquisitionRetention?: Array<{ acquisition: string; signups: number; retained_7d: number; retained_30d: number; retention_7d_pct: number; retention_30d_pct: number }>;
+  appliedSegments?: Partial<TrendSegments>;
   generatedAt?: string;
 };
 
@@ -242,7 +264,15 @@ type NotificationDeliveryReportPayload = {
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
+const USER_PAGE_SIZE = 50;
 const PERIOD_ORDER: PeriodKey[] = ["daily", "weekly", "monthly", "yearly"];
+const DASHBOARD_VIEWS: Array<{ key: DashboardView; translationKey: string; fallback: string }> = [
+  { key: "overview", translationKey: "internalAnalytics.views.overview", fallback: "Overview" },
+  { key: "audience", translationKey: "internalAnalytics.views.audience", fallback: "Audience" },
+  { key: "engagement", translationKey: "internalAnalytics.views.engagement", fallback: "Engagement" },
+  { key: "journeys", translationKey: "internalAnalytics.views.journeys", fallback: "Journeys" },
+  { key: "operations", translationKey: "internalAnalytics.views.operations", fallback: "Operations" },
+];
 const PERIOD_META: Record<PeriodKey, { title: string; controlLabel: string }> = {
   daily: { title: "Daily trend", controlLabel: "Day" },
   weekly: { title: "Weekly trend", controlLabel: "Week" },
@@ -343,14 +373,30 @@ function formatRelativeTime(value: string | null, reportTs: (key: string) => str
 
 function getDefaultDateRange() {
   const endDate = new Date().toISOString().slice(0, 10);
-  const startDate = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const startDate = "1970-01-01";
   return { startDate, endDate };
+}
+
+function getPresetDateRange(days: number) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { startDate, endDate };
+}
+
+function getPreviousDateRange(range: { startDate: string; endDate: string }) {
+  const start = new Date(`${range.startDate}T00:00:00Z`);
+  const end = new Date(`${range.endDate}T00:00:00Z`);
+  const duration = end.getTime() - start.getTime() + 24 * 60 * 60 * 1000;
+  const previousEnd = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+  const previousStart = new Date(previousEnd.getTime() - duration + 24 * 60 * 60 * 1000);
+  return { startDate: previousStart.toISOString().slice(0, 10), endDate: previousEnd.toISOString().slice(0, 10) };
 }
 
 function formatRangeLabel(range?: { startDate: string; endDate: string } | null, reportTs?: (key: string) => string) {
   if (!range?.startDate || !range?.endDate) {
     return reportTs ? reportTs("internalAnalytics.selectedRange") : "";
   }
+  if (range.startDate === "1970-01-01") return "All time";
 
   const formatter = new Intl.DateTimeFormat("en-GB", {
     month: "short",
@@ -502,6 +548,13 @@ function formatDelta(value: number | null) {
   if (value === null) return "New";
   if (value === 0) return "Flat";
   return `${value > 0 ? "+" : ""}${value}%`;
+}
+
+function formatComparison(current: number, previous: number | undefined) {
+  if (previous === undefined) return "No prior all-time baseline";
+  if (previous === 0) return current === 0 ? "No change vs previous period" : "New vs previous period";
+  const change = ((current - previous) / previous) * 100;
+  return `${change >= 0 ? "+" : ""}${change.toFixed(1)}% vs previous period`;
 }
 
 function buildDashboardInsights({ funnelRows, growthMetrics, notificationIssues, authFailureRows, authPrompt, latestRetention }: {
@@ -672,10 +725,14 @@ function LineChart({
   labels,
   series,
   height = 180,
+  onInspect,
+  annotations = [],
 }: {
   labels: string[];
   series: ChartSeries[];
   height?: number;
+  onInspect?: (index: number) => void;
+  annotations?: Array<{ index: number; label: string }>;
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const width = 640;
@@ -716,16 +773,20 @@ function LineChart({
     const bounds = event.currentTarget.getBoundingClientRect();
     const svgX = ((event.clientX - bounds.left) / bounds.width) * width;
     const nextIndex = labels.length === 1 ? 0 : Math.round((svgX - paddingLeft) / xStep);
-    setHoveredIndex(Math.max(0, Math.min(labels.length - 1, nextIndex)));
+    const boundedIndex = Math.max(0, Math.min(labels.length - 1, nextIndex));
+    setHoveredIndex(boundedIndex);
+    onInspect?.(boundedIndex);
   }
 
   function inspectWithKeyboard(event: KeyboardEvent<SVGSVGElement>) {
     if (labels.length === 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    if (event.key === "Home") return setHoveredIndex(0);
-    if (event.key === "End") return setHoveredIndex(labels.length - 1);
+    if (event.key === "Home") { setHoveredIndex(0); onInspect?.(0); return; }
+    if (event.key === "End") { setHoveredIndex(labels.length - 1); onInspect?.(labels.length - 1); return; }
     const current = hoveredIndex ?? labels.length - 1;
-    setHoveredIndex(Math.max(0, Math.min(labels.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
+    const nextIndex = Math.max(0, Math.min(labels.length - 1, current + (event.key === "ArrowRight" ? 1 : -1)));
+    setHoveredIndex(nextIndex);
+    onInspect?.(nextIndex);
   }
 
   return (
@@ -796,6 +857,10 @@ function LineChart({
             {row.values.length > 0 ? <circle cx={row.lastX} cy={row.lastY} r="2.8" fill={row.color} /> : null}
           </g>
         ))}
+        {annotations.map((annotation) => {
+          const x = paddingLeft + annotation.index * xStep;
+          return <line key={`${annotation.index}-${annotation.label}`} x1={x} x2={x} y1={paddingTop} y2={paddingTop + plotHeight} stroke="#a855f7" strokeWidth="1.5" strokeDasharray="2 3"><title>{annotation.label}</title></line>;
+        })}
         {inspectedIndex !== null && inspectedX !== null ? (
           <g aria-hidden="true">
             <line x1={inspectedX} x2={inspectedX} y1={paddingTop} y2={paddingTop + plotHeight} stroke="#64748b" strokeWidth="1" strokeDasharray="4 4" />
@@ -830,10 +895,14 @@ function MetricCard({
   label,
   value,
   tone = "slate",
+  comparison,
+  target,
 }: {
   label: string;
   value: number | string;
   tone?: "slate" | "teal" | "blue" | "amber" | "rose";
+  comparison?: string;
+  target?: string;
 }) {
   const toneClasses = {
     slate: "text-slate-900",
@@ -847,6 +916,8 @@ function MetricCard({
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-2 text-2xl font-semibold ${toneClasses[tone]}`}>{value}</p>
+      {comparison ? <p className="mt-1 text-xs text-slate-500">{comparison}</p> : null}
+      {target ? <p className="mt-1 text-xs font-medium text-slate-700">Target {target}</p> : null}
     </article>
   );
 }
@@ -899,8 +970,23 @@ export default function AnalyticsDashboard() {
   const [appliedRange, setAppliedRange] = useState(DEFAULT_DATE_RANGE);
   const [lastLoaded, setLastLoaded] = useState<{ atIso: string; mode: string } | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("daily");
+  const [selectedView, setSelectedView] = useState<DashboardView>("overview");
+  const [rangePreset, setRangePreset] = useState<RangePreset>("all");
+  const [usersPayload, setUsersPayload] = useState<UsersPayload | null>(null);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(0);
   const [notificationReportLoading, setNotificationReportLoading] = useState(false);
+  const [segments, setSegments] = useState<TrendSegments>({ identity: "all", device: "", country: "", acquisition: "", language: "" });
+  const [comparisonPayload, setComparisonPayload] = useState<AnalyticsPayload | null>(null);
+  const [inspectedTrendIndex, setInspectedTrendIndex] = useState<number | null>(null);
+  const [targets, setTargets] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return { activation_rate: 40, retention_30d: 25, impact_rate: 30, active_people: 100 };
+    try { return JSON.parse(window.localStorage.getItem("aletheia_analytics_targets") ?? "null") ?? { activation_rate: 40, retention_30d: 25, impact_rate: 30, active_people: 100 }; } catch { return { activation_rate: 40, retention_30d: 25, impact_rate: 30, active_people: 100 }; }
+  });
   const skipNextAutoRefreshRef = useRef(false);
+  const appliedSegmentsRef = useRef<TrendSegments>(segments);
 
   const trafficModeLabel = includeAutomation ? "All traffic" : "Human-only";
   const topScreens = payload?.topScreens30d ?? payload?.views30d ?? [];
@@ -921,13 +1007,18 @@ export default function AnalyticsDashboard() {
     [payload]
   );
 
-  async function loadAnalyticsData(token: string, automation: boolean, range: { startDate: string; endDate: string }) {
+  async function loadAnalyticsData(token: string, automation: boolean, range: { startDate: string; endDate: string }, trendSegments: TrendSegments) {
     const params = new URLSearchParams();
     if (automation) {
       params.set("includeAutomation", "1");
     }
     params.set("startDate", range.startDate);
     params.set("endDate", range.endDate);
+    if (trendSegments.identity !== "all") params.set("identity", trendSegments.identity);
+    if (trendSegments.device) params.set("device", trendSegments.device);
+    if (trendSegments.country) params.set("country", trendSegments.country);
+    if (trendSegments.acquisition) params.set("acquisition", trendSegments.acquisition);
+    if (trendSegments.language) params.set("language", trendSegments.language);
 
     const summaryResponse = await fetch(`/api/analytics/summary${params.size ? `?${params.toString()}` : ""}`, {
       method: "GET",
@@ -967,7 +1058,36 @@ export default function AnalyticsDashboard() {
     setNotificationReportLoading(false);
   }
 
-  async function loadAnalytics(event?: FormEvent, nextRange = rangeDraft, tokenOverride?: string) {
+  async function loadUsers(token: string, page = userPage, search = userSearch) {
+    if (!token.trim()) {
+      setUsersError("Load analytics before opening the account directory.");
+      return;
+    }
+
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const params = new URLSearchParams({
+        limit: String(USER_PAGE_SIZE),
+        offset: String(page * USER_PAGE_SIZE),
+      });
+      if (search.trim()) params.set("search", search.trim());
+      const response = await fetch(`/api/internal/users?${params.toString()}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token.trim()}` },
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(response.status === 401 ? "Unauthorized. Check your analytics secret." : "Failed to load accounts.");
+      setUsersPayload((await response.json()) as UsersPayload);
+      setUserPage(page);
+    } catch (err) {
+      setUsersError(err instanceof Error ? err.message : "Failed to load accounts.");
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function loadAnalytics(event?: FormEvent, nextRange = rangeDraft, tokenOverride?: string, segmentsOverride = segments) {
     event?.preventDefault();
     const token = (tokenOverride ?? secret).trim();
     if (!token) {
@@ -979,8 +1099,14 @@ export default function AnalyticsDashboard() {
     setLoading(true);
 
     try {
-      const nextPayload = await loadAnalyticsData(token, includeAutomation, nextRange);
+      const nextPayload = await loadAnalyticsData(token, includeAutomation, nextRange, segmentsOverride);
       setPayload(nextPayload);
+      appliedSegmentsRef.current = segmentsOverride;
+      if (nextRange.startDate !== "1970-01-01") {
+        void loadAnalyticsData(token, includeAutomation, getPreviousDateRange(nextRange), segmentsOverride).then(setComparisonPayload).catch(() => setComparisonPayload(null));
+      } else {
+        setComparisonPayload(null);
+      }
       const normalizedRange = nextPayload.selectedRange ?? nextRange;
       setAppliedRange((current) =>
         current.startDate === normalizedRange.startDate && current.endDate === normalizedRange.endDate ? current : normalizedRange
@@ -991,7 +1117,12 @@ export default function AnalyticsDashboard() {
       setLastLoaded({ atIso: new Date().toISOString(), mode: trafficModeLabel });
       setLastSuccessfulSecret(token);
       skipNextAutoRefreshRef.current = true;
-      void hydrateNotificationDeliveryReport(token);
+      if (selectedView === "operations") {
+        void hydrateNotificationDeliveryReport(token);
+      }
+      if (selectedView === "audience") {
+        void loadUsers(token, 0, "");
+      }
 
       try {
         window.sessionStorage.setItem(SECRET_KEY, token);
@@ -1020,6 +1151,15 @@ export default function AnalyticsDashboard() {
 
     setSecret(token);
     await loadAnalytics(undefined, rangeDraft, token);
+  }
+
+  async function applyRangePreset(nextPreset: RangePreset) {
+    setRangePreset(nextPreset);
+    if (nextPreset === "custom") return;
+    const nextRange = nextPreset === "all" ? getDefaultDateRange() : getPresetDateRange(Number(nextPreset));
+    setRangeDraft(nextRange);
+    const token = secret.trim() || lastSuccessfulSecret.trim();
+    if (token) await loadAnalytics(undefined, nextRange, token);
   }
 
   function exportAnalyticsSnapshot() {
@@ -1068,6 +1208,46 @@ export default function AnalyticsDashboard() {
     URL.revokeObjectURL(url);
   }
 
+  function exportAnalyticsCsv() {
+    if (!payload) return setError("Load the dashboard before exporting analytics.");
+    const rows: Array<Array<string | number>> = [["section", "metric", "value", "secondary_value"]];
+    Object.entries(payload.overview).forEach(([metric, value]) => rows.push(["overview", metric, value, ""]));
+    (payload.growthMetrics ?? []).forEach((row) => rows.push(["growth", row.metric, row.rate, `${row.numerator}/${row.denominator}`]));
+    (payload.features30d ?? []).forEach((row) => rows.push(["feature", row.feature, row.unique_people, row.actions]));
+    (payload.acquisitionRetention ?? []).forEach((row) => rows.push(["acquisition_retention", row.acquisition, row.retention_7d_pct, row.retention_30d_pct]));
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `aletheia-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+  }
+
+  function saveCurrentView() {
+    const saved = { selectedView, selectedPeriod, rangePreset, range: appliedRange, segments, includeAutomation };
+    window.localStorage.setItem("aletheia_analytics_saved_view", JSON.stringify(saved));
+    setError(null);
+  }
+
+  function restoreSavedView() {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("aletheia_analytics_saved_view") ?? "null") as null | { selectedView: DashboardView; selectedPeriod: PeriodKey; rangePreset: RangePreset; range: typeof appliedRange; segments: TrendSegments; includeAutomation: boolean };
+      if (!saved) return setError("No saved analytics view is available yet.");
+      setSelectedView(saved.selectedView); setSelectedPeriod(saved.selectedPeriod); setRangePreset(saved.rangePreset); setRangeDraft(saved.range); setSegments(saved.segments); setIncludeAutomation(saved.includeAutomation);
+      const token = secret.trim() || lastSuccessfulSecret.trim();
+      if (token) void loadAnalytics(undefined, saved.range, token, saved.segments);
+    } catch { setError("The saved analytics view could not be restored."); }
+  }
+
+  async function shareReportSnapshot() {
+    if (!payload) return setError("Load the dashboard before sharing a snapshot.");
+    const summary = `Aletheia analytics — ${formatRangeLabel(selectedRange, reportTs)}\nActive people: ${activePeople}\nEvents: ${overview.events_30d ?? 0}\nActivation: ${growthMetrics.activation_rate?.rate ?? 0}%\n30-day retention: ${monthlyCohorts.at(-1)?.retention_pct ?? 0}%`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Aletheia analytics snapshot", text: summary });
+      else await navigator.clipboard.writeText(summary);
+    } catch { /* A dismissed native share sheet is not an analytics error. */ }
+  }
+
   useEffect(() => {
     const token = lastSuccessfulSecret.trim();
     if (!token) {
@@ -1081,7 +1261,7 @@ export default function AnalyticsDashboard() {
       try {
         setLoading(true);
         setError(null);
-        const nextPayload = await loadAnalyticsData(token, includeAutomation, appliedRange);
+        const nextPayload = await loadAnalyticsData(token, includeAutomation, appliedRange, appliedSegmentsRef.current);
         if (cancelled) {
           return;
         }
@@ -1138,6 +1318,7 @@ export default function AnalyticsDashboard() {
   const funnelRows = payload?.funnel30d ?? [];
   const audienceRows = payload?.audienceBreakdowns ?? [];
   const growthMetrics = Object.fromEntries((payload?.growthMetrics ?? []).map((row) => [row.metric, row]));
+  const previousGrowthMetrics = Object.fromEntries((comparisonPayload?.growthMetrics ?? []).map((row) => [row.metric, row]));
   const impactRows = payload?.impactBreakdowns ?? [];
   const experimentRows = payload?.experiments ?? [];
   const authFailureRows = payload?.authFailures30d ?? [];
@@ -1161,18 +1342,12 @@ export default function AnalyticsDashboard() {
     () => loadTranslationsWithFallbackSync(analyticsLanguage),
     [analyticsLanguage]
   );
-  const reportTs = useMemo(() => {
+  const reportTs = (key: string, fallback?: string) => {
     const missingFallback = "__missing__";
-    const resolve = (key: string, fallback?: string) => {
-      const value = getTranslation(analyticsTranslations as TranslationData, key, fallback ?? missingFallback);
-      if (value === missingFallback) {
-        return key;
-      }
-
-      return Array.isArray(value) ? value.join(", ") : String(value);
-    };
-    return (key: string, fallback?: string) => resolve(key, fallback);
-  }, [analyticsTranslations]);
+    const value = getTranslation(analyticsTranslations as TranslationData, key, fallback ?? missingFallback);
+    if (value === missingFallback) return key;
+    return Array.isArray(value) ? value.join(", ") : String(value);
+  };
   const notificationSyncFailureTrend = buildNotificationSyncFailureSeries(notificationSyncFailureTrendRows, reportTs);
   const notificationSyncFailureSpike = buildNotificationSyncFailureSpike(notificationSyncFailureTrendRows);
   const selectedUsageCard = usageCards.find((card) => card.period === selectedPeriod) ?? usageCards[0];
@@ -1186,6 +1361,8 @@ export default function AnalyticsDashboard() {
     latestRetention: monthlyCohorts.at(-1),
   });
   const activePeople = growthMetrics.activation_rate?.denominator ?? 0;
+  const previousActivePeople = previousGrowthMetrics.activation_rate?.denominator;
+  const previousMonthlyCohort = comparisonPayload?.cohortBreakdowns?.monthly?.at(-1);
   const countryRows = audienceRows.filter((row) => row.dimension === "country");
   const browserRows = audienceRows.filter((row) => row.dimension === "browser");
   const countryObservations = countryRows.reduce((sum, row) => sum + row.unique_people, 0);
@@ -1193,15 +1370,31 @@ export default function AnalyticsDashboard() {
   const browserObservations = browserRows.reduce((sum, row) => sum + row.unique_people, 0);
   const classifiedBrowserObservations = browserRows.filter((row) => row.value !== "other" && row.value !== "unknown").reduce((sum, row) => sum + row.unique_people, 0);
   const coverageRate = (numerator: number, denominator: number) => denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+  const viewClass = (...views: DashboardView[]) => views.includes(selectedView) ? "" : "hidden";
+  const selectedBucket = inspectedTrendIndex === null ? null : selectedUsageCard?.usageRows[inspectedTrendIndex] ?? null;
+  const selectedBucketFeatures = selectedBucket
+    ? (payload?.featureUsageTrends?.[selectedPeriod] ?? []).filter((row) => row.bucket_start === selectedBucket.bucket_start).sort((a, b) => b.actions - a.actions)
+    : [];
+  const trendAnnotations = (payload?.releaseAnnotations ?? []).flatMap((annotation) => {
+    const index = selectedUsageCard?.usageRows.findIndex((row) => row.bucket_start.slice(0, 10) === annotation.date.slice(0, 10)) ?? -1;
+    return index >= 0 ? [{ index, label: `Release ${annotation.version}` }] : [];
+  });
+  const alerts = [
+    activePeople < targets.active_people ? `Active people are below the ${targets.active_people} target.` : null,
+    (growthMetrics.activation_rate?.rate ?? 0) < targets.activation_rate ? `Activation is below the ${targets.activation_rate}% target.` : null,
+    (monthlyCohorts.at(-1)?.retention_pct ?? 0) < targets.retention_30d ? `30-day retention is below the ${targets.retention_30d}% target.` : null,
+    (growthMetrics.impact_rate?.rate ?? 0) < targets.impact_rate ? `Meaningful-value reporting is below the ${targets.impact_rate}% target.` : null,
+    rangeMomentum.activeUserChange !== null && Math.abs(rangeMomentum.activeUserChange) >= 50 ? `Daily active people changed ${formatDelta(rangeMomentum.activeUserChange)} versus the prior day.` : null,
+    rangeMomentum.eventChange !== null && Math.abs(rangeMomentum.eventChange) >= 50 ? `Daily events changed ${formatDelta(rangeMomentum.eventChange)} versus the prior day.` : null,
+    notificationSyncFailureSpike.detected ? `Notification sync failures are ${notificationSyncFailureSpike.ratio.toFixed(1)}× the trailing average.` : null,
+  ].filter((value): value is string => Boolean(value));
+  const coverageReferenceTime = payload?.generatedAt ? Date.parse(payload.generatedAt) : 0;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <nav className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl gap-1 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl px-4 sm:px-6 lg:px-8">
           <span className="border-b-2 border-slate-900 px-3 py-3 text-sm font-semibold text-slate-900">Analytics</span>
-          <Link href="/internal/users" className="px-3 py-3 text-sm text-slate-500 hover:text-slate-900">
-            Users
-          </Link>
         </div>
       </nav>
 
@@ -1209,12 +1402,27 @@ export default function AnalyticsDashboard() {
         <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
-              <h1 className="text-2xl font-semibold tracking-tight">Internal Analytics Dashboard</h1>
-              <p className="mt-1 text-sm text-slate-600">
-                Daily, weekly, monthly, and yearly usage with feature trends, top screens, funnels, retention, and cohort breakdowns.
-              </p>
+              <h1 className="text-3xl font-semibold tracking-tight">{reportTs("internalAnalytics.title", "Analytics")}</h1>
+              <p className="mt-1 text-sm text-slate-600">{reportTs("internalAnalytics.summary", "Understand who is using Aletheia, what creates value, and where action is needed.")}</p>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <span className="sr-only">Time range</span>
+                <select
+                  aria-label="Time range"
+                  value={rangePreset}
+                  onChange={(event) => void applyRangePreset(event.target.value as RangePreset)}
+                  disabled={loading}
+                  className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 outline-none transition hover:bg-slate-200 focus:border-slate-400 disabled:opacity-60"
+                >
+                  <option value="all">All time</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="365">Last 12 months</option>
+                  <option value="custom">Custom range</option>
+                </select>
+              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
@@ -1236,6 +1444,8 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
+          <details className="mt-4 border-t border-slate-100 pt-4" open={!payload}>
+            <summary className="cursor-pointer text-sm font-medium text-slate-700">{reportTs("internalAnalytics.dashboardSettings", "Dashboard settings")}</summary>
           <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={loadAnalytics}>
             <input
               type="password"
@@ -1261,9 +1471,13 @@ export default function AnalyticsDashboard() {
             >
               Export JSON
             </button>
+            <button type="button" onClick={exportAnalyticsCsv} disabled={!payload} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60">Export CSV</button>
+            <button type="button" onClick={saveCurrentView} disabled={!payload} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60">Save view</button>
+            <button type="button" onClick={restoreSavedView} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Restore view</button>
+            <button type="button" onClick={() => void shareReportSnapshot()} disabled={!payload} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60">Share snapshot</button>
           </form>
 
-          <form className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end" onSubmit={applyRange}>
+          <form className={`${rangePreset === "custom" ? "" : "hidden"} mt-3 flex flex-col gap-3 lg:flex-row lg:items-end`} onSubmit={applyRange}>
             <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
                 Start date
@@ -1319,16 +1533,71 @@ export default function AnalyticsDashboard() {
           {!error && !payload ? (
             <p className="mt-3 text-sm text-slate-600">Enter the analytics admin secret and load live metrics.</p>
           ) : null}
+          </details>
         </header>
 
-        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard label="Active people" value={formatCount(activePeople)} tone="teal" />
-          <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" />
-          <MetricCard label="Activation rate" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="amber" />
-          <MetricCard label="30-day retention" value={monthlyCohorts.at(-1) ? `${monthlyCohorts.at(-1)?.retention_pct}%` : "Not mature"} tone="slate" />
+        <nav className="overflow-x-auto border-b border-slate-200" aria-label="Analytics sections">
+          <div className="flex min-w-max gap-6">
+            {DASHBOARD_VIEWS.map((view) => (
+              <button
+                key={view.key}
+                type="button"
+                onClick={() => {
+                  setSelectedView(view.key);
+                  if (
+                    view.key === "audience"
+                    && !usersPayload
+                    && !usersLoading
+                    && lastSuccessfulSecret.trim()
+                  ) {
+                    void loadUsers(lastSuccessfulSecret.trim(), 0, "");
+                  }
+                  if (
+                    view.key === "operations"
+                    && payload
+                    && payload.notificationDeliveryReport === undefined
+                    && !notificationReportLoading
+                    && lastSuccessfulSecret.trim()
+                  ) {
+                    void hydrateNotificationDeliveryReport(lastSuccessfulSecret.trim());
+                  }
+                }}
+                aria-current={selectedView === view.key ? "page" : undefined}
+                className={`border-b-2 px-0.5 pb-3 text-sm font-semibold transition ${
+                  selectedView === view.key
+                    ? "border-slate-900 text-slate-900"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                {reportTs(view.translationKey, view.fallback)}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <section className={`${viewClass("overview")} grid grid-cols-2 gap-3 xl:grid-cols-4`}>
+          <MetricCard label="Active people" value={formatCount(activePeople)} tone="teal" comparison={formatComparison(activePeople, previousActivePeople)} target={formatCount(targets.active_people)} />
+          <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" comparison={formatComparison(overview.events_30d ?? 0, comparisonPayload?.overview.events_30d)} />
+          <MetricCard label="Activation rate" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="amber" comparison={formatComparison(growthMetrics.activation_rate?.rate ?? 0, previousGrowthMetrics.activation_rate?.rate)} target={`${targets.activation_rate}%`} />
+          <MetricCard label="30-day retention" value={monthlyCohorts.at(-1) ? `${monthlyCohorts.at(-1)?.retention_pct}%` : "Not mature"} tone="slate" comparison={formatComparison(monthlyCohorts.at(-1)?.retention_pct ?? 0, previousMonthlyCohort?.retention_pct)} target={`${targets.retention_30d}%`} />
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("overview")} grid gap-4 lg:grid-cols-[1.35fr_1fr]`}>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Targets and alerts</h2>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[["active_people", "Active people"], ["activation_rate", "Activation %"], ["retention_30d", "Retention %"], ["impact_rate", "Impact %"]].map(([key, label]) => (
+                <label key={key} className="text-xs font-medium text-slate-600">{label}<input type="number" min="0" value={targets[key] ?? 0} onChange={(event) => { const next = { ...targets, [key]: Number(event.target.value) }; setTargets(next); window.localStorage.setItem("aletheia_analytics_targets", JSON.stringify(next)); }} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900" /></label>
+              ))}
+            </div>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Anomaly alerts</h2>
+            <div className="mt-3 space-y-2">{!payload ? <p className="text-sm text-slate-500">Load analytics to evaluate configured targets.</p> : alerts.length ? alerts.map((alert) => <p key={alert} className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{alert}</p>) : <p className="text-sm text-emerald-700">All configured targets are currently met.</p>}</div>
+          </article>
+        </section>
+
+        <section className={`${viewClass("audience")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Identity and account mix</h2>
             <p className="text-sm text-slate-600">Accounts represent people; anonymous counts represent devices and can include the same person on multiple devices.</p>
@@ -1342,7 +1611,7 @@ export default function AnalyticsDashboard() {
         </section>
 
         {payload ? (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className={`${viewClass("audience", "operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
             <div>
               <h2 className="text-lg font-semibold">Measurement coverage</h2>
               <p className="text-sm text-slate-600">How complete the evidence is before using it for product decisions.</p>
@@ -1358,7 +1627,7 @@ export default function AnalyticsDashboard() {
         ) : null}
 
         {payload ? (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className={`${viewClass("overview")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Decision briefing</h2>
@@ -1396,7 +1665,7 @@ export default function AnalyticsDashboard() {
           </section>
         ) : null}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("engagement")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Growth and product health</h2>
             <p className="text-sm text-slate-600">Behavioral rates for the selected range, using unique people as the denominator.</p>
@@ -1411,7 +1680,7 @@ export default function AnalyticsDashboard() {
           <p className="mt-3 text-xs text-slate-500">Activation means asking a question, creating a decision or reflection, recording gratitude, or opening Scripture.</p>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("engagement")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Impact, not attention</h2>
             <p className="text-sm text-slate-600">Voluntary answer helpfulness and privacy-safe outcomes. Categories are stored; users’ private answer and reflection text is not.</p>
@@ -1422,7 +1691,7 @@ export default function AnalyticsDashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("journeys")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Measured experiments</h2>
             <p className="text-sm text-slate-600">Stable variant assignment with unique-person exposure and conversion counts. Treat small samples as directional, not causal.</p>
@@ -1438,7 +1707,7 @@ export default function AnalyticsDashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("journeys", "operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Authentication failure diagnosis</h2>
             <p className="text-sm text-slate-600">Failure events grouped by method, flow, category, and normalized cause. Client transport failures are recorded only when the server did not already record the response.</p>
@@ -1454,7 +1723,7 @@ export default function AnalyticsDashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("audience")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Audience, geography, and access</h2>
             <p className="text-sm text-slate-600">Privacy-safe app runtime, device, operating system, browser, country, and acquisition breakdowns from app opens.</p>
@@ -1470,7 +1739,82 @@ export default function AnalyticsDashboard() {
           <p className="mt-3 text-xs text-slate-500">Country and region are derived from trusted proxy headers when available. IP addresses and precise locations are not stored.</p>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("audience")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
+          <h2 className="text-lg font-semibold">Acquisition to retention</h2>
+          <p className="text-sm text-slate-600">Signup sources connected to observed 7-day and 30-day return behavior.</p>
+          <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[36rem] text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase text-slate-500"><tr><th className="py-2">Source</th><th>Signups</th><th>Retained 7d</th><th>7d rate</th><th>Retained 30d</th><th>30d rate</th></tr></thead><tbody className="divide-y divide-slate-100">{(payload?.acquisitionRetention ?? []).map((row) => <tr key={row.acquisition}><td className="py-3 font-medium">{formatLabel(row.acquisition)}</td><td>{formatCount(row.signups)}</td><td>{formatCount(row.retained_7d)}</td><td>{row.retention_7d_pct}%</td><td>{formatCount(row.retained_30d)}</td><td>{row.retention_30d_pct}%</td></tr>)}</tbody></table>{(payload?.acquisitionRetention ?? []).length === 0 ? <p className="py-4 text-sm text-slate-500">No attributable signup cohorts yet.</p> : null}</div>
+        </section>
+
+        <section className={`${viewClass("audience")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Account directory</h2>
+              <p className="text-sm text-slate-600">Registered accounts, login frequency, and recency in the same audience workspace.</p>
+            </div>
+            <form
+              className="flex w-full gap-2 lg:w-auto"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadUsers(secret.trim() || lastSuccessfulSecret.trim(), 0, userSearch);
+              }}
+            >
+              <input
+                type="search"
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="Search name or email"
+                aria-label="Search accounts"
+                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 lg:w-64"
+              />
+              <button type="submit" disabled={usersLoading} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50">
+                Search
+              </button>
+            </form>
+          </div>
+
+          {usersError ? <p className="mt-4 text-sm text-rose-700">{usersError}</p> : null}
+          {usersLoading && !usersPayload ? <p className="mt-4 text-sm text-slate-500">Loading accounts…</p> : null}
+          {usersPayload ? (
+            <>
+              <div className="mt-4 flex items-center justify-between gap-3 text-sm text-slate-600">
+                <p><span className="font-semibold text-slate-900">{formatCount(usersPayload.total)}</span> registered accounts</p>
+                <p>{usersPayload.total > 0 ? `${usersPayload.offset + 1}–${Math.min(usersPayload.offset + usersPayload.users.length, usersPayload.total)}` : "0"}</p>
+              </div>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[44rem] text-left text-sm">
+                  <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                    <tr><th className="py-2 pr-4 font-medium">Account</th><th className="py-2 pr-4 font-medium">Logins</th><th className="py-2 pr-4 font-medium">Last active</th><th className="py-2 font-medium">Registered</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {usersPayload.users.map((user) => (
+                      <tr key={user.id}>
+                        <td className="py-3 pr-4"><p className="font-medium text-slate-800">{user.name || "Unnamed account"}</p><p className="text-xs text-slate-500">{user.email}</p></td>
+                        <td className="py-3 pr-4 text-slate-700">{formatCount(user.login_count)}</td>
+                        <td className="py-3 pr-4 text-slate-600">{user.last_seen_at ? formatTimestamp(user.last_seen_at) : "Never"}</td>
+                        <td className="py-3 text-slate-600">{formatTimestamp(user.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {usersPayload.users.length === 0 ? <p className="py-6 text-center text-sm text-slate-500">No matching accounts.</p> : null}
+              </div>
+              {usersPayload.total > USER_PAGE_SIZE ? (
+                <div className="mt-4 flex items-center justify-center gap-3">
+                  <button type="button" disabled={userPage === 0 || usersLoading} onClick={() => void loadUsers(secret.trim() || lastSuccessfulSecret.trim(), userPage - 1, userSearch)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40">Previous</button>
+                  <span className="text-sm text-slate-600">Page {userPage + 1} of {Math.ceil(usersPayload.total / USER_PAGE_SIZE)}</span>
+                  <button type="button" disabled={(userPage + 1) * USER_PAGE_SIZE >= usersPayload.total || usersLoading} onClick={() => void loadUsers(secret.trim() || lastSuccessfulSecret.trim(), userPage + 1, userSearch)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40">Next</button>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </section>
+
+        <section className={`${viewClass("operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
+          <div className="flex items-end justify-between gap-3"><div><h2 className="text-lg font-semibold">Event instrumentation coverage</h2><p className="text-sm text-slate-600">Allowed analytics events classified as healthy, stale, or never observed.</p></div><p className="text-xs text-slate-500">Stale after 30 days</p></div>
+          <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[38rem] text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase text-slate-500"><tr><th className="py-2">Event</th><th>Lifetime count</th><th>Last observed</th><th>Status</th></tr></thead><tbody className="divide-y divide-slate-100">{(payload?.eventCoverage ?? []).map((row) => { const age = row.last_seen_at ? coverageReferenceTime - Date.parse(row.last_seen_at) : Number.POSITIVE_INFINITY; const status = !row.last_seen_at ? "Never observed" : age > 30 * 86400000 ? "Stale" : "Healthy"; return <tr key={row.event_name}><td className="py-2 font-medium">{formatLabel(row.event_name)}</td><td>{formatCount(row.count)}</td><td>{row.last_seen_at ? formatTimestamp(row.last_seen_at) : "—"}</td><td><span className={`font-medium ${status === "Healthy" ? "text-emerald-700" : status === "Stale" ? "text-amber-700" : "text-rose-700"}`}>{status}</span></td></tr>; })}</tbody></table></div>
+        </section>
+
+        <section className={`${viewClass("operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <h2 className="text-lg font-semibold">{reportTs("internalAnalytics.pushDeliveryReportTitle")}</h2>
@@ -1660,7 +2004,7 @@ export default function AnalyticsDashboard() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <h2 className="text-lg font-semibold">{reportTs("internalAnalytics.notificationSyncFailureTitle")}</h2>
@@ -1709,8 +2053,14 @@ export default function AnalyticsDashboard() {
           )}
         </section>
 
-        <section>
+        <section className={viewClass("overview", "engagement")}>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6" aria-label="Trend segment filters">
+                <select aria-label="Identity segment" value={segments.identity} onChange={(event) => setSegments((current) => ({ ...current, identity: event.target.value as TrendSegments["identity"] }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="all">All identities</option><option value="signed_in">Signed in</option><option value="anonymous">Anonymous</option></select>
+                {(["device", "country", "acquisition"] as const).map((dimension) => <select key={dimension} aria-label={`${dimension} segment`} value={segments[dimension]} onChange={(event) => setSegments((current) => ({ ...current, [dimension]: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">All {dimension}</option>{audienceRows.filter((row) => row.dimension === dimension).map((row) => <option key={row.value} value={row.value}>{formatLabel(row.value)}</option>)}</select>)}
+                <select aria-label="Language segment" value={segments.language} onChange={(event) => setSegments((current) => ({ ...current, language: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">All languages</option>{languageRows.map((row) => <option key={row.language} value={row.language}>{row.language?.toUpperCase()}</option>)}</select>
+                <button type="button" disabled={loading || !lastSuccessfulSecret} onClick={() => void loadAnalytics(undefined, appliedRange, lastSuccessfulSecret)} className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Apply segments</button>
+              </div>
               <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label="Usage trend granularity">
                 {PERIOD_ORDER.map((period) => (
                   <button
@@ -1755,18 +2105,19 @@ export default function AnalyticsDashboard() {
 
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Usage trend</p>
-                <LineChart labels={selectedUsageCard.usage.labels.map((bucket) => formatPeriodBucket(selectedUsageCard.period, bucket))} series={selectedUsageCard.usage.series} />
+                <LineChart labels={selectedUsageCard.usage.labels.map((bucket) => formatPeriodBucket(selectedUsageCard.period, bucket))} series={selectedUsageCard.usage.series} onInspect={setInspectedTrendIndex} annotations={trendAnnotations} />
               </div>
 
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Feature usage trend</p>
                 <LineChart labels={selectedUsageCard.features.labels.map((bucket) => formatPeriodBucket(selectedUsageCard.period, bucket))} series={selectedUsageCard.features.series} height={200} />
               </div>
+              {selectedBucket ? <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4"><h3 className="text-sm font-semibold">Contributors for {formatPeriodBucket(selectedPeriod, selectedBucket.bucket_start)}</h3><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{selectedBucketFeatures.slice(0, 6).map((row) => <div key={row.feature} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>{formatLabel(row.feature)}</span><strong>{formatCount(row.actions)}</strong></div>)}</div>{selectedBucketFeatures.length === 0 ? <p className="mt-2 text-sm text-slate-500">No contributing feature events in this bucket.</p> : null}</div> : null}
               </> : null}
             </article>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className={`${viewClass("overview", "journeys")} grid gap-6 lg:grid-cols-2`}>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -1825,7 +2176,7 @@ export default function AnalyticsDashboard() {
           </article>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className={`${viewClass("engagement")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Feature reach</h2>
@@ -1850,7 +2201,7 @@ export default function AnalyticsDashboard() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className={`${viewClass("audience", "journeys")} grid gap-6 lg:grid-cols-2`}>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Audience needs</h2>
             <p className="text-sm text-slate-600">Question themes by people reached, with event volume as supporting context.</p>
@@ -1891,7 +2242,7 @@ export default function AnalyticsDashboard() {
           </article>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className={`${viewClass("audience", "engagement")} grid gap-6 lg:grid-cols-2`}>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-end justify-between gap-3">
               <div>

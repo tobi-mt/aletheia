@@ -73,6 +73,35 @@ test("dashboard turns measurements into prioritized actions without double-count
   assert.match(dashboard, /void hydrateNotificationDeliveryReport\(token\)/);
 });
 
+test("dashboard uses focused views and defers operational diagnostics", () => {
+  assert.match(dashboard, /type DashboardView = "overview" \| "audience" \| "engagement" \| "journeys" \| "operations"/);
+  assert.match(dashboard, /aria-label="Analytics sections"/);
+  assert.match(dashboard, /selectedView === "operations"/);
+  assert.match(dashboard, /payload\.notificationDeliveryReport === undefined/);
+  assert.match(dashboard, /<details[\s\S]*?open=\{!payload\}/);
+  assert.match(dashboard, /<option value="all">All time<\/option>/);
+  assert.match(dashboard, /const startDate = "1970-01-01"/);
+  assert.match(dashboard, /Account directory/);
+  assert.match(dashboard, /\/api\/internal\/users/);
+  assert.doesNotMatch(dashboard, /href="\/internal\/users"/);
+});
+
+test("dashboard supports comparison, segmentation, targets, drill-down, sharing, attribution, and coverage", () => {
+  assert.match(dashboard, /formatComparison/);
+  assert.match(dashboard, /Trend segment filters/);
+  assert.match(dashboard, /Contributors for/);
+  assert.match(dashboard, /Targets and alerts/);
+  assert.match(dashboard, /Export CSV/);
+  assert.match(dashboard, /Save view/);
+  assert.match(dashboard, /Share snapshot/);
+  assert.match(dashboard, /releaseAnnotations/);
+  assert.match(dashboard, /Acquisition to retention/);
+  assert.match(dashboard, /Event instrumentation coverage/);
+  assert.match(analytics, /function segmentFilterWhere/);
+  assert.match(analytics, /acquisitionRetention: acquisitionRetentionRows/);
+  assert.match(analytics, /eventCoverage: \[\.\.\.ALLOWED_EVENTS\]/);
+});
+
 test("mode-fit calibration events are accepted and reported without question text", () => {
   assert.match(analytics, /"mode_fit_prediction"/);
   assert.match(analytics, /"mode_fit_outcome"/);

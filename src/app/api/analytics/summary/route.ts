@@ -22,13 +22,21 @@ export async function getAnalyticsSummaryRoute(
   );
   const startDate = url.searchParams.get("startDate") ?? undefined;
   const endDate = url.searchParams.get("endDate") ?? undefined;
+  const identity = url.searchParams.get("identity");
+  const segments = {
+    identity: identity === "signed_in" || identity === "anonymous" ? identity : "all",
+    device: url.searchParams.get("device") || undefined,
+    country: url.searchParams.get("country") || undefined,
+    acquisition: url.searchParams.get("acquisition") || undefined,
+    language: url.searchParams.get("language") || undefined,
+  } as const;
   const geoEnrichmentEnabled = process.env.ANALYTICS_GEO_ENRICHMENT_ENABLED === "true";
 
   if (!secret || token !== secret) {
     return apiError(401, "permission_denied", "Unauthorized");
   }
 
-  const summary = await deps.analyticsSummary({ includeAutomation, startDate, endDate });
+  const summary = await deps.analyticsSummary({ includeAutomation, startDate, endDate, segments });
   return NextResponse.json({
     ...summary,
     generatedAt: new Date().toISOString(),
