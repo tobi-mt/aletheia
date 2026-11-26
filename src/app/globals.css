@@ -189,10 +189,15 @@ button, [role="button"] {
   transform: translateY(1px);
 }
 
-.app-shell :where(button, a[href], [role="button"], summary):focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 86%, white);
+.app-shell :where(button, a[href], [role="button"], summary, input, textarea, select):focus-visible {
+  outline: 2px solid var(--aletheia-control-ink, #775b1f);
   outline-offset: 3px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aletheia-focus-ring, #d6b45d) 22%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aletheia-control-ink, #775b1f) 22%, transparent);
+}
+
+.app-shell :where(input, textarea)::placeholder {
+  color: var(--aletheia-placeholder, #58665d);
+  opacity: 1;
 }
 
 .nudge-composer-shell,
@@ -768,14 +773,6 @@ html[data-theme="dark"] .theme-dark-root [style*="background-color: #d0ad55"] {
   color: #eef7f2 !important;
 }
 
-.theme-dark-root .app-bottom-nav button:not([style*="background-color: rgb(40, 71, 63)"]) {
-  color: #cddbd1 !important;
-}
-
-.theme-dark-root .app-bottom-nav button[style*="background-color: rgb(40, 71, 63)"] {
-  color: #fbf7e9 !important;
-}
-
 html[data-theme="dark"] main.theme-dark-root .app-chrome-control {
   background: #1a2622 !important;
   background-color: #1a2622 !important;
@@ -793,10 +790,6 @@ html[data-theme="black"] main.theme-dark-root .app-chrome-control {
 html[data-theme="black"] main.theme-dark-root .app-bottom-nav {
   border-color: rgba(214, 180, 93, 0.34) !important;
   color: #fbf7e9 !important;
-}
-
-html[data-theme="black"] main.theme-dark-root .app-bottom-nav button:not([style*="background-color: rgb(208, 173, 85)"]) {
-  color: #d8d0bd !important;
 }
 
 ::selection {

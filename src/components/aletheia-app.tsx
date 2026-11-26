@@ -7,6 +7,7 @@ import { signIn as authSignIn, signOut as authSignOut } from "next-auth/react";
 import { ChangeEvent, createElement, FormEvent, memo, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ThemeColors } from "@/components/surfaces/surface-contracts";
+import { accessibleAccentText } from "@/lib/themes";
 import { englishText, type UiText } from "@/components/surfaces/ui-copy";
 import { runtimeCopyFor } from "@/components/surfaces/runtime-panel-copy";
 import { journalDisplayTitle } from "@/lib/journal-title";
@@ -79,6 +80,8 @@ import {
 } from "lucide-react";
 import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, parseDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import { buildAnswerContinuation, continuationLabel, type AnswerContinuation } from "@/lib/answer-continuation";
+import { composeCompanionCounsel, hasCapacityPressure, preferredCounselReferences } from "@/lib/companion-counsel";
+import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
 import enTranslations from "@/locales/en.json";
 import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
 import {
@@ -97,7 +100,6 @@ import {
   localizedScriptureRead,
   scriptureDisplayLabel,
   localizedRegionLabel,
-  localizedCrisisSupportCopy,
   localizedModeProfile as sharedLocalizedModeProfile,
   localizedModeLabel as sharedLocalizedModeLabel,
   localizedWisdomLibraryEntry,
@@ -286,12 +288,12 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgNavBorder: "rgba(201, 213, 205, 0.7)",
     textPrimary: "#203a35",
     textSecondary: "#55645b",
-    textMuted: "#718077",
+    textMuted: "#58665d",
     textOnPrimary: "#f8f5e8",
     borderLight: "#d8e1db",
     borderMedium: "#c9d5cd",
     borderStrong: "#b8c9bf",
-    accentGold: "#866a24",
+    accentGold: "#775b1f",
     accentLight: "#d0ad55",
     hoverBg: "#edf2ee",
     activeBg: "rgba(32, 58, 53, 0.08)",
@@ -343,8 +345,8 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     activeBg: "rgba(214, 180, 93, 0.2)",
   },
   warm: {
-    primary: "#a65a3a",
-    primaryHover: "#b66a4a",
+    primary: "#914629",
+    primaryHover: "#9a5233",
     primaryText: "#fef8f4",
     bgMain: "#faf6f1",
     bgGradient: "bg-[radial-gradient(circle_at_18%_0%,rgba(220,180,140,0.20),transparent_26%),radial-gradient(circle_at_92%_14%,rgba(200,160,120,0.18),transparent_25%),linear-gradient(180deg,#faf6f1_0%,#f4ede4_100%)]",
@@ -355,15 +357,15 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgNavBorder: "rgba(217, 196, 181, 0.7)",
     textPrimary: "#4a2818",
     textSecondary: "#6b4830",
-    textMuted: "#8b6850",
+    textMuted: "#74533d",
     textOnPrimary: "#fef8f4",
     borderLight: "#e8d5c5",
     borderMedium: "#d9c4b5",
     borderStrong: "#c9b4a5",
-    accentGold: "#b8763a",
+    accentGold: "#884921",
     accentLight: "#d0946e",
     hoverBg: "#f5ebe1",
-    activeBg: "rgba(166, 90, 58, 0.08)",
+    activeBg: "rgba(145, 70, 41, 0.08)",
   },
   ocean: {
     primary: "#2a5a7a",
@@ -378,12 +380,12 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgNavBorder: "rgba(181, 201, 217, 0.7)",
     textPrimary: "#1a3a4a",
     textSecondary: "#3a5a6a",
-    textMuted: "#5a7a8a",
+    textMuted: "#456274",
     textOnPrimary: "#f4f8fa",
     borderLight: "#d5e5ed",
     borderMedium: "#b5c9d9",
     borderStrong: "#95b9c9",
-    accentGold: "#4a7a9a",
+    accentGold: "#365f79",
     accentLight: "#6e94d0",
     hoverBg: "#e8f2f8",
     activeBg: "rgba(42, 90, 122, 0.08)",
@@ -401,12 +403,12 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgNavBorder: "rgba(184, 201, 181, 0.7)",
     textPrimary: "#1a3a2a",
     textSecondary: "#3a5a4a",
-    textMuted: "#5a7a6a",
+    textMuted: "#4b6857",
     textOnPrimary: "#f4f8f4",
     borderLight: "#d5e5d5",
     borderMedium: "#b8c9b5",
     borderStrong: "#98b995",
-    accentGold: "#4a7a5a",
+    accentGold: "#365f43",
     accentLight: "#6ed094",
     hoverBg: "#e8f2e8",
     activeBg: "rgba(42, 90, 58, 0.08)",
@@ -424,22 +426,18 @@ const themeColors: Record<ResolvedTheme, ThemeColors> = {
     bgNavBorder: "rgba(217, 181, 201, 0.7)",
     textPrimary: "#4a1a3a",
     textSecondary: "#6a3a5a",
-    textMuted: "#8a5a7a",
+    textMuted: "#754763",
     textOnPrimary: "#fef4f8",
     borderLight: "#e8d5e5",
     borderMedium: "#d9b5c9",
     borderStrong: "#c995b9",
-    accentGold: "#a85a7a",
+    accentGold: "#85405e",
     accentLight: "#d06e94",
     hoverBg: "#f5e8f2",
     activeBg: "rgba(138, 58, 90, 0.08)",
   },
 };
 
-function accessibleAccentText(theme: ThemeColors) {
-  const isDarkTheme = theme.bgMain === "#0e1514" || theme.bgMain === "#050605";
-  return isDarkTheme ? theme.accentGold : theme.primary;
-}
 type WorkflowNoticeState = {
   id: string;
   title: string;
@@ -2467,6 +2465,7 @@ type ChatMessage = {
   sources?: WisdomEntry[];
   createdAt?: string;
   intelligence?: {
+    responseLanguage?: UserPreferences["language"];
     recommendedMode: Mode;
     probabilities: Record<Mode, number>;
     ambiguity: { mixed: boolean; uncertain: boolean; alternativeMode: Mode | null; reason: string };
@@ -3539,66 +3538,12 @@ function searchWisdom(query: string, mode: Mode, limit = 3, preferences: UserPre
 
 function composeResponse(question: string, mode: Mode, preferences: UserPreferences = defaultPreferences) {
   const sources = searchWisdom(question, mode, 3, preferences);
-  const primary = sources[0] ?? localizedWisdomEntry(wisdomEntries[0], preferences);
-  const secondary = sources[1] ?? localizedWisdomEntry(wisdomEntries[2], preferences);
-  const lifeConcern = mode === "Life" ? detectLifeSupportConcern(question) : null;
-  const crisisCopy = localizedCrisisSupportCopy(preferences.language);
-
-  if (lifeConcern === "self_harm") {
-    return {
-      sources,
-      text: [
-        "Reflection",
-        crisisCopy.selfHarmOpening,
-        "",
-        "Immediate next step",
-        crisisCopy.selfHarmImmediate,
-        "",
-        crisisCopy.selfHarmFollowUp,
-        "",
-        "",
-        "",
-      ].join("\n"),
-    };
-  }
-
-  return {
-    sources,
-    text: [
-      "Reflection",
-      lifeConcern === "addiction"
-        ? crisisCopy.addictionOpening
-        : lifeConcern === "depression"
-          ? crisisCopy.depressionOpening
-          : lifeConcern === "loneliness"
-            ? crisisCopy.lonelinessOpening
-            : lifeConcern === "holiness"
-              ? crisisCopy.holinessOpening
-              : `It makes sense to bring care to this. Your question touches ${primary.theme.toLowerCase()}, and it deserves more than a rushed answer or a fear-driven reaction.`,
-      "",
-      "Biblical Wisdom",
-      `${localizedScriptureReference(primary.scripture, preferences.language)} points toward this principle: ${primary.principle} ${localizedScriptureReference(secondary.scripture, preferences.language)} adds a second guardrail: ${secondary.principle}`,
-      "",
-      "Practical Perspective",
-      `${primary.application} This is wisdom support, not financial, legal, or investment advice, so any high-stakes decision should also be reviewed with qualified counsel.`,
-      "",
-      "Reflection Questions",
-      `1. ${primary.questions[0]}`,
-      `2. ${primary.questions[1]}`,
-      `3. ${secondary.questions[0]}`,
-      "",
-      "Gentle Reminder",
-      lifeConcern === "addiction"
-        ? crisisCopy.addictionNext
-        : lifeConcern === "depression"
-          ? crisisCopy.depressionNext
-          : lifeConcern === "loneliness"
-            ? crisisCopy.lonelinessNext
-            : lifeConcern === "holiness"
-              ? crisisCopy.holinessNext
-              : "You do not need to force clarity through urgency. Slow, honest, well-counseled obedience is often the most fruitful path.",
-    ].join("\n"),
-  };
+  const focusedReferences = preferredCounselReferences(question);
+  const preferredReferences = detectLifeSupportConcern(question) === "self_harm" ? ["Isaiah 41:10"]
+    : focusedReferences.length ? focusedReferences : hasCapacityPressure(question) ? ["Matthew 11:28-30"] : [];
+  const preferred = preferredReferences.flatMap((reference) =>
+    [...scriptureCounselIndex, ...baseWisdomEntries].filter((entry) => entry.scripture === reference).slice(0, 1));
+  return composeCompanionCounsel(question, [...preferred, ...sources], preferences);
 }
 
 const STATIC_TODAY_DAY_NUMBER = 0;
@@ -9998,18 +9943,13 @@ function startFirstRunGuestFlow() {
   }
 
   function continueFromExchange(exchange: ConversationExchange, continuation: AnswerContinuation) {
-    const visibleLabel = continuationLabel(
-      continuation.direction,
-      ts("challenges.continueChallenge", "Continue"),
-      76,
-    );
     trackClientEvent("answer_followup_asked", {
-      mode,
+      mode: exchange.mode,
       kind: `suggested_${continuation.kind}`,
-      ...analyticsQuestionMetadata(exchange.question?.text ?? "", mode),
+      ...analyticsQuestionMetadata(exchange.question?.text ?? "", exchange.mode),
     });
     setAnswerFocusId("continuation-pending");
-    void askAletheia(continuation.prompt, undefined, visibleLabel);
+    void askAletheia(continuation.prompt, undefined, continuation.direction, exchange.mode);
   }
 
   function waitFromExchange(exchange: ConversationExchange) {
@@ -13279,7 +13219,7 @@ function startFirstRunGuestFlow() {
   }
 
   return (
-    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100svh" }}>
+    <main ref={appShellRef} className={`app-shell min-h-screen overflow-x-hidden ${resolvedTheme === "dark" || resolvedTheme === "black" ? "theme-dark-root" : ""}`} style={{ backgroundColor: theme.bgMain, color: theme.textPrimary, minHeight: "100svh", "--aletheia-control-ink": accessibleAccentText(theme), "--aletheia-placeholder": theme.textMuted } as CSSProperties}>
       <div
         className={`fixed inset-0 -z-10 ${theme.bgGradient}`}
         style={{ backgroundColor: theme.bgMain }}
@@ -13332,7 +13272,7 @@ function startFirstRunGuestFlow() {
                 : resolvedTheme === "sunset"
                   ? "rgba(250, 241, 246, 0.18)"
                   : "rgba(238, 242, 239, 0.18)", top: 0 }}>
-        <div className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-1.5 md:flex md:justify-between md:gap-3">
+        <div className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-1.5 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3 xl:flex xl:justify-between">
           <div className="flex min-w-0 items-center gap-1 md:hidden">
             <label
               className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
@@ -13394,7 +13334,7 @@ function startFirstRunGuestFlow() {
             </div>
           </button>
 
-          <div className="editorial-surface hidden items-center gap-1 rounded-full border p-1 md:flex" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="editorial-surface hidden items-center gap-1 rounded-full border p-1 md:col-span-2 md:row-start-2 md:flex md:justify-self-center xl:shrink-0" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <NavButton active={activeView === "companion"} icon={Home} label={ui.nav.companion} onClick={() => showView("companion")} theme={theme} />
             <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
             <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
@@ -13487,7 +13427,7 @@ function startFirstRunGuestFlow() {
       {!isOnline ? (
         <div className="app-main-content mx-auto max-w-7xl pt-3" role="status" aria-live="polite">
           <div className="flex items-start gap-3 rounded-2xl border px-3.5 py-3 shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-            <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }} aria-hidden="true">
               <WifiOff size={16} />
             </span>
             <div className="min-w-0">
@@ -13512,8 +13452,8 @@ function startFirstRunGuestFlow() {
                 ))}
               </div>
               <div className="rounded-lg border p-3" style={{ borderColor: theme.borderMedium + '33', backgroundColor: theme.bgCardElevated }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textOnPrimary }}>{ui.currentLens}</p>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textOnPrimary }}>{activeMode.intent}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textSecondary }}>{ui.currentLens}</p>
+                <p className="mt-2 text-sm leading-6" style={{ color: theme.textPrimary }}>{activeMode.intent}</p>
               </div>
             </section>
           </div>
@@ -14380,7 +14320,7 @@ function BiometricLockOverlay({
         className="w-full max-w-sm rounded-3xl border p-7 text-center shadow-[0_28px_80px_rgba(12,20,16,0.26)]"
         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}
       >
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}>
           <ShieldCheck size={28} aria-hidden />
         </div>
         <h2 id="biometric-lock-title" className="mt-5 text-xl font-semibold" style={{ color: theme.textPrimary }}>
@@ -14466,7 +14406,7 @@ function StartupSplash({
             style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgCardElevated }}
           >
             {tone === "complete" ? (
-              <Check size={38} strokeWidth={1.8} aria-hidden="true" style={{ color: theme.primary }} />
+              <Check size={38} strokeWidth={1.8} aria-hidden="true" style={{ color: accessibleAccentText(theme) }} />
             ) : (
               <div className="relative h-16 w-16 overflow-hidden rounded-2xl">
                 <Image
@@ -14571,7 +14511,7 @@ function MobileNav({
       }`}
       style={{
         borderColor: active ? `color-mix(in srgb, ${theme.primary} 28%, ${theme.borderLight})` : "transparent",
-        backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated} 12%)` : "transparent",
+        backgroundColor: active ? theme.primary : "transparent",
         color: active ? theme.textOnPrimary : theme.textSecondary,
         transform: "scale(1)",
         transitionProperty: "all",
@@ -14747,7 +14687,7 @@ function NavButton({
   return (
     <button
       onClick={onClick}
-      className="premium-tap-card inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-[0.82rem] font-semibold transition"
+      className="premium-tap-card inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[0.82rem] font-semibold transition"
       style={{
         borderColor: active ? `color-mix(in srgb, ${theme.primary} 30%, ${theme.borderLight})` : "transparent",
         backgroundColor: active ? `color-mix(in srgb, ${theme.primary} 88%, ${theme.bgCardElevated} 12%)` : 'transparent',
@@ -14805,7 +14745,7 @@ function ReadingPlayer({
       aria-label={ts('labels.readingPlayer')}
     >
       <div className="flex items-center gap-2.5 sm:gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+        <span className="grid size-8 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
           <Volume2 size={16} />
         </span>
         <div className="min-w-0 flex-1">
@@ -14856,22 +14796,23 @@ function ReadingPlayer({
 }
 
 function ModeButton({ item, active, onClick, theme }: { item: (typeof modes)[number]; active: boolean; onClick: () => void; theme: ThemeColors }) {
+  const inactiveBg = `color-mix(in srgb, ${theme.primary} 91%, ${theme.textOnPrimary})`;
   return (
     <button
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition"
       style={{
         borderColor: active ? theme.accentLight : theme.borderMedium + '40',
-        backgroundColor: active ? theme.bgCardElevated : theme.borderMedium + '15',
+        backgroundColor: active ? theme.bgCardElevated : theme.primary,
         color: active ? theme.textPrimary : theme.textOnPrimary,
       }}
-      onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = theme.hoverBg)}
-      onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = theme.borderMedium + '15')}
+      onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = inactiveBg)}
+      onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = theme.primary)}
     >
       <item.icon className="shrink-0" size={16} style={{ color: active ? theme.accentGold : theme.textOnPrimary }} />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold leading-5">{item.displayLabel ?? item.label}</span>
-        <span className="mt-0.5 block line-clamp-1 text-[11px] leading-4" style={{ color: active ? theme.textSecondary : theme.textOnPrimary, opacity: active ? 1 : 0.88 }}>
+        <span className="mt-0.5 block line-clamp-1 text-[11px] leading-4" style={{ color: active ? theme.textSecondary : theme.textOnPrimary }}>
           {item.copy}
         </span>
       </span>
@@ -15607,7 +15548,7 @@ function HomeDashboard({
               borderColor: `color-mix(in srgb, ${theme.primary} 42%, ${theme.borderLight})`,
               background: `linear-gradient(120deg, color-mix(in srgb, ${theme.primary} 8%, ${theme.bgCardElevated}), ${theme.bgCardElevated})`,
               color: theme.textPrimary,
-              '--tw-ring-color': theme.primary,
+              '--tw-ring-color': accessibleAccentText(theme),
               '--tw-ring-offset-color': theme.bgCard,
             } as CSSProperties}
             aria-label={ts('listen.compactTitle')}
@@ -15618,7 +15559,7 @@ function HomeDashboard({
               aria-hidden="true"
             >
               <Mic size={18} />
-              <BookOpen className="absolute -bottom-1 -right-1 rounded-full p-0.5" size={15} style={{ backgroundColor: theme.bgCard, color: theme.primary }} />
+              <BookOpen className="absolute -bottom-1 -right-1 rounded-full p-0.5" size={15} style={{ backgroundColor: theme.bgCard, color: accessibleAccentText(theme) }} />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
@@ -15639,7 +15580,7 @@ function HomeDashboard({
               type="button"
               onClick={onOpenAccount}
               className="premium-tap-card group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-sm font-semibold leading-6 shadow-[0_6px_14px_rgba(7,10,8,0.04)] outline-none transition active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textSecondary, '--tw-ring-color': theme.primary, '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
+              style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.textSecondary, '--tw-ring-color': accessibleAccentText(theme), '--tw-ring-offset-color': theme.bgCard } as CSSProperties}
             >
               <span className="min-w-0 flex-1">
                 <span className="block" style={{ color: theme.textPrimary }}>{text.personalizationNudgeTitle}</span>
@@ -15682,7 +15623,7 @@ function HomeDashboard({
             </p>
             <CardCornerBadge
               className="rounded-[1rem] border"
-              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}
               aria-hidden="true"
             >
               {createElement(nextWiseStep ? journeyIcon(nextWiseStep.kind) : MessageCircle, { size: 14 })}
@@ -15731,7 +15672,7 @@ function HomeDashboard({
                       className="premium-tap-card flex w-[15rem] shrink-0 snap-start items-start gap-3 rounded-[1.15rem] border p-3 text-left transition active:scale-[0.99]"
                       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
                     >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                         <Icon size={15} />
                       </span>
                       <span className="min-w-0">
@@ -16124,7 +16065,7 @@ function ChoiceCardButton({
       }}
       aria-pressed={active}
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? accessibleAccentText(theme) : theme.textSecondary }}>
         <Icon size={17} />
       </span>
       <span className="min-w-0 flex-1">
@@ -16180,7 +16121,7 @@ function CompanionCardAction({
           className="grid size-8 shrink-0 place-items-center rounded-full border"
           style={primary
             ? { borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(255,255,255,0.12)", color: theme.textOnPrimary }
-            : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+            : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}
         >
           <Icon size={14} />
         </span>
@@ -16237,7 +16178,7 @@ function DashboardAction({
                   backgroundColor: "rgba(255,255,255,0.12)",
                   color: theme.textOnPrimary,
                 }
-              : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }
+              : { borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }
           }
         >
           <Icon size={16} />
@@ -16506,7 +16447,7 @@ function SystemReferenceModal({
                 {topic.eyebrow}
               </p>
               <div className="mt-2 flex items-start gap-3">
-                <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+                <div className="grid size-11 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                   <TopicIcon size={18} />
                 </div>
                 <div className="min-w-0">
@@ -16595,7 +16536,7 @@ function SystemReferenceRailCard({
               {topic.title}
             </p>
           </div>
-          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
             <TopicIcon size={16} />
           </div>
         </div>
@@ -16645,7 +16586,7 @@ function ReferenceRailSection({
     <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="relative flex items-start gap-2.5">
-          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
             <HeaderIcon size={17} />
           </div>
           <div className="min-w-0 flex-1">
@@ -17427,7 +17368,7 @@ function TodayFormationContinuation({
       className="premium-tap-card flex w-full items-center gap-3 rounded-[1.1rem] border px-3.5 py-3 text-left transition active:scale-[0.99]"
       style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }} aria-hidden="true">
         <Sprout size={17} />
       </span>
       <span className="min-w-0 flex-1">
@@ -17520,7 +17461,7 @@ function ChallengeRecommendationCard({
         style={{
           borderColor: theme.borderLight,
           backgroundColor: isContinuation ? theme.primary : theme.bgInput,
-          color: isContinuation ? theme.textOnPrimary : theme.primary,
+          color: isContinuation ? theme.textOnPrimary : accessibleAccentText(theme),
         }}
       >
         <RecommendationIcon size={18} />
@@ -17637,7 +17578,7 @@ function AccountSettingRow({
           className="flex w-full items-start gap-3 text-left transition"
           aria-expanded={open}
         >
-          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
             <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
@@ -17674,7 +17615,7 @@ function AccountSettingRow({
         className="flex w-full items-center gap-2 text-left sm:gap-2.5"
         aria-expanded={open}
       >
-        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
           <Icon size={14} />
         </span>
         <span className="min-w-0 flex-1">
@@ -17722,7 +17663,7 @@ function AccountToggleRow({
   if (variant === "flat") {
     return (
       <div className="flex items-center gap-3 border-t px-4 py-3 first:border-t-0 sm:px-5">
-        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
           <Icon size={14} />
         </span>
         <div className="min-w-0 flex-1">
@@ -17742,7 +17683,7 @@ function AccountToggleRow({
     <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
             <Icon size={14} />
           </span>
           <span className="min-w-0 flex-1">
@@ -17806,7 +17747,7 @@ function AccountFlatSection({
   return (
     <section className="overflow-hidden rounded-[1.25rem] border shadow-[0_6px_16px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
       <div className="flex items-start gap-3 p-4 sm:p-5">
-        <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+        <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
           <Icon size={16} />
         </div>
         <div className="min-w-0">
@@ -17852,7 +17793,7 @@ function AccountShareCard({
       {compact ? null : (
         <div className="relative editorial-surface rounded-[1rem] border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="flex items-start gap-2.5">
-            <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+            <div className="grid size-8 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
               <Share2 size={18} />
             </div>
             <div className="min-w-0">
@@ -17872,11 +17813,11 @@ function AccountShareCard({
             className="premium-tap-card flex min-h-10 items-center gap-2.5 rounded-[0.85rem] border px-3 py-2 text-left text-sm font-semibold transition hover:-translate-y-0.5"
             style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
           >
-            <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}>
               <Icon size={15} />
             </span>
             <span className="min-w-0 flex-1 leading-5">{label}</span>
-            <ChevronDown className="shrink-0 -rotate-90 opacity-50" size={13} />
+            <ChevronDown className="shrink-0 -rotate-90" size={13} aria-hidden="true" style={{ color: theme.textMuted }} />
           </button>
         ))}
       </div>
@@ -17987,7 +17928,7 @@ function SupportMissionCard({
         <div className="relative editorial-surface overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="p-3.5 sm:p-4">
             <div className="flex items-start gap-3">
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                 <HandHeart size={18} />
               </div>
               <div className="min-w-0">
@@ -18043,7 +17984,7 @@ function SupportMissionCard({
                 style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}>
                     {channel === "contact" ? <Mail size={15} /> : <HandHeart size={15} />}
                   </span>
                   <span className="min-w-0 leading-5">{ts(labelKey)}</span>
@@ -19224,7 +19165,7 @@ function FormationRailSection({
       >
         <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
               <Users size={18} />
             </div>
             <div className="min-w-0">
@@ -19824,7 +19765,7 @@ function FormationRailSection({
                   </p>
                   {formationAutoSwitched ? (
                     <div className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 sm:mt-3 sm:rounded-[0.85rem] sm:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <span className="grid size-5 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }} aria-hidden="true">
                         <Sparkles size={10} />
                       </span>
                       <div className="min-w-0">
@@ -19977,7 +19918,7 @@ function FormationRailSection({
                                           ? theme.activeBg
                                           : theme.bgInput,
                                       color: state === "completed"
-                                        ? theme.primary
+                                        ? accessibleAccentText(theme)
                                         : theme.textSecondary,
                                     }}
                                   >
@@ -20174,7 +20115,7 @@ function FormationRailSection({
                                 className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5 outline-none"
                                 style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
                               >
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                                   <Check size={11} />
                                 </span>
                                 <div className="min-w-0">
@@ -20187,7 +20128,7 @@ function FormationRailSection({
                                 </div>
                               </div>
                               <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                                   <Check size={11} />
                                 </span>
                                 <div className="min-w-0">
@@ -20200,7 +20141,7 @@ function FormationRailSection({
                                 </div>
                               </div>
                               <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                                   <Check size={11} />
                                 </span>
                                 <div className="min-w-0">
@@ -20358,7 +20299,7 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
               {readWithMeResponseTotals.accepted} {ts("status.accepted")}
             </span>
             <span className="rounded-full border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
@@ -20387,7 +20328,7 @@ const ChallengeResponseDashboard = memo(function ChallengeResponseDashboard({
                     : ts("status.waitingForAcceptance");
             const statusStyles =
               status === "accepted"
-                ? { borderColor: theme.borderMedium, backgroundColor: theme.activeBg, color: theme.primary }
+                ? { borderColor: theme.borderMedium, backgroundColor: theme.activeBg, color: accessibleAccentText(theme) }
                 : status === "declined"
                   ? { borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }
                   : status === "pending"
@@ -20562,7 +20503,7 @@ const ChallengeNudgeThread = memo(function ChallengeNudgeThread({
                   </p>
                 </div>
                 <div className={`mt-1.25 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] uppercase tracking-[0.08em] ${outgoing ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
-                  <span className="font-semibold" style={{ color: outgoing ? theme.primary : theme.textPrimary }}>
+                  <span className="font-semibold" style={{ color: outgoing ? accessibleAccentText(theme) : theme.textPrimary }}>
                     {senderLabel}
                   </span>
                   <span>{timeLabel}</span>
@@ -20927,7 +20868,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                   color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.textPrimary,
                 }}
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.26)" : theme.borderMedium, backgroundColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.16)" : theme.bgCard, color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : theme.primary }}>
+                <span className="grid size-8 shrink-0 place-items-center rounded-full border" style={{ borderColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.26)" : theme.borderMedium, backgroundColor: sharedCircleNudgeRecipientId === null ? "rgba(255,255,255,0.16)" : theme.bgCard, color: sharedCircleNudgeRecipientId === null ? theme.textOnPrimary : accessibleAccentText(theme) }}>
                   <Users size={13} />
                 </span>
                 <span className="min-w-0">
@@ -21243,7 +21184,7 @@ function AccountPersonalizationPanel({
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-start gap-2.5">
-              <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                 <Sparkles size={16} />
               </div>
               <p className="min-w-0 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
@@ -21394,7 +21335,7 @@ function VoicePreferenceSelector({
               }}
             >
               <div className="flex items-start gap-2.5 sm:gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? theme.primary : theme.textSecondary }}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-full border sm:size-10" style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: active ? accessibleAccentText(theme) : theme.textSecondary }}>
                   <Volume2 size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -21607,7 +21548,7 @@ function SupportReportCard({
     <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
       <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
         <div className="flex items-start gap-2.5">
-          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ backgroundColor: theme.bgInput, borderColor: theme.borderLight, color: theme.primary }}>
+          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ backgroundColor: theme.bgInput, borderColor: theme.borderLight, color: accessibleAccentText(theme) }}>
             <MessageCircle size={17} />
           </div>
           <div className="min-w-0 flex-1">
@@ -24000,7 +23941,7 @@ function AuthPanel({
           <div
             role="status"
             className="mx-3.5 mt-3.5 rounded-[1rem] border px-3 py-2 text-xs font-medium leading-5 sm:mx-4"
-            style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+            style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}
           >
           {notice}
         </div>
@@ -24452,7 +24393,7 @@ function NotificationPanel({
                   disabled={busy || !user}
                   onClick={() => onTimingChange({ timezoneMode: "manual", preferredTimezone: timing.preferredTimezone || browserTimezone() })}
                   className="ml-3 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ color: theme.primary }}
+                  style={{ color: accessibleAccentText(theme) }}
                 >
                   {ts('labels.edit')}
                 </button>
@@ -24479,7 +24420,7 @@ function NotificationPanel({
                 disabled={busy || !user}
                 onClick={() => onTimingChange({ timezoneMode: "auto", preferredTimezone: browserTimezone() })}
                 className="mt-2 text-xs font-semibold underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ color: theme.primary }}
+                style={{ color: accessibleAccentText(theme) }}
               >
                 {ts('notifications.useDeviceTimezoneAutomatically')}
               </button>
@@ -27251,7 +27192,7 @@ function ChallengeInviteModal({
         <section className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
           <div className="relative flex items-start gap-3 pr-12 sm:pr-14">
             <div className="flex items-start gap-3">
-              <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                 <Users size={18} />
               </div>
               <div>
@@ -27354,7 +27295,7 @@ function ChallengeInviteModal({
       <section className="relative max-h-[88vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-3xl border p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] shadow-2xl sm:p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
         <div className="relative flex flex-col gap-3 pr-12 sm:pr-14">
           <div className="flex items-start gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <div className="grid size-10 place-items-center rounded-2xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
               <Users size={18} />
             </div>
             <div>
@@ -28071,7 +28012,7 @@ function CompanionPanel({
           </div>
           <CardCornerBadge
             className="rounded-[1rem] border-2 shadow-[0_8px_18px_rgba(7,10,8,0.05)]"
-            style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+            style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}
             ariaLabel={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
             title={`${ui.currentLens}: ${localizedModeLabel(mode, preferences.language)}`}
           >
@@ -28095,7 +28036,7 @@ function CompanionPanel({
                   aria-pressed={autoFitEnabled}
                   aria-label={ts('modeSuggestion.autoFitActive')}
                   className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-medium transition active:scale-95"
-                  style={{ color: autoFitEnabled ? theme.primary : theme.textMuted }}
+                  style={{ color: autoFitEnabled ? accessibleAccentText(theme) : theme.textMuted }}
                 >
                   <motion.span
                     className="grid size-5 place-items-center rounded-full"
@@ -28167,7 +28108,7 @@ function CompanionPanel({
                       />
                       <motion.span
                         className="grid size-8 place-items-center rounded-lg border"
-                        style={{ borderColor: theme.primary, backgroundColor: theme.activeBg, color: theme.primary }}
+                        style={{ borderColor: theme.primary, backgroundColor: theme.activeBg, color: accessibleAccentText(theme) }}
                         initial={reduceMotion ? false : { opacity: 0, x: -10, scale: 0.8 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : 0.18 }}
@@ -28188,7 +28129,7 @@ function CompanionPanel({
                     onClick={onKeepOriginalMode}
                     disabled={isWorking}
                     className="min-h-10 justify-self-end rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-60"
-                    style={{ borderColor: theme.primary, backgroundColor: theme.bgCard, color: theme.primary }}
+                    style={{ borderColor: theme.primary, backgroundColor: theme.bgCard, color: accessibleAccentText(theme) }}
                     animate={reduceMotion ? undefined : { boxShadow: [`0 0 0 0 ${theme.primary}00`, `0 0 0 5px ${theme.primary}22`, `0 0 0 0 ${theme.primary}00`] }}
                     transition={{ duration: 1.8, repeat: 1, ease: "easeInOut" }}
                   >
@@ -28218,7 +28159,7 @@ function CompanionPanel({
                   background: `linear-gradient(145deg, ${theme.bgInput}, color-mix(in srgb, ${theme.primary} 5%, ${theme.bgInput}))`,
                   color: theme.textPrimary,
                   boxShadow: `0 14px 30px color-mix(in srgb, ${theme.primary} 12%, transparent)`,
-                  '--tw-ring-color': `color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+                  '--tw-ring-color': `color-mix(in srgb, ${accessibleAccentText(theme)} 18%, transparent)`,
                 } as CSSProperties}
                 onFocus={(e) => { e.currentTarget.style.borderColor = theme.primary; }}
                 onBlur={(e) => e.currentTarget.style.borderColor = `color-mix(in srgb, ${theme.primary} 48%, ${theme.borderStrong})`}
@@ -28236,7 +28177,7 @@ function CompanionPanel({
                     style={{
                       borderColor: isListening ? theme.primary : theme.borderMedium,
                       backgroundColor: isListening ? theme.activeBg : theme.bgInput,
-                      color: isListening ? theme.primary : theme.textPrimary,
+                      color: isListening ? accessibleAccentText(theme) : theme.textPrimary,
                       boxShadow: isListening ? `0 0 0 2px ${theme.primary}1f` : "none",
                     }}
                     onMouseEnter={(e) => {
@@ -28256,7 +28197,7 @@ function CompanionPanel({
                       style={{
                         borderColor: theme.primary,
                         backgroundColor: theme.bgCardElevated,
-                        color: theme.primary,
+                        color: accessibleAccentText(theme),
                       }}
                       aria-live="polite"
                     >
@@ -28476,12 +28417,14 @@ function ScriptureChips({
   ts,
   theme,
   sources,
+  answerText = "",
   preferences,
   onScriptureOpen,
 }: {
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   sources?: WisdomEntry[];
+  answerText?: string;
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
 }) {
@@ -28490,7 +28433,16 @@ function ScriptureChips({
   const uniqueSources = sources?.filter(
     (source, index, all) => all.findIndex((candidate) => candidate.scripture === source.scripture) === index,
   ) ?? [];
-  const railHasOverflow = useRailOverflowCue(railRef, expanded && uniqueSources.length > 1, [expanded, uniqueSources.length]);
+  const referencedScriptures = new Set(
+    scriptureTextMatches(answerText, uniqueSources.map((source) => source.scripture), preferences.language)
+      .map((match) => match.scripture)
+  );
+  const visibleSources = (
+    referencedScriptures.size
+      ? uniqueSources.filter((source) => referencedScriptures.has(canonicalScriptureReference(source.scripture)))
+      : uniqueSources.slice(0, 2)
+  ).slice(0, 3);
+  const railHasOverflow = useRailOverflowCue(railRef, expanded && visibleSources.length > 0, [expanded, visibleSources.length]);
 
   if (!uniqueSources.length) {
     return null;
@@ -28507,7 +28459,7 @@ function ScriptureChips({
       >
         <span className="flex min-w-0 items-center gap-2 text-xs font-semibold">
           <BookOpen size={14} style={{ color: theme.accentGold }} aria-hidden="true" />
-          <span>{ts('labels.scripture')} · {uniqueSources.length}</span>
+          <span>{ts('labels.scripture')} · {visibleSources.length}</span>
           <span className="hidden truncate font-normal sm:inline" style={{ color: theme.textMuted }}>
             {scriptureDisplayLabel(uniqueSources[0].scripture, preferences)}
           </span>
@@ -28525,18 +28477,40 @@ function ScriptureChips({
             className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label={ts('labels.scripture')}
           >
-            {uniqueSources.map((source) => (
+            {visibleSources.map((source) => {
+              const read = localizedScriptureRead(source.scripture, preferences);
+              const firstVerse = read.verses?.[0]?.text.trim() ?? "";
+              const excerpt = firstVerse.length > 160
+                ? firstVerse.slice(0, 160).replace(/\s+\S*$/u, "").trimEnd()
+                : firstVerse;
+              return (
               <button
                 type="button"
                 key={source.scripture}
                 onClick={() => onScriptureOpen(source.scripture)}
-                className="min-h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold transition"
+                className="premium-tap-card flex min-h-[8.75rem] w-[17rem] shrink-0 snap-start flex-col rounded-[1.1rem] border p-3.5 text-left transition sm:w-[19rem]"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                 suppressHydrationWarning
               >
-                {localizedScriptureReference(source.scripture, preferences.language)}
+                <span className="flex items-center justify-between gap-3 text-xs font-semibold">
+                  <span className="underline decoration-1 underline-offset-4">{localizedScriptureReference(source.scripture, preferences.language)}</span>
+                  <ExternalLink size={13} className="shrink-0" aria-hidden="true" />
+                </span>
+                {excerpt ? (
+                  <span className="mt-2 line-clamp-3 text-[0.82rem] font-normal italic leading-5" style={{ color: theme.textSecondary }}>
+                    {excerpt}{excerpt.length < firstVerse.length ? "…" : null}
+                  </span>
+                ) : (
+                  <span className="mt-2 line-clamp-3 text-[0.82rem] font-normal leading-5" style={{ color: theme.textSecondary }}>
+                    {localizedWisdomLibraryEntry(source, preferences).principle}
+                  </span>
+                )}
+                <span className="mt-auto pt-2 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>
+                  {ts('labels.openScripture')}
+                </span>
               </button>
-            ))}
+              );
+            })}
           </div>
           {railHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
         </div>
@@ -28594,32 +28568,29 @@ function parseScriptureSelection(scripture: string): ParsedScriptureSelection | 
   };
 }
 
-function scriptureTextMatches(text: string, allowedScriptures: string[] = curatedScriptureReferences) {
-  const uniqueTargets = [...new Set(allowedScriptures.map((scripture) => canonicalScriptureReference(scripture)))].filter(Boolean);
-  if (!uniqueTargets.length) {
+function scriptureTextMatches(text: string, allowedScriptures: string[] = curatedScriptureReferences, language: LanguageCode = "en") {
+  const referencesByLabel = new Map<string, string>();
+  for (const allowed of allowedScriptures) {
+    const reference = canonicalScriptureReference(allowed);
+    if (!reference) continue;
+    for (const label of [reference, localizedScriptureReference(reference, language)]) {
+      referencesByLabel.set(normalizeScriptureMatchText(label).toLowerCase(), reference);
+    }
+  }
+  if (!referencesByLabel.size) {
     return [];
   }
 
-  const pattern = new RegExp(
-    uniqueTargets
-      .map((scripture) => escapeRegExp(normalizeScriptureMatchText(scripture)))
-      .sort((a, b) => b.length - a.length)
-      .join("|"),
-    "gu"
-  );
-  const normalizedText = normalizeScriptureMatchText(text);
+  const alternatives = [...referencesByLabel.keys()]
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join("|");
+  const pattern = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}])(?:${alternatives})(?![\\p{L}\\p{M}\\p{N}]|-\\d)`, "giu");
 
-  return [...normalizedText.matchAll(pattern)]
-    .map((match) => {
-      const label = match[0];
-      const scripture = canonicalScriptureReference(label);
-      return {
-        label,
-        scripture,
-        index: match.index ?? 0,
-      };
-    })
-    .sort((a, b) => a.index - b.index);
+  return Array.from(normalizeScriptureMatchText(text).matchAll(pattern)).flatMap((match) => {
+    const scripture = referencesByLabel.get(match[0].toLowerCase());
+    return scripture === undefined ? [] : [{ label: match[0], scripture, index: match.index }];
+  });
 }
 
 function ScriptureLinkedText({
@@ -28636,7 +28607,7 @@ function ScriptureLinkedText({
   onScriptureOpen: (scripture: string) => void;
 }) {
   const cleaned = cleanDisplayText(text);
-  const matches = scriptureTextMatches(cleaned, allowedScriptures);
+  const matches = scriptureTextMatches(cleaned, allowedScriptures, language);
 
   if (!matches.length) {
     return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{cleaned}</p>;
@@ -29266,7 +29237,7 @@ const ThreadStreamModal = memo(function ThreadStreamModal({
                             ) : null}
                           </div>
                           <div className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] ${entry.direction === "out" ? "justify-end" : "justify-start"}`} style={{ color: theme.textMuted }}>
-                            <span className="font-semibold" style={{ color: entry.direction === "out" ? theme.primary : theme.textSecondary }}>
+                            <span className="font-semibold" style={{ color: entry.direction === "out" ? accessibleAccentText(theme) : theme.textSecondary }}>
                               {entry.name}
                             </span>
                             <span>{formatThreadTimestamp(entry.createdAt, language)}</span>
@@ -29620,7 +29591,7 @@ function ModeSelectorJourney({
         />
         <motion.div
           className="absolute top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-2xl border shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
-          style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: theme.primary }}
+          style={{ borderColor: theme.primary, backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}
           initial={{ left: "4%", scale: 0.94 }}
           animate={reduceMotion ? { left: "44%", scale: 1 } : { left: ["4%", "72%", "44%"], y: [0, -4, 0], scale: [0.94, 1.04, 1] }}
           transition={reduceMotion ? { duration: 0 } : { duration: 2.5, repeat: Infinity, repeatDelay: 0.35, ease: "easeInOut" }}
@@ -29734,7 +29705,12 @@ function CurrentCounselCard({
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
-  const continuation = question && !isThinking ? buildAnswerContinuation(question, exchange.answer.text, exchange.mode) : null;
+  const continuation = question && !isThinking
+    ? buildAnswerContinuation(question, exchange.answer.text, exchange.mode, {
+        ...exchange.answer.intelligence,
+        responseLanguage: exchange.answer.intelligence?.responseLanguage ?? preferences.language,
+      })
+    : null;
   const recommendedAction = question && !isThinking
     ? recommendAnswerNextAction(question, exchange.answer.text)
     : null;
@@ -29757,7 +29733,7 @@ function CurrentCounselCard({
         <div className="relative rounded-[1.25rem] border p-3.5 pr-16 sm:p-4 sm:pr-20" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
           <span
             className="pointer-events-none absolute right-4 top-4 grid size-11 shrink-0 place-items-center rounded-[0.8rem] border shadow-sm"
-            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}
+            style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}
             aria-label={`${ui.currentLens}: ${lensLabel}`}
             title={`${ui.currentLens}: ${lensLabel}`}
           >
@@ -29823,8 +29799,7 @@ function CurrentCounselCard({
           </div>
         ) : (
           <>
-            <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
-            <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
+            <div className="calm-prose mb-3" style={{ color: theme.textPrimary }}>
               <ScriptureLinkedText
                 theme={theme}
                 text={answerText}
@@ -29833,6 +29808,7 @@ function CurrentCounselCard({
                 onScriptureOpen={onScriptureOpen}
               />
             </div>
+            <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} answerText={answerText} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           </>
         )}
       </article>
@@ -29855,10 +29831,8 @@ function CurrentCounselCard({
             <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] opacity-75">
               {ts("challenges.continueChallenge", "Continue")}
             </span>
-            <span className="mt-1 block line-clamp-2 text-sm font-semibold leading-5">
-              {continuation.direction.length > 76
-                ? `${continuation.direction.slice(0, 75).trimEnd()}…`
-                : continuation.direction}
+            <span className="mt-1 block break-words text-sm font-semibold leading-5">
+              {continuation.direction}
             </span>
           </span>
           <ChevronRight size={17} className="mt-1 shrink-0" aria-hidden="true" />
@@ -30116,7 +30090,7 @@ function CounselRailAction({
           style={{
             borderColor: theme.borderLight,
             backgroundColor: theme.bgCardElevated,
-            color: theme.primary,
+            color: accessibleAccentText(theme),
             boxShadow: `inset 0 1px 0 color-mix(in srgb, white 18%, transparent)`,
           }}
         >
@@ -30302,7 +30276,7 @@ function ConversationHistoryModal({
                 onScriptureOpen={onScriptureOpen}
               />
             </div>
-            <ScriptureChips ts={ts} theme={theme} sources={answerSources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+            <ScriptureChips ts={ts} theme={theme} sources={answerSources} answerText={exchange.answer.text} preferences={preferences} onScriptureOpen={onScriptureOpen} />
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: theme.borderLight }}>
@@ -30575,6 +30549,7 @@ function DecisionCompanionPanel({
         latestCounselExchange.question.text,
         latestCounselExchange.answer.text,
         latestCounselExchange.mode,
+        latestCounselExchange.answer.intelligence,
       )
     : null;
   const visibleCounselContacts = counselContacts.slice(0, 3);
@@ -31497,7 +31472,7 @@ function DecisionCompanionPanel({
                       {latestCounselInvite.url}
                     </p>
                     {counselContacts[0]?.name === latestCounselInvite.name && counselContacts[0]?.emailSent ? (
-                      <p className="inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgCard, color: theme.primary }}>
+                      <p className="inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ backgroundColor: theme.bgCard, color: accessibleAccentText(theme) }}>
                         {ts('labels.emailSentPrivateLinkFallback')}
                       </p>
                     ) : null}
@@ -32392,7 +32367,7 @@ function GratitudeLensPanel({
       <section className="grid min-w-0 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="relative rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
-              <div className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: theme.primary }}>
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                 <Camera size={17} />
               </div>
               <div className="min-w-0">
@@ -32457,7 +32432,7 @@ function GratitudeLensPanel({
                   className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 py-5 text-center sm:px-5"
                   style={{ color: theme.textSecondary }}
                 >
-                  <span className="grid size-14 place-items-center rounded-full border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.primary }}>
+                  <span className="grid size-14 place-items-center rounded-full border shadow-sm" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: accessibleAccentText(theme) }}>
                     <Camera size={28} />
                   </span>
                   <span className="text-base font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.chooseGratitudePhoto')}</span>
@@ -32756,7 +32731,7 @@ function GratitudeLensPanel({
                 {visibleEntries.length ? ts('labels.latestGratitude') : ts('labels.noGratitudeYet')}
               </h3>
             </div>
-            <Sprout className="absolute right-0 top-1/2 -translate-y-1/2" size={24} style={{ color: theme.primary }} />
+            <Sprout className="absolute right-0 top-1/2 -translate-y-1/2" size={24} style={{ color: accessibleAccentText(theme) }} />
           </div>
 
           <div className="mt-3 rounded-xl border p-2.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}>
@@ -33146,7 +33121,7 @@ function LibraryPanel({
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" aria-hidden="true" />
           </div>
           <div className="p-5">
-            <span className="mx-auto grid size-11 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }} aria-hidden="true">
+            <span className="mx-auto grid size-11 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }} aria-hidden="true">
               <Bookmark size={18} />
             </span>
             <h2 className="mt-3 text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedScriptures')}</h2>
@@ -33173,7 +33148,7 @@ function LibraryPanel({
                   style={{
                     borderColor: theme.borderMedium,
                     backgroundColor: theme.bgInput,
-                    color: theme.primary,
+                    color: accessibleAccentText(theme),
                   }}
                   aria-hidden="true"
                 >
@@ -33535,7 +33510,7 @@ function JournalPanel({
                     onClick={() => setSelectedEntryId(entry.id)}
                     aria-label={displayTitle ? `${ts('labels.savedReflections')}: ${displayTitle}` : `${ts('labels.savedReflections')}: ${dateLabel}`}
                   >
-                    <div className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.activeBg, color: theme.primary }}>
+                    <div className="grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.activeBg, color: accessibleAccentText(theme) }}>
                       <Feather size={15} />
                     </div>
                     <div className="min-w-0 flex-1">

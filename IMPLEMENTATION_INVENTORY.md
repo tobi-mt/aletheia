@@ -183,7 +183,8 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 - ✅ **Response Display**
   - Current counsel card keeps latest answer prominent
   - Collapsed conversation history (not a chat transcript)
-  - Sources displayed with scripture quick-read modal
+  - Cited Scripture opens a quick-read modal from inline references and selected-translation excerpt cards
+  - Counsel assembles the opening, localized Scripture explanations, and one manageable next step without asking the model to duplicate them; server and offline fallbacks share the same composer
   - Answer feedback buttons: helpful, too vague, too preachy, not relevant
   - Contextual personalization nudge after "too vague" when no manual context
 
@@ -192,7 +193,7 @@ This document compares **what is documented in FEATURES.md** with **what is impl
   - Save as reflection
   - Create counsel summary
   - Wait 3 days
-  - Continue from older conversation
+  - Optional continuation for current or older counsel: offers one new, open-ended angle rather than repeating the answer or its next step; withheld for crisis questions and when no useful prompt is available.
   - Invite someone to Aletheia
   - Turn into wisdom postcard
 
@@ -508,7 +509,8 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 - ✅ **Theme Preferences** (7 themes)
   - Classic, Dark, Black, Warm, Ocean, Forest, Sunset
   - System preference option
-  - Theme colors defined for each theme
+  - Separate color roles for foreground accents, muted copy, and filled controls; focus and placeholder colors follow the resolved theme
+  - Desktop navigation uses a separate row at tablet widths to keep destination labels visible
   - Applied to UI dynamically
 
 - ✅ **Voice Preferences**

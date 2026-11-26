@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Check, CheckCircle2, Clock3, Feather, Sparkles } from "lucide-react";
-import type { ThemeColors } from "@/lib/themes";
+import { accessibleAccentText, type ThemeColors } from "@/lib/themes";
 
 export interface TimelineCheckpoint {
   daysSinceCreation: number;
@@ -41,17 +41,18 @@ export function DecisionTimeline({
   const timelineCheckpoints = checkpoints.length > 0 ? checkpoints : defaultCheckpoints;
   const nextCheckpoint = timelineCheckpoints.find((cp) => !cp.completed);
   const progress = Math.min((daysElapsed / 30) * 100, 100);
+  const accentInk = theme ? accessibleAccentText(theme) : "#203a35";
 
   const getCheckpointMeta = (checkpoint: TimelineCheckpoint) => {
     switch (checkpoint.type) {
       case "created":
         return { icon: Sparkles, accent: theme?.accentGold || "#f59e0b", gradient: `linear-gradient(135deg, ${theme?.accentGold || "#f59e0b"} 0%, ${theme?.bgCardElevated || "#fff"} 78%)` };
       case "check-in":
-        return { icon: Clock3, accent: theme?.primary || "#203a35", gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.bgCardElevated || "#fff"} 78%)` };
+        return { icon: Clock3, accent: accentInk, gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.bgCardElevated || "#fff"} 78%)` };
       case "reflection":
         return { icon: Feather, accent: theme?.accentGold || "#f59e0b", gradient: `linear-gradient(135deg, ${theme?.bgCardElevated || "#fff"} 0%, ${theme?.accentGold || "#f59e0b"} 85%)` };
       case "outcome":
-        return { icon: CheckCircle2, accent: theme?.primary || "#203a35", gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.accentGold || "#f59e0b"} 82%)` };
+        return { icon: CheckCircle2, accent: accentInk, gradient: `linear-gradient(135deg, ${theme?.primary || "#203a35"} 0%, ${theme?.accentGold || "#f59e0b"} 82%)` };
       default:
         return { icon: Clock3, accent: theme?.textMuted || "#9ca3af", gradient: `linear-gradient(135deg, ${theme?.bgCardElevated || "#fff"} 0%, ${theme?.bgCard || "#fff"} 80%)` };
     }

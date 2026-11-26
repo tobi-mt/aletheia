@@ -32,3 +32,7 @@ export type ThemeColors = {
   hoverBg: string;
   activeBg: string;
 };
+
+export function accessibleAccentText(theme: ThemeColors) {
+  return theme.bgMain === "#0e1514" || theme.bgMain === "#050605" ? theme.accentGold : theme.primary;
+}

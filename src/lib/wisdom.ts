@@ -1,21 +1,9 @@
 import "server-only";
 import { many } from "@/lib/db";
-import {
-  defaultPreferences,
-  hasCompleteLocalizedWisdomEntry,
-  localizedCrisisSupportCopy,
-  localizedWisdomResponseCopy,
-  localizedModeProfile,
-  localizedScriptureRead,
-  localizedScriptureReference,
-  localizedWisdomEntry,
-  scriptureDisplayLabel,
-  type UserPreferences,
-} from "@/lib/localization";
-import { detectLifeSupportConcern } from "@/lib/life-support";
-import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
+import { hasCapacityPressure, isCapacityEvidence, preferredCounselReferences } from "@/lib/companion-counsel";
+import type { Mode } from "@/lib/mode-keys";
 import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
-import { wisdomEntries, WisdomEntryData } from "@/lib/wisdom-data";
+import type { WisdomEntryData } from "@/lib/wisdom-data";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
 
@@ -200,9 +188,17 @@ export function rankWisdomEvidence(entries: WisdomSource[], query: string, mode:
     return { entry, score: modeFit + emotionalFit + questionFit + Math.min(semanticOverlap, 8) * 2 + directReference };
   }).sort((a, b) => b.score - a.score || a.entry.scripture.localeCompare(b.entry.scripture));
 
-  const selected: WisdomSource[] = [];
-  const books = new Set<string>();
+  const preferred = preferredCounselReferences(query);
+  const capacityAnchor = !preferred.length && hasCapacityPressure(query)
+    ? ranked.find(({ entry }) => isCapacityEvidence(entry))?.entry : undefined;
+  const selected = preferred.flatMap((reference) => {
+    const source = ranked.find(({ entry }) => entry.scripture === reference)?.entry;
+    return source ? [source] : [];
+  }).concat(capacityAnchor ? [capacityAnchor] : []).slice(0, limit);
+  const books = new Set(selected.map(({ scripture }) => scripture.replace(/\s+\d.*$/, "")));
   for (const candidate of ranked) {
+    if (selected.length >= limit) break;
+    if (selected.some(({ scripture }) => scripture === candidate.entry.scripture)) continue;
     const book = candidate.entry.scripture.replace(/\s+\d.*$/, "");
     if (books.has(book) && ranked.some((other) => !books.has(other.entry.scripture.replace(/\s+\d.*$/, "")))) continue;
     selected.push(candidate.entry);
@@ -214,110 +210,4 @@ export function rankWisdomEvidence(entries: WisdomSource[], query: string, mode:
 
 export async function retrieveWisdomEvidence(query: string, mode: Mode, limit = 8) {
   return rankWisdomEvidence(await getWisdomEntries(), query, mode, limit);
-}
-
-function sourceReference(source: Pick<WisdomSource, "scripture">, preferences: UserPreferences) {
-  const scriptureReference = localizedScriptureReference(source.scripture, preferences.language);
-  return `${scriptureReference} (${scriptureDisplayLabel(source.scripture, preferences)})`;
-}
-
-export function composeFallbackResponse(
-  question: string,
-  sources: WisdomSource[],
-  preferences: UserPreferences = defaultPreferences
-) {
-  const lifeConcern = detectLifeSupportConcern(question);
-  const crisisCopy = localizedCrisisSupportCopy(preferences.language);
-  const copy = localizedWisdomResponseCopy(preferences.language);
-  const primary = localizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences);
-  const secondary = localizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences);
-  const primaryIsLocalized = hasCompleteLocalizedWisdomEntry(sources[0] ?? wisdomEntries[0], preferences.language);
-  const secondaryIsLocalized = hasCompleteLocalizedWisdomEntry(sources[1] ?? wisdomEntries[2], preferences.language);
-  const primaryRead = localizedScriptureRead(primary.scripture, preferences);
-  const secondaryRead = localizedScriptureRead(secondary.scripture, preferences);
-  const opening = lifeConcern === "self_harm"
-    ? crisisCopy.selfHarmOpening
-    : lifeConcern === "addiction"
-      ? crisisCopy.addictionOpening
-      : lifeConcern === "depression"
-        ? crisisCopy.depressionOpening
-        : lifeConcern === "loneliness"
-          ? crisisCopy.lonelinessOpening
-          : lifeConcern === "holiness"
-            ? crisisCopy.holinessOpening
-          : copy.opening;
-
-  return [
-    opening,
-    "",
-    lifeConcern === "self_harm"
-      ? crisisCopy.selfHarmFollowUp
-      : `${copy.primaryAnchor(sourceReference(primary, preferences), primaryIsLocalized ? primary.principle : "")} ${primaryIsLocalized ? copy.ordinaryLife(primary.application) : ""}`,
-    lifeConcern === "self_harm"
-      ? crisisCopy.selfHarmImmediate
-      : "",
-    lifeConcern === "self_harm"
-      ? copy.primaryAnchor(sourceReference(primary, preferences), primaryIsLocalized ? primary.principle : "")
-      : primaryRead.kind === "passage"
-        ? copy.scriptureText(primaryRead.text)
-        : "",
-    "",
-    lifeConcern === "self_harm"
-      ? ""
-      : `${copy.secondAnchor(sourceReference(secondary, preferences), secondaryIsLocalized ? secondary.principle : "")} ${copy.nextStepQuestion}`,
-    lifeConcern === "self_harm"
-      ? ""
-      : secondaryRead.kind === "passage"
-        ? copy.scriptureText(secondaryRead.text)
-        : "",
-    lifeConcern === "self_harm" || sources.length < 3
-      ? ""
-      : copy.widerCounsel(sourceReference(sources[2], preferences), hasCompleteLocalizedWisdomEntry(sources[2], preferences.language) ? localizedWisdomEntry(sources[2], preferences).principle : ""),
-    lifeConcern === "self_harm" || sources.length < 4
-      ? ""
-      : copy.additionalWitness(sourceReference(sources[3], preferences), hasCompleteLocalizedWisdomEntry(sources[3], preferences.language) ? localizedWisdomEntry(sources[3], preferences).principle : ""),
-    lifeConcern === "self_harm"
-      ? ""
-      : primaryIsLocalized && secondaryIsLocalized
-        ? copy.reflectionQuestions(`${primary.questions[0]} ${primary.questions[1]} ${secondary.questions[0]}`)
-        : "",
-    lifeConcern === "self_harm"
-      ? ""
-      : copy.disclaimer,
-    lifeConcern === "addiction"
-      ? crisisCopy.addictionNext
-      : "",
-    lifeConcern === "depression"
-      ? crisisCopy.depressionNext
-      : "",
-    lifeConcern === "loneliness"
-      ? crisisCopy.lonelinessNext
-      : "",
-    lifeConcern === "holiness"
-      ? crisisCopy.holinessNext
-      : "",
-  ].join("\n");
-}
-
-export function composeModeAwareFallbackResponse(
-  question: string,
-  mode: Mode,
-  sources: WisdomSource[],
-  preferences: UserPreferences = defaultPreferences
-) {
-  const profile = localizedModeProfile(mode, preferences.language);
-  const copy = localizedWisdomResponseCopy(preferences.language);
-  const base = composeFallbackResponse(question, sources, preferences);
-  if (mode === MODE_KEYS.LIFE && detectLifeSupportConcern(question) === "self_harm") {
-    return base;
-  }
-  return [
-    base,
-    "",
-    copy.modeLens(profile.displayLabel, profile.lens),
-    "",
-    copy.diagnostic(profile.diagnosticTracks[0], profile.diagnosticTracks[1]),
-    "",
-    copy.formationSignal(profile.blindSpots[0], profile.maturitySignals[0]),
-  ].join("\n");
 }

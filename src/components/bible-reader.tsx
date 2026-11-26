@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, Book, Search, Info, Sparkles, Plu
 import type { BibleTranslation, LanguageCode } from "@/lib/localization";
 import { languages, localizedBibleBookName, localizedBookChapterReference, localizedScriptureReference } from "@/lib/localization";
 import { buildBibleStudyGuide, type BibleStudyData } from "@/lib/bible-study";
-import type { ThemeColors } from "@/lib/themes";
+import { accessibleAccentText, type ThemeColors } from "@/lib/themes";
 import {
   scriptureHighlightKey,
   type SavedScripture,
@@ -380,7 +380,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <div className="min-w-0">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]" style={{ color: accessibleAccentText(theme) }}>
                 {ui.readTab} · {ui.studyTab}
               </p>
               <h2 className="mt-2 text-xl font-semibold sm:text-2xl" style={{ color: theme.textPrimary }}>
@@ -390,7 +390,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 {ui.bookSelectorHelp}
               </p>
             </div>
-            <div className="grid size-9 shrink-0 place-items-center self-start rounded-xl border sm:size-11 sm:rounded-2xl" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.primary }}>
+            <div className="grid size-9 shrink-0 place-items-center self-start rounded-xl border sm:size-11 sm:rounded-2xl" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
               <Book size={16} className="sm:hidden" />
               <Book size={18} className="hidden sm:block" />
             </div>
@@ -513,7 +513,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
               }}
             >
               <span className="flex min-w-0 items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.accentGold }}>
+                <span className="grid size-10 shrink-0 place-items-center rounded-[0.95rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
                   <Book size={16} aria-hidden="true" />
                 </span>
                 <span className="min-w-0">
@@ -621,7 +621,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           <div className="space-y-3.5 pb-36">
             <section ref={verseRailRef} className="rounded-[1.35rem] border p-3.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentGold }}>
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.24em]" style={{ color: accessibleAccentText(theme) }}>
                   {ui.verses}
                 </p>
                 <p className="text-[0.68rem] font-medium tracking-[0.04em]" style={{ color: theme.textMuted }}>
@@ -695,7 +695,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                     className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[0.95rem] border px-3 text-[0.78rem] font-semibold tracking-[0.06em] transition duration-200 hover:-translate-y-px hover:shadow-sm active:scale-[0.98] sm:min-h-12 sm:min-w-12 sm:px-3.5 sm:text-[0.82rem]"
                     style={{
                       borderColor: theme.borderMedium,
-                      color: theme.accentGold,
+                      color: accessibleAccentText(theme),
                       backgroundColor: theme.bgInput,
                       boxShadow: `inset 0 1px 0 color-mix(in srgb, white 10%, transparent)`,
                     }}
@@ -710,7 +710,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 {(onSaveScripture || saved || onSetScriptureHighlight || onCopyScripture || onShareScripture) ? <div className="mt-3 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                   {onCopyScripture ? <button type="button" onClick={() => { void onCopyScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "copy" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.copyVerse} title={annotations.copyVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "copy" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</button> : null}
                   {onShareScripture ? <button type="button" onClick={() => { void onShareScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "share" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.shareVerse} title={annotations.shareVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "share" ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}</button> : null}
-                  {verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) ? <span role="status" className="shrink-0 text-xs font-semibold" style={{ color: theme.primary }}>{verseActionFeedback.kind === "copy" ? annotations.copied : annotations.shared}</span> : null}
+                  {verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) ? <span role="status" className="shrink-0 text-xs font-semibold" style={{ color: accessibleAccentText(theme) }}>{verseActionFeedback.kind === "copy" ? annotations.copied : annotations.shared}</span> : null}
                   <button type="button" onClick={() => saved ? onRemoveSavedScripture?.(saved.id) : onSaveScripture?.({ book: selectedBook, chapter: selectedChapter, verse: v.verse, text: v.text, highlight: highlightColor })} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}>
                     {saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}
                     {saved ? ui.saved : annotations.saveVerse}
@@ -740,7 +740,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>{ui.studySummary}</p>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accessibleAccentText(theme) }}>{ui.studySummary}</p>
                 <p className="mt-2 text-sm leading-7" style={{ color: theme.textPrimary }}>{displayedStudyData.summary}</p>
               </div>
               {displayedStudyData.fallbackTranslation ? (
@@ -756,7 +756,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           </section>
 
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accessibleAccentText(theme) }}>
               {ui.studyRelatedVerses}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -788,7 +788,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           </section>
 
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accessibleAccentText(theme) }}>
               {ui.studyThemes}
             </p>
             <div className="grid gap-3">
@@ -809,7 +809,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           </section>
 
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accessibleAccentText(theme) }}>
               {ui.studyQuestions}
             </p>
             <div className="space-y-2.5">
@@ -824,7 +824,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
           </section>
 
           <section className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.accentGold }}>
+            <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em]" style={{ color: accessibleAccentText(theme) }}>
               {ui.studyActions}
             </p>
             <div className="space-y-2.5">

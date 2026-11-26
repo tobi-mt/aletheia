@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
+const wisdomIntelligence = readFileSync(new URL("../src/lib/wisdom-intelligence.ts", import.meta.url), "utf8");
 
 test("Reflect replaces Wisdom Check with focused gratitude, journal, and formation history sections", () => {
   const reflectPanel = app.slice(app.indexOf("function ReflectPanel"), app.indexOf("function GratitudeEntryModal"));
@@ -64,15 +65,21 @@ test("eligible answers promote one contextual continuation before secondary acti
   assert.match(currentCounsel, /disabled=\{isWorking\}/);
   const continuationHandler = app.slice(app.indexOf("function continueFromExchange"), app.indexOf("function waitFromExchange"));
   assert.match(continuationHandler, /setAnswerFocusId\("continuation-pending"\)/);
+  assert.match(continuationHandler, /askAletheia\(continuation\.prompt, undefined, continuation\.direction, exchange\.mode\)/);
   assert.doesNotMatch(continuationHandler, /showView|setHomeSection/);
 });
 
-test("answer scripture evidence stays compact until requested", () => {
+test("answer scripture evidence shows localized quotations and opens deeper reading", () => {
   const scriptureSources = app.slice(app.indexOf("function ScriptureChips"), app.indexOf("function escapeRegExp"));
   assert.match(scriptureSources, /aria-expanded=\{expanded\}/);
   assert.match(scriptureSources, /uniqueSources\.length/);
   assert.match(scriptureSources, /overflow-x-auto/);
+  assert.match(scriptureSources, /scriptureTextMatches\(answerText/);
+  assert.match(scriptureSources, /localizedScriptureRead\(source\.scripture/);
+  assert.match(scriptureSources, /onScriptureOpen\(source\.scripture\)/);
+  assert.match(scriptureSources, /labels\.openScripture/);
   assert.doesNotMatch(scriptureSources, /scriptureDisplayLabel\(source\.scripture/);
+  assert.match(wisdomIntelligence, /do not include a citation label or quote verse text/);
 });
 
 test("Gratitude keeps optional postcard styling behind photo-aware disclosure", () => {

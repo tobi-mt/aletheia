@@ -451,6 +451,39 @@ async function initializeDatabase() {
       UNIQUE(shared_decision_id)
     );
 
+    CREATE TABLE IF NOT EXISTS counsel_comments (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
+      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS challenge_circles (
+      id TEXT PRIMARY KEY,
+      challenge_id TEXT NOT NULL,
+      owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      invite_token_hash TEXT NOT NULL UNIQUE,
+      invite_status TEXT NOT NULL DEFAULT 'pending',
+      note TEXT,
+      invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      accepted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    ALTER TABLE challenge_circles ADD COLUMN IF NOT EXISTS invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+    CREATE TABLE IF NOT EXISTS challenge_circle_nudges (
+      id TEXT PRIMARY KEY,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    );
+    ALTER TABLE challenge_circle_nudges ADD COLUMN IF NOT EXISTS recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;
+
     CREATE TABLE IF NOT EXISTS challenge_circle_nudge_deliveries (
       id TEXT PRIMARY KEY,
       nudge_id TEXT NOT NULL REFERENCES challenge_circle_nudges(id) ON DELETE CASCADE,
@@ -518,14 +551,6 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS counsel_comments (
-      id TEXT PRIMARY KEY,
-      contact_id TEXT NOT NULL REFERENCES counsel_contacts(id) ON DELETE CASCADE,
-      decision_id TEXT NOT NULL REFERENCES wisdom_decisions(id) ON DELETE CASCADE,
-      body TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS counsel_invite_acceptances (
       id TEXT PRIMARY KEY,
       invite_token_hash TEXT NOT NULL UNIQUE,
@@ -542,21 +567,6 @@ async function initializeDatabase() {
     ALTER TABLE counsel_invite_acceptances ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
     CREATE INDEX IF NOT EXISTS counsel_invite_acceptances_recipient_idx ON counsel_invite_acceptances(recipient_user_id, accepted_at DESC);
 
-    CREATE TABLE IF NOT EXISTS challenge_circles (
-      id TEXT PRIMARY KEY,
-      challenge_id TEXT NOT NULL,
-      owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      invite_token_hash TEXT NOT NULL UNIQUE,
-      invite_status TEXT NOT NULL DEFAULT 'pending',
-      note TEXT,
-      invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
-      accepted_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL
-    );
-
-    ALTER TABLE challenge_circles ADD COLUMN IF NOT EXISTS invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb;
-
     CREATE TABLE IF NOT EXISTS challenge_circle_members (
       id TEXT PRIMARY KEY,
       circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
@@ -566,16 +576,6 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL,
       UNIQUE(circle_id, user_id)
     );
-
-    CREATE TABLE IF NOT EXISTS challenge_circle_nudges (
-      id TEXT PRIMARY KEY,
-      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
-      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-      body TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL
-    );
-    ALTER TABLE challenge_circle_nudges ADD COLUMN IF NOT EXISTS recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;
 
     CREATE TABLE IF NOT EXISTS challenge_circle_invite_responses (
       id TEXT PRIMARY KEY,

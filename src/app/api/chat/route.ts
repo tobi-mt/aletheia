@@ -6,7 +6,8 @@ import { defaultPreferences, normalizePreferences, type UserPreferences } from "
 import { manualContextSummary, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { detectLifeSupportConcern } from "@/lib/life-support";
-import { composeModeAwareFallbackResponse, retrieveWisdomEvidence } from "@/lib/wisdom";
+import { retrieveWisdomEvidence } from "@/lib/wisdom";
+import { composeCompanionCounsel } from "@/lib/companion-counsel";
 import { generateWisdomIntelligence } from "@/lib/wisdom-intelligence";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
@@ -272,7 +273,7 @@ export async function POST(request: Request) {
     return apiError(400, "invalid_input", "Message is required.");
   }
 
-  const lifeConcern = mode === "Life" ? detectLifeSupportConcern(message) : null;
+  const lifeConcern = detectLifeSupportConcern(message);
   let sources = await retrieveWisdomEvidence(message, mode, 8);
   if (lifeConcern === "self_harm") {
     const crisisCandidates = await retrieveWisdomEvidence(
@@ -287,7 +288,9 @@ export async function POST(request: Request) {
     if (crisisAnchor) {
       sources = [crisisAnchor, ...sources.filter((source) => source.scripture !== crisisAnchor.scripture)].slice(0, 8);
     }
-    const aiText = composeModeAwareFallbackResponse(message, mode, sources, preferences);
+    const crisisCounsel = composeCompanionCounsel(message, sources, preferences);
+    const aiText = crisisCounsel.text;
+    sources = crisisCounsel.sources;
 
     if (user && !deferPersistence) {
       const now = new Date().toISOString();
@@ -484,6 +487,7 @@ export async function POST(request: Request) {
   });
   const effectiveMode = body.autoFit === false ? mode : intelligence.recommendedMode;
   const aiText = intelligence.counsel;
+  const usedOpenAI = intelligence.routing.route !== "deterministic";
   const userMessageId = crypto.randomUUID();
   const replyMessageId = crypto.randomUUID();
   const supersedeMessageIds = Array.isArray(body.supersedeMessageIds)
@@ -528,7 +532,7 @@ export async function POST(request: Request) {
       language: preferences.language,
       region: preferences.region,
       persisted: true,
-      usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
+      usedOpenAI,
       sourceCount: sources.length,
       ...analyticsQuestionMetadata(message, effectiveMode),
     };
@@ -579,7 +583,7 @@ export async function POST(request: Request) {
       },
       persisted: Boolean(user) && !deferPersistence,
       deferredPersistence: Boolean(user) && deferPersistence,
-      usedOpenAI: mayUseThirdPartyAi && Boolean(process.env.OPENAI_API_KEY),
+      usedOpenAI,
       intelligence,
     },
     { headers: rateLimitHeaders(rateLimit) }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
-import { requiredBiblicalEvidenceCount, resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
+import { assembleCompanionDraft, requiredBiblicalEvidenceCount, resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
 import { defaultPreferences, normalizePreferences } from "../src/lib/localization.ts";
 import { readFileSync } from "node:fs";
 
@@ -48,6 +48,37 @@ test("quality gate accepts grounded mode-specific counsel", () => {
     counsel: "This deserves patient attention rather than a rushed yes. Proverbs 15:22 points toward tested counsel, while Luke 14:28 asks you to count the real cost. Write the smallest reversible experiment, name its time and relationship costs, and ask one grounded person to challenge the fragile assumptions before you commit.",
   };
   assert.equal(validateWisdomIntelligence(result, sources, defaultPreferences, 2).passed, true);
+  const listOfReferences = {
+    ...result,
+    counsel: "This deserves patient attention rather than a rushed yes. Proverbs 15:22; Luke 14:28. Write the smallest reversible experiment, name its time and relationship costs, and ask one grounded person to challenge the fragile assumptions before you commit.",
+  };
+  assert.equal(validateWisdomIntelligence(listOfReferences, sources, defaultPreferences, 2).checks.biblicalGrounding, false);
+});
+
+test("structured prose produces the same localized citation in visible counsel and evidence", () => {
+  const preferences = normalizePreferences({ language: "es" });
+  const nextStep = "Propón una fecha que puedas sostener y dísela con cariño.";
+  const explanation = "Jesús invita a sus discípulos a descansar en medio de muchas demandas. Puedes ofrecer otra fecha sin renunciar al cariño.";
+  const draft = {
+    responseLanguage: "es",
+    recommendedMode: "Life",
+    probabilities: { Life: 0.8, Work: 0.05, Money: 0.05, Purpose: 0.05, Generosity: 0.05 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "Hay una tensión entre cuidar la relación y descansar." },
+    safeTopic: "general",
+    opening: "Puedes querer ver a tu madre y también necesitar tiempo para descansar.",
+    reasoningPlan: { tension: "Cuidar la relación sin renunciar al descanso.", diagnosticQuestion: "¿Qué frecuencia de visitas podrías sostener?", blindSpot: "La culpa no siempre indica una obligación.", maturitySignal: "Expresa cariño sin prometer lo que no puedes cumplir.", nextStep },
+    biblicalEvidence: [{ reference: "Mark 6:31", connection: explanation }],
+  };
+  const result = assembleCompanionDraft(draft, preferences, "¿Cómo puedo hablar con mi madre sobre las visitas?");
+  assert.deepEqual(result.counsel.split("\n\n"), [draft.opening, `Marcos 6:31 — ${explanation}`, nextStep]);
+  assert.equal(validateWisdomIntelligence(result, [{ scripture: "Mark 6:31" }], preferences, 1).passed, true);
+  assert.equal(validateWisdomIntelligence(result, [{ scripture: "Luke 14:28" }], preferences, 1).checks.biblicalGrounding, false);
+  const closed = assembleCompanionDraft({
+    ...draft, responseLanguage: "en", recommendedMode: "Work",
+    reasoningPlan: { ...draft.reasoningPlan, nextStep: "Ask your manager whether they can adjust your responsibilities." },
+  }, defaultPreferences, "I'm exhausted and my manager won't remove any duties if I take the promotion. What do I say?");
+  assert.match(closed.counsel.split("\n\n").at(-1), /Thank you.*can’t commit/);
+  assert.doesNotMatch(closed.counsel, /ask your manager/i);
 });
 
 test("quality gate rejects invented references, false certainty, and boundary failures", () => {

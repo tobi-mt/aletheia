@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
+import { accessibleAccentText } from "@/lib/themes";
 import type { ThemeColors } from "./surface-contracts";
 
 export function railTextColors(theme: ThemeColors) {
@@ -46,7 +47,7 @@ export function useRailOverflowCue(ref: RefObject<HTMLElement | null>, enabled: 
 }
 
 export function RailOverflowCue({ theme, className = "size-6" }: { theme: ThemeColors; className?: string }) {
-  return <span aria-hidden="true" className={`grid shrink-0 place-items-center ${className}`.trim()} style={{ color: theme.accentGold, opacity: 0.7 }}><ChevronRight size={14} /></span>;
+  return <span aria-hidden="true" className={`grid shrink-0 place-items-center ${className}`.trim()} style={{ color: theme.accentGold }}><ChevronRight size={14} /></span>;
 }
 
 export function RailOverflowCorner({ theme, cueClassName = "size-6", className = "right-3 top-3" }: { theme: ThemeColors; cueClassName?: string; className?: string }) {
@@ -54,7 +55,7 @@ export function RailOverflowCorner({ theme, cueClassName = "size-6", className =
 }
 
 export function IconControl({ children, onClick, theme, ariaLabel, disabled = false, className = "" }: { children: ReactNode; onClick?: () => void; theme: ThemeColors; ariaLabel: string; disabled?: boolean; className?: string }) {
-  return <button type="button" onClick={onClick} disabled={disabled} className={`grid size-10 shrink-0 place-items-center rounded-full border shadow-sm transition hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary, "--tw-ring-color": theme.primary, "--tw-ring-offset-color": theme.bgCard } as React.CSSProperties} aria-label={ariaLabel} title={ariaLabel}>{children}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={`grid size-10 shrink-0 place-items-center rounded-full border shadow-sm transition hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()} style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary, "--tw-ring-color": accessibleAccentText(theme), "--tw-ring-offset-color": theme.bgCard } as React.CSSProperties} aria-label={ariaLabel} title={ariaLabel}>{children}</button>;
 }
 
 export function ModalCornerCloseButton({ onClick, theme, ariaLabel, className = "" }: { onClick: () => void; theme: ThemeColors; ariaLabel: string; className?: string }) {
@@ -63,7 +64,7 @@ export function ModalCornerCloseButton({ onClick, theme, ariaLabel, className = 
 
 export function ToggleSwitch({ checked, onChange, theme, ariaLabel, disabled = false }: { checked: boolean; onChange: (checked: boolean) => void; theme: ThemeColors; ariaLabel: string; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={ariaLabel} title={ariaLabel} disabled={disabled} onClick={() => onChange(!checked)} className="relative inline-flex h-9 w-[3.65rem] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" style={{ borderColor: checked ? theme.primary : theme.borderMedium, backgroundColor: checked ? theme.primary : theme.bgCardElevated, boxShadow: checked ? `0 0 0 1px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none", "--tw-ring-color": theme.primary, "--tw-ring-offset-color": theme.bgCard } as React.CSSProperties}>
+    <button type="button" role="switch" aria-checked={checked} aria-label={ariaLabel} title={ariaLabel} disabled={disabled} onClick={() => onChange(!checked)} className="relative inline-flex h-9 w-[3.65rem] shrink-0 items-center rounded-full border p-1 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" style={{ borderColor: checked ? theme.primary : theme.borderMedium, backgroundColor: checked ? theme.primary : theme.bgCardElevated, boxShadow: checked ? `0 0 0 1px color-mix(in srgb, ${theme.primary} 18%, transparent)` : "none", "--tw-ring-color": accessibleAccentText(theme), "--tw-ring-offset-color": theme.bgCard } as React.CSSProperties}>
       <span aria-hidden="true" className="inline-block size-7 rounded-full border shadow-sm transition-transform duration-200 ease-out" style={{ transform: checked ? "translateX(1.35rem)" : "translateX(0)", borderColor: checked ? "rgba(255,255,255,0.24)" : theme.borderLight, backgroundColor: checked ? theme.textOnPrimary : theme.bgCard }} />
     </button>
   );

@@ -1,14 +1,15 @@
 import "server-only";
 import OpenAI from "openai";
-import { hasCompleteLocalizedWisdomEntry, localizedModeProfile, localizedScriptureReference, localizedWisdomEntry, localizedWisdomResponseCopy, promptPreferenceContext, responseLanguageContract, scriptureDisplayLabel, type LanguageCode, type UserPreferences } from "@/lib/localization";
+import { localizedModeProfile, localizedScriptureReference, localizedWisdomEntry, localizedWisdomResponseCopy, promptPreferenceContext, responseLanguageContract, type LanguageCode, type UserPreferences } from "@/lib/localization";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 import { suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { calibrateSemanticModeFit, normalizeModeProbabilities, type ModeProbabilities } from "@/lib/semantic-mode-fit";
-import { composeModeAwareFallbackResponse, type WisdomSource } from "@/lib/wisdom";
+import type { WisdomSource } from "@/lib/wisdom";
+import { closedWorkloadNextStep, composeCompanionCounsel, isFixedWorkloadContinuation, needsFinancialBoundary, preferredCounselReferences } from "@/lib/companion-counsel";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 
 const modes = Object.values(MODE_KEYS) as Mode[];
-const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0 }) : null;
 let failures = 0;
 let circuitOpenUntil = 0;
 
@@ -26,6 +27,8 @@ export type WisdomIntelligence = {
   routing: { route: "primary" | "secondary" | "deterministic"; attempts: number; latencyMs: number; circuitOpen: boolean };
 };
 
+type CounselDraft = Omit<WisdomIntelligence, "quality" | "routing" | "counsel"> & { opening: string };
+
 function responseSchema(language: LanguageCode, sources: WisdomSource[], minimumEvidence: number) {
   const allowedReferences = sources.map((source) => source.scripture);
   return {
@@ -39,24 +42,24 @@ function responseSchema(language: LanguageCode, sources: WisdomSource[], minimum
     }, required: ["mixed", "uncertain", "alternativeMode", "reason"] },
     safeTopic: { type: "string", enum: ["general", "financial", "medical", "legal", "pastoral", "crisis"] },
     reasoningPlan: { type: "object", additionalProperties: false, properties: {
-      tension: { type: "string" }, diagnosticQuestion: { type: "string" }, blindSpot: { type: "string" }, maturitySignal: { type: "string" }, nextStep: { type: "string" },
+      tension: { type: "string" }, diagnosticQuestion: { type: "string", maxLength: 160, description: "After drafting the visible counsel and next step, write one optional, open-ended follow-up in the response language, or an empty string. Use one fact the person shared to open a concrete angle not already answered: a value to protect, a trade-off to explore, or a conversation to prepare. Never ask for a yes/no verdict, paraphrase the original question or next step, reopen an option already ruled out, infer motives, or push disclosure. Omit it when there is no useful new angle or the person is in crisis." }, blindSpot: { type: "string" }, maturitySignal: { type: "string" }, nextStep: { type: "string" },
     }, required: ["tension", "diagnosticQuestion", "blindSpot", "maturitySignal", "nextStep"] },
     biblicalEvidence: {
       type: "array",
       minItems: minimumEvidence,
-      maxItems: Math.min(4, allowedReferences.length),
+      maxItems: Math.min(2, allowedReferences.length),
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
           reference: { type: "string", enum: allowedReferences },
-          connection: { type: "string", minLength: 24 },
+          connection: { type: "string", minLength: 24, maxLength: 600, description: "The final paragraph for this passage, without a citation label. Explain the passage in context and what it helps the person do or notice here." },
         },
         required: ["reference", "connection"],
       },
     },
-    counsel: { type: "string" },
-  }, required: ["responseLanguage", "recommendedMode", "probabilities", "ambiguity", "safeTopic", "reasoningPlan", "biblicalEvidence", "counsel"],
+    opening: { type: "string", minLength: 24, maxLength: 500 },
+  }, required: ["responseLanguage", "recommendedMode", "probabilities", "ambiguity", "safeTopic", "reasoningPlan", "biblicalEvidence", "opening"],
   } as const;
 }
 
@@ -64,7 +67,7 @@ function safetyTopic(question: string): SafeTopic {
   if (detectLifeSupportConcern(question) === "self_harm" || /immediate danger/i.test(question)) return "crisis";
   if (/doctor|diagnos|medicine|medical|symptom|therapy|depression/i.test(question)) return "medical";
   if (/lawyer|legal|contract|lawsuit|criminal|custody/i.test(question)) return "legal";
-  if (/invest|debt|loan|tax|mortgage|finance|money/i.test(question)) return "financial";
+  if (needsFinancialBoundary(question)) return "financial";
   if (/pastor|church|spiritual abuse|doctrine/i.test(question)) return "pastoral";
   return "general";
 }
@@ -104,6 +107,20 @@ function normalizeEvidenceText(value: string) {
   return value.normalize("NFKC").replace(/[\s\u00a0]+/gu, " ").trim().toLocaleLowerCase();
 }
 
+export function assembleCompanionDraft(draft: CounselDraft, preferences: UserPreferences, question: string) {
+  const { opening, ...result } = draft;
+  const biblicalEvidence = draft.biblicalEvidence.map(({ reference, connection }) => ({
+    reference,
+    connection: `${localizedScriptureReference(reference, preferences.language)} — ${connection.trim()}`,
+  }));
+  const boundary = result.safeTopic === "financial" || result.safeTopic === "legal"
+    ? localizedWisdomResponseCopy(preferences.language).disclaimer : "";
+  const nextStep = closedWorkloadNextStep(question, preferences.language) ?? result.reasoningPlan.nextStep.trim();
+  const counsel = [opening.trim(), ...biblicalEvidence.map(({ connection }) => connection), boundary, nextStep]
+    .filter(Boolean).join("\n\n");
+  return { ...result, reasoningPlan: { ...result.reasoningPlan, nextStep }, biblicalEvidence, counsel };
+}
+
 function biblicalGroundingIntegrity(
   result: Omit<WisdomIntelligence, "quality" | "routing">,
   sources: WisdomSource[],
@@ -119,15 +136,10 @@ function biblicalGroundingIntegrity(
       const localizedReference = localizedScriptureReference(evidence.reference, preferences.language);
       const normalizedConnection = normalizeEvidenceText(evidence.connection);
       const normalizedReference = normalizeEvidenceText(localizedReference);
-      const referenceIndex = normalizedCounsel.indexOf(normalizedReference);
-      const explanationAfterReference = referenceIndex < 0
-        ? ""
-        : normalizedCounsel.slice(referenceIndex + normalizedReference.length, referenceIndex + normalizedReference.length + 360);
-      const explanationCharacterCount = (explanationAfterReference.match(/[\p{L}\p{N}]/gu) ?? []).length;
       return allowed.has(evidence.reference)
-        && normalizedConnection.length >= 24
-        && referenceIndex >= 0
-        && explanationCharacterCount >= 24;
+        && normalizedConnection.includes(normalizedReference)
+        && normalizedConnection.replace(normalizedReference, "").trim().length >= 24
+        && normalizedCounsel.includes(normalizedConnection);
     });
 }
 
@@ -137,7 +149,8 @@ export function validateWisdomIntelligence(
   preferences: UserPreferences,
   minimumEvidence: number,
 ) {
-  const planParts = Object.values(result.reasoningPlan).map((part) => part.trim());
+  const { tension, blindSpot, maturitySignal, nextStep } = result.reasoningPlan;
+  const planParts = [tension, blindSpot, maturitySignal, nextStep].map((part) => part.trim());
   const checks = {
     responseLanguage: result.responseLanguage === preferences.language,
     modeAdherence: modes.includes(result.recommendedMode) && planParts.every((part) => part.length >= 10) && new Set(planParts).size === planParts.length,
@@ -145,7 +158,9 @@ export function validateWisdomIntelligence(
     calibratedCertainty: !/god (?:told|promises) you|guaranteed|certainly will|cannot fail/i.test(result.counsel),
     relevantNextStep: result.reasoningPlan.nextStep.trim().length >= 12,
     specificCounsel: result.counsel.trim().length >= 180 && !/just trust|follow your heart|everything happens for a reason/i.test(result.counsel),
-    safetyBoundary: result.safeTopic === "general" || /qualified|professional|doctor|clinician|lawyer|pastor|emergency|crisis|trusted/i.test(result.counsel),
+    safetyBoundary: result.safeTopic === "general"
+      || result.counsel.includes(localizedWisdomResponseCopy(preferences.language).disclaimer)
+      || /qualified|professional|doctor|clinician|lawyer|pastor|emergency|crisis|trusted/i.test(result.counsel),
   };
   return { passed: Object.values(checks).every(Boolean), checks };
 }
@@ -156,16 +171,7 @@ function deterministic(question: string, selectedMode: Mode, sources: WisdomSour
   const profile = localizedModeProfile(recommendedMode, preferences.language);
   const safeTopic = safetyTopic(question);
   const minimumEvidence = requiredBiblicalEvidenceCount(question, sources.length, safeTopic);
-  const copy = localizedWisdomResponseCopy(preferences.language);
-  const biblicalEvidence = sources.slice(0, minimumEvidence).map((source, index) => {
-    const localized = localizedWisdomEntry(source, preferences);
-    const complete = hasCompleteLocalizedWisdomEntry(source, preferences.language);
-    const reference = `${localizedScriptureReference(source.scripture, preferences.language)} (${scriptureDisplayLabel(source.scripture, preferences)})`;
-    const connection = index === 0
-      ? copy.primaryAnchor(reference, complete ? localized.principle : "")
-      : copy.secondAnchor(reference, complete ? localized.principle : "");
-    return { reference: source.scripture, connection };
-  });
+  const fallback = composeCompanionCounsel(question, sources, preferences, minimumEvidence || 2);
   const base = {
     responseLanguage: preferences.language,
     recommendedMode, probabilities: fallbackProbabilities(recommendedMode),
@@ -176,44 +182,50 @@ function deterministic(question: string, selectedMode: Mode, sources: WisdomSour
       reason: suggestion ? profile.useWhen : profile.promptCue,
     },
     safeTopic,
-    reasoningPlan: { tension: profile.diagnosticTracks[0], diagnosticQuestion: profile.diagnosticTracks[1], blindSpot: profile.blindSpots[0], maturitySignal: profile.maturitySignals[0], nextStep: profile.practices[0] },
-    biblicalEvidence,
-    counsel: composeModeAwareFallbackResponse(question, recommendedMode, sources, preferences),
+    reasoningPlan: { tension: profile.diagnosticTracks[0], diagnosticQuestion: "", blindSpot: profile.blindSpots[0], maturitySignal: profile.maturitySignals[0], nextStep: fallback.nextStep },
+    biblicalEvidence: fallback.biblicalEvidence,
+    counsel: fallback.text,
   };
-  return { ...base, quality: validateWisdomIntelligence(base, sources, preferences, minimumEvidence), routing: { route: "deterministic", attempts, latencyMs: Date.now() - started, circuitOpen: Date.now() < circuitOpenUntil } };
+  return { ...base, quality: validateWisdomIntelligence(base, fallback.sources, preferences, minimumEvidence), routing: { route: "deterministic", attempts, latencyMs: Date.now() - started, circuitOpen: Date.now() < circuitOpenUntil } };
 }
 
 export async function generateWisdomIntelligence({ question, selectedMode, sources, preferences, memoryContext = "", allowModel = true, forceSelectedMode = false }: { question: string; selectedMode: Mode; sources: WisdomSource[]; preferences: UserPreferences; memoryContext?: string; allowModel?: boolean; forceSelectedMode?: boolean }): Promise<WisdomIntelligence> {
   const started = Date.now();
-  if (!allowModel || !client || Date.now() < circuitOpenUntil) return deterministic(question, selectedMode, sources, preferences, started, 0, forceSelectedMode);
-  const sourceContext = sources.map((source, index) => {
-    const localized = localizedWisdomEntry(source, preferences);
-    return `${index + 1}. ${localizedScriptureReference(source.scripture, preferences.language)} | ${localized.principle} | ${localized.application}`;
-  }).join("\n");
   const expectedSafeTopic = safetyTopic(question);
+  if (!allowModel || !client || !sources.length || detectLifeSupportConcern(question) === "self_harm"
+    || (preferences.language === "en" && isFixedWorkloadContinuation(question)) || Date.now() < circuitOpenUntil) {
+    return deterministic(question, selectedMode, sources, preferences, started, 0, forceSelectedMode);
+  }
   const minimumEvidence = requiredBiblicalEvidenceCount(question, sources.length, expectedSafeTopic);
+  const preferred = preferredCounselReferences(question);
+  const focusedSources = sources.filter(({ scripture }) => preferred.includes(scripture));
+  const modelSources = minimumEvidence === 2 && focusedSources.length === 2 ? focusedSources : sources;
+  const sourceContext = modelSources.map((source, index) => {
+    const localized = localizedWisdomEntry(source, preferences);
+    return `${index + 1}. ${source.scripture} | ${localized.context} | ${localized.principle} | ${localized.application}`;
+  }).join("\n");
   const profiles = modes.map((mode) => {
     const profile = localizedModeProfile(mode, preferences.language);
-    return `${mode}: ${profile.useWhen} Diagnostic: ${profile.diagnosticTracks.join(" | ")} Blind spots: ${profile.blindSpots.join(" | ")} Maturity: ${profile.maturitySignals.join(" | ")}`;
+    return `${mode}: ${profile.useWhen} ${profile.lens}`;
   }).join("\n\n");
   const primaryModel = process.env.OPENAI_WISDOM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
   const secondaryModel = process.env.OPENAI_WISDOM_FALLBACK_MODEL || "gpt-4o-mini";
   const routes = [
-    { model: primaryModel, route: "primary" as const, timeoutMs: 7_000, retry: false },
-    { model: primaryModel, route: "primary" as const, timeoutMs: 5_000, retry: true },
-    { model: secondaryModel, route: "secondary" as const, timeoutMs: 5_000, retry: false },
+    { model: primaryModel, route: "primary" as const, timeoutMs: 11_000 },
+    { model: secondaryModel, route: "secondary" as const, timeoutMs: 7_000 },
   ];
   let attempts = 0;
-  let skipPrimaryRetry = false;
+  let providerUnavailable = true;
   for (const modelRoute of routes) {
-    if (modelRoute.retry && skipPrimaryRetry) continue;
+    const signal = AbortSignal.timeout(modelRoute.timeoutMs);
     try {
       attempts += 1;
-      const response = await client.responses.create({ model: modelRoute.model, input: [
-        { role: "system", content: `${responseLanguageContract(preferences.language)}\n\nYou are Aletheia's unified wisdom engine. Classify the question, choose exactly one primary lens, plan using that lens, and write final counsel in one operation. Probabilities must sum to 1. Be calibrated: mark ambiguity when evidence is mixed. Ground every answer in the supplied biblical evidence. Use only supplied scripture references. Never claim divine certainty. Give a concrete next step. Maintain medical, financial, legal, pastoral and crisis boundaries.\n\nAUTO-FIT CLASSIFICATION METHOD\nClassify the primary problem the person needs help solving, not merely the nouns in the question. Attend to the expressed emotion and motive without diagnosing, pathologizing, or inventing personal history. Distinguish the setting from the underlying need:\n- Money: stewardship, enough, financial security, scarcity or comparison, debt, risk, and responsibility.\n- Work: vocation, leadership, performance pressure, capacity, burnout, service, and sustainable ambition.\n- Purpose: identity, meaning, motives, values, timing, direction, and fear of choosing the wrong path.\n- Generosity: willingness, guilt or coercion, rescuing, enabling, giving boundaries, and sustainable care.\n- Life: relationships, family, habits, shame, loneliness, health, rest, recovery, holiness, safety, and formation.\nA surface topic does not decide the lens: a job question centered on identity may be Purpose; money given from guilt may be Generosity; work damaging health or marriage may be Life; fear about having enough may be Money. Use ambiguity.reason to name the primary need and why it outweighs the strongest alternative, in non-clinical language. Set mixed=true when two lenses are genuinely co-primary; do not force a switch for a narrow probability margin. For crisis, prioritize urgent human help before biblical reflection, then include one gentle, relevant supplied passage without implying that Scripture replaces emergency or clinical care.${forceSelectedMode ? " The user explicitly chose to keep the current lens. You MUST set recommendedMode to the supplied current lens and use that lens's reasoning signature for the plan and counsel. Probabilities may still honestly reflect topical fit." : ""}\n\n${responseLanguageContract(preferences.language)}` },
-        { role: "user", content: `LENSES\n${profiles}\n\nUSER PREFERENCES\n${promptPreferenceContext(preferences)}\n\nPRIVATE CONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE\n${sourceContext}\n\nBIBLICAL GROUNDING CONTRACT\nSelect at least ${minimumEvidence} distinct reference${minimumEvidence === 1 ? "" : "s"} from ALLOWED EVIDENCE. For each biblicalEvidence item, use the canonical reference shown in the evidence and write a concrete connection in the response language explaining how that passage addresses this question. Include the localized display form of every selected reference in counsel and meaningfully convey its connection there. Integrate the passages as connected reasoning, not a verse dump.${expectedSafeTopic === "crisis" ? " Put immediate safety guidance first; biblical support follows and must never replace urgent human help." : ""}\n\nCURRENT USER-SELECTED LENS\n${selectedMode}\n\nLENS POLICY\n${forceSelectedMode ? `Keep ${selectedMode}; do not switch.` : "Auto-fit may select the strongest lens."}\n\nQUESTION\n${question}` },
-      ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema: responseSchema(preferences.language, sources, minimumEvidence) } } }, { signal: AbortSignal.timeout(modelRoute.timeoutMs) });
-      const raw = JSON.parse(response.output_text) as Omit<WisdomIntelligence, "quality" | "routing">;
+      const response = await client.responses.create({ model: modelRoute.model, max_output_tokens: 950, input: [
+        { role: "developer", content: `${responseLanguageContract(preferences.language)}\n\nYou are Ask Aletheia. Classify the primary problem the person needs help solving, not merely the nouns. Attend to expressed emotion and motive without diagnosing, pathologizing, or inventing personal history. For example, money given from guilt may be Generosity, and work damaging health or marriage may be Life. Use ambiguity.reason to name the primary need. Probabilities sum to 1. Mark mixed only for genuinely competing lenses. Keep private plan fields brief. Never claim divine certainty or replace qualified care.\n\nWrite only one or two short sentences per visible field, with no headings or lists. Opening: name the actual decision, one concrete fact that changes the advice, and the tension the person expressed. Each connection: explain the passage in context and how it helps here; do not include a citation label or quote verse text, which the app supplies through the linked reader. Next step: one observable action (such as a specific question to ask, a sentence to say, or one fact to write down), not a general instruction to reflect or talk. Do not retry a closed option. Be compassionate without equating guilt or tiredness with wrongdoing. Preserve agency; include qualified human help where needed, without repeating financial or legal disclaimers supplied by the app.` },
+        { role: "user", content: `LENSES\n${profiles}\n\nPREFERENCES\n${promptPreferenceContext(preferences)}\n\nCONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE (most relevant first)\n${sourceContext}\n\nChoose ${minimumEvidence} distinct canonical references from the evidence. Current lens: ${selectedMode}. ${forceSelectedMode ? `Keep ${selectedMode}.` : "Auto-fit may choose a better lens."}${expectedSafeTopic === "crisis" ? " Lead the opening with immediate qualified human help. Do not delay help for reflection." : ""}\n\nQUESTION\n${question}` },
+      ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema: responseSchema(preferences.language, modelSources, minimumEvidence) } } }, { signal });
+      providerUnavailable = false;
+      const raw = JSON.parse(response.output_text) as CounselDraft;
       const probabilities = normalizeModeProbabilities(raw.probabilities);
       if (!probabilities || !modes.includes(raw.recommendedMode)) throw new Error("invalid structured response");
       const recommendedMode = forceSelectedMode
@@ -221,19 +233,21 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
         : raw.ambiguity.uncertain
         ? selectedMode
         : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed);
-      const candidate = { ...raw, recommendedMode, probabilities };
-      const quality = validateWisdomIntelligence(candidate, sources, preferences, minimumEvidence);
+      const candidate = assembleCompanionDraft({
+        ...raw, recommendedMode, probabilities,
+        safeTopic: expectedSafeTopic === "general" ? raw.safeTopic : expectedSafeTopic,
+      }, preferences, question);
+      const quality = validateWisdomIntelligence(candidate, modelSources, preferences, minimumEvidence);
       if (!quality.passed) throw new Error(`quality gate: ${Object.entries(quality.checks).filter(([, ok]) => !ok).map(([name]) => name).join(",")}`);
       failures = 0;
       return { ...candidate, quality, routing: { route: modelRoute.route, attempts, latencyMs: Date.now() - started, circuitOpen: false } };
     } catch (error) {
-      failures += 1;
-      const message = error instanceof Error ? error.message : "";
-      if (modelRoute.route === "primary" && !modelRoute.retry && /quality gate|invalid structured response/i.test(message)) {
-        skipPrimaryRetry = true;
-      }
-      if (failures >= 4) circuitOpenUntil = Date.now() + 60_000;
+      const reason = signal.aborted ? "timeout" : error instanceof Error && error.message.startsWith("quality gate:")
+        ? error.message : error instanceof Error ? error.constructor.name : "unknown";
+      console.warn("[wisdom-intelligence] counsel attempt failed", { route: modelRoute.route, reason });
     }
   }
+  failures = providerUnavailable ? failures + 1 : 0;
+  if (failures >= 2) circuitOpenUntil = Date.now() + 60_000;
   return deterministic(question, selectedMode, sources, preferences, started, attempts, forceSelectedMode);
 }

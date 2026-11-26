@@ -125,10 +125,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Production Preview
 
+For a production-mode preview on your machine, create a dedicated local PostgreSQL database first. Do not point the preview at a production database.
+
 ```bash
-npm run build
-npm run start -- -p 3001
+createdb -h 127.0.0.1 aletheia_preview
+export DATABASE_URL=postgresql://127.0.0.1:5432/aletheia_preview
+npx --no-install next build
+DB_BOOTSTRAP_ON_STARTUP=1 npx --no-install next start --hostname 127.0.0.1 --port 3001
 ```
+
+The direct Next.js commands skip the npm lifecycle hooks. `DB_BOOTSTRAP_ON_STARTUP=1` initializes the local schema when the app first needs the database.
 
 Open [http://localhost:3001](http://localhost:3001).
 

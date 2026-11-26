@@ -21,6 +21,7 @@ const LOCAL_BASE_URL = `http://localhost:${LOCAL_PORT}`;
 const SERVER_START_TIMEOUT_MS = 90_000;
 const RUN_EXPANDED_MATRIX = process.env.UI_REGRESSION_EXPANDED === '1';
 const RUN_NAV_STRESS = process.env.UI_REGRESSION_NAV_STRESS === '1' || RUN_EXPANDED_MATRIX;
+const CONTRAST_ONLY = process.env.UI_REGRESSION_CONTRAST_ONLY === '1';
 const ENDURANCE_LOOPS = Math.max(1, Number(process.env.UI_REGRESSION_ENDURANCE_LOOPS || '1'));
 const REQUESTED_SCHEMES = (process.env.UI_REGRESSION_SCHEMES || '')
   .split(',')
@@ -206,8 +207,8 @@ async function clickTab(page, tabName, mobile) {
 }
 
 async function preparePage(page) {
-  await page.goto(runtimeBaseUrl, { waitUntil: 'networkidle' });
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
+    if (window.sessionStorage.getItem('aletheia_ui_regression_prepared')) return;
     const raw = window.localStorage.getItem('aletheia_preferences');
     const preferences = raw ? JSON.parse(raw) : {};
     preferences.language = preferences.language || 'en';
@@ -216,8 +217,9 @@ async function preparePage(page) {
     preferences.voiceEnabled = true;
     window.localStorage.setItem('aletheia_preferences', JSON.stringify(preferences));
     window.localStorage.setItem('aletheia_third_party_ai_declined', 'yes');
+    window.sessionStorage.setItem('aletheia_ui_regression_prepared', 'yes');
   });
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.goto(runtimeBaseUrl, { waitUntil: 'load' });
   await page.waitForTimeout(220);
   await page.waitForFunction(
     () => !document.querySelector('[data-testid="app-launch-splash"]'),
@@ -1082,6 +1084,81 @@ async function checkSimpleMarker(page, tabName, mobile, extraCheck) {
   };
 }
 
+async function checkThemeContrast(browser) {
+  const settings = [
+    ...['classic', 'dark', 'black', 'warm', 'ocean', 'forest', 'sunset'].map((theme) => [theme, 'light', theme]),
+    ['system', 'light', 'classic'],
+    ['system', 'dark', 'dark'],
+  ];
+  const failures = [];
+  for (const [preference, colorScheme, resolved] of settings) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme, reducedMotion: 'reduce', serviceWorkers: 'block' });
+    try {
+      await context.addInitScript((preference) => {
+        window.localStorage.setItem('aletheia_theme_preference', preference);
+        window.localStorage.setItem('aletheia_first_run_gate_complete', 'yes');
+        window.localStorage.setItem('aletheia_onboarding_complete', 'yes');
+        window.localStorage.setItem('aletheia_third_party_ai_declined', 'yes');
+      }, preference);
+      const page = await context.newPage();
+      await page.goto(`${runtimeBaseUrl}/?tab=companion`, { waitUntil: 'load' });
+      await page.waitForFunction((theme) => document.documentElement.dataset.theme === theme, resolved);
+      await page.getByRole('tab', { name: 'Ask Aletheia', exact: true }).click();
+      const check = async (label, locator, minimum, pseudo) => {
+        const ratio = await locator.evaluate((element, pseudo) => {
+          const pixel = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+          const rgba = (value) => {
+            pixel.clearRect(0, 0, 1, 1);
+            pixel.fillStyle = value;
+            pixel.fillRect(0, 0, 1, 1);
+            const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
+            return [r, g, b, a / 255];
+          };
+          const over = ([r, g, b, a], bg) => [r, g, b].map((value, i) => value * a + bg[i] * (1 - a));
+          const luminance = (color) => color.map((channel) => {
+            const value = channel / 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+          }).reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
+          const layers = [];
+          for (let node = element; node; node = node.parentElement) {
+            const background = rgba(getComputedStyle(node).backgroundColor);
+            layers.unshift(background);
+            if (background[3] === 1) break;
+          }
+          const bg = layers.reduce((base, layer) => over(layer, base), [255, 255, 255]);
+          const style = getComputedStyle(element, pseudo);
+          const color = rgba(element instanceof SVGElement ? style.stroke : style.color);
+          color[3] *= Number(style.opacity);
+          const levels = [luminance(bg), luminance(over(color, bg))].sort((a, b) => b - a);
+          return (levels[0] + 0.05) / (levels[1] + 0.05);
+        }, pseudo ?? null);
+        if (ratio < minimum) failures.push(`${preference}/${colorScheme}: ${label} ${ratio.toFixed(2)}:1 < ${minimum}:1`);
+      };
+      await check('desktop lens caption', page.locator('aside').getByText('Current lens', { exact: true }), 4.5);
+      await check('auto-fit label', page.locator('#companion-ask').getByRole('button', { name: 'Auto-fit on' }), 4.5);
+      await check('current lens icon', page.locator('#companion-ask [aria-label^="Current lens:"] svg'), 3);
+      await check('question placeholder', page.getByRole('textbox', { name: 'Your question' }), 4.5, '::placeholder');
+      await page.setViewportSize({ width: 900, height: 844 });
+      const navRail = page.locator('.app-top-nav .editorial-surface');
+      await navRail.getByRole('button', { name: 'Account', exact: true }).waitFor();
+      const clipped = await navRail.evaluate((rail) => {
+        const { left, right } = rail.getBoundingClientRect();
+        return Array.from(rail.querySelectorAll('button')).filter((button) => {
+          const bounds = button.getBoundingClientRect();
+          return bounds.left < Math.max(0, left) || bounds.right > Math.min(innerWidth, right);
+        }).map((button) => button.textContent.trim());
+      });
+      if (clipped.length) failures.push(`${preference}/${colorScheme}: clipped tablet navigation: ${clipped.join(', ')}`);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await check('current mobile destination', page.locator('.app-bottom-nav').getByRole('button', { name: 'Home', exact: true }), 4.5);
+    } finally {
+      await context.close();
+    }
+  }
+  if (failures.length) throw new Error(`Theme contrast regressions:\n${failures.join('\n')}`);
+  console.log(ok(`Theme contrast passed for ${settings.length} settings (text 4.5:1; icons 3:1)`));
+}
+
 async function run() {
   let server;
   try {
@@ -1108,6 +1185,14 @@ async function run() {
     console.log(info(`Running UI regression against ${runtimeBaseUrl}`));
 
     const browser = await chromium.launch({ headless: true });
+    if (CONTRAST_ONLY) {
+      try {
+        await checkThemeContrast(browser);
+      } finally {
+        await browser.close();
+      }
+      return;
+    }
     const results = [];
 
     for (const viewport of viewports) {
@@ -1117,6 +1202,7 @@ async function run() {
         isMobile: viewport.mobile,
         hasTouch: viewport.touch,
         colorScheme,
+        serviceWorkers: 'block',
       });
       const page = await context.newPage();
       const pageErrors = [];
@@ -1285,7 +1371,7 @@ async function run() {
 }
 
 run().catch((error) => {
-  console.error(bad(`UI regression failed: ${error.message}`));
+  console.error(bad(`UI regression failed: ${process.env.UI_REGRESSION_VERBOSE === '1' ? error.stack : error.message}`));
   if (/browserType\.launch/.test(String(error)) || /Executable doesn't exist/.test(String(error))) {
     console.error(warn('Playwright browser binaries are missing. Run: npx playwright install chromium'));
   }

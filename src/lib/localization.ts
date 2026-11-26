@@ -332,7 +332,7 @@ export function canonicalScriptureReference(scripture: string) {
   }
 
   const requested = parseScriptureReference(normalizedScripture);
-  if (!requested) {
+  if (!requested || requested.start !== requested.end) {
     return scripture;
   }
 
