@@ -2621,6 +2621,7 @@
     "attachNow": "Anexar",
     "shareNow": "Compartilhar resumo",
     "savedCaptures": "Salvo da escuta",
+    "historyEmpty": "Ainda não há histórico de escuta. Os reconhecimentos salvos aparecerão aqui.",
     "savedCounsel": "Conselhos salvos",
     "remove": "Remover captura salva",
     "tryAgainTitle": "Vamos tentar novamente",

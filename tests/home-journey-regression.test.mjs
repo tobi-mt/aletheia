@@ -4,6 +4,11 @@ import test from "node:test";
 
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
 
+test("view changes dismiss stale workflow notices before showing the destination", () => {
+  const navigation = app.slice(app.indexOf("const setActiveView = useCallback"), app.indexOf("const setHomeSection = useCallback"));
+  assert.match(navigation, /setWorkflowNotice\(null\)/);
+});
+
 test("Home chooses one explainable next wise step and keeps secondary work resumable", () => {
   const home = app.slice(app.indexOf("function HomeDashboard"), app.indexOf("function WeeklyReviewRailStat"));
   assert.match(home, /const nextWiseStep = journeyItems\[0\]/);
@@ -23,6 +28,7 @@ test("Home exposes a calm labeled shortcut to the canonical Scripture listening 
   assert.match(home, /<Mic size=\{18\}/);
   assert.match(home, /<BookOpen className="absolute -bottom-1 -right-1/);
   assert.match(navigation, /setRequestedLibrarySection\("listen"\)/);
+  assert.match(navigation, /setListenOpenRequest\(\(current\) => current \+ 1\)/);
   assert.match(navigation, /surface: "home"/);
   assert.match(navigation, /destination: "listen"/);
   assert.match(navigation, /showView\("library"\)/);
@@ -31,7 +37,9 @@ test("Home exposes a calm labeled shortcut to the canonical Scripture listening 
 test("Ask gives the mobile question composer primary visual weight", () => {
   const ask = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function CurrentCounselCard"));
   assert.match(ask, /data-testid="ask-question-composer"/);
-  assert.match(ask, /min-h-52/);
+  assert.match(ask, /min-h-36/);
+  assert.match(ask, /placeholder=\{copy\.askPlaceholder\}/);
+  assert.match(ask, /MessageCircle className="pointer-events-none absolute left-4 top-4/);
   assert.match(ask, /focus-visible:ring-4/);
   assert.match(ask, /linear-gradient\(145deg/);
 });

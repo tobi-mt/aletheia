@@ -2621,6 +2621,7 @@
     "attachNow": "Adjuntar",
     "shareNow": "Compartir resumen",
     "savedCaptures": "Guardado de escucha",
+    "historyEmpty": "Aún no hay historial de escucha. Los reconocimientos guardados aparecerán aquí.",
     "savedCounsel": "Consejo guardado",
     "remove": "Eliminar captura guardada",
     "tryAgainTitle": "Intentémoslo de nuevo",

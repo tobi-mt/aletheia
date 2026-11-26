@@ -832,14 +832,6 @@ const focusIntentionLibrary: FocusIntentionKey[] = [
   "seek_counsel",
 ];
 
-function focusIntentionLabels(keys: string[] | undefined | null, ts?: (key: string, fallback?: string) => string) {
-  const safeKeys = Array.isArray(keys) ? keys : [];
-  const lookup = new Map(
-    focusIntentionLibrary.map((key) => [key, ts ? ts(`focusIntentions.${key}.label`) : key]),
-  );
-  return safeKeys.map((key) => lookup.get(key as FocusIntentionKey)).filter(Boolean) as string[];
-}
-
 function focusIntentionPrompt(
   keys: string[] | undefined | null,
   surface: "companion" | "decisions",
@@ -2231,6 +2223,13 @@ function cleanDisplayText(text: string) {
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function cleanQuestionDisplayText(text: string, continueLabel: string) {
+  const cleaned = cleanDisplayText(text).replace(/\s+/g, " ");
+  const legacyContinuation = cleaned.match(/^(?:Continue our .+? counsel from this specific direction|Help me continue from this part of your answer):\s*["“]([^"”]+)["”]/i);
+  if (!legacyContinuation?.[1]) return cleaned;
+  return continuationLabel(legacyContinuation[1], continueLabel, 76);
 }
 
 function formatNextDecisionTitle(title: string, continueLabel = englishText.challenges.continueChallenge, maxLength = 112) {
@@ -5828,6 +5827,7 @@ export function AletheiaApp({
   
   // Wrapper to persist active view and track navigation usage.
   const setActiveView = useCallback((view: View, source = "navigation") => {
+    setWorkflowNotice(null);
     setActiveViewState((current) => {
       if (current !== view) {
         trackClientEvent("app_view_changed", { from_view: current, to_view: view, source });
@@ -5897,6 +5897,7 @@ export function AletheiaApp({
   const [manualContextStatus, setManualContextStatus] = useState("");
   const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
   const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | "formation" | "listen" | null>(null);
+  const [listenOpenRequest, setListenOpenRequest] = useState(0);
   const [pendingLibraryEntryFocusId, setPendingLibraryEntryFocusId] = useState<string | null>(null);
   const [clientStateRestored, setClientStateRestored] = useState(false);
   const bootReadyReportedRef = useRef(false);
@@ -9431,6 +9432,7 @@ function startFirstRunGuestFlow() {
 
   function openListenForScriptureFromHome() {
     setRequestedLibrarySection("listen");
+    setListenOpenRequest((current) => current + 1);
     trackClientEvent("feature_destination_opened", {
       surface: "home",
       destination: "listen",
@@ -9996,7 +9998,11 @@ function startFirstRunGuestFlow() {
   }
 
   function continueFromExchange(exchange: ConversationExchange, continuation: AnswerContinuation) {
-    const visibleLabel = continuationLabel(continuation.direction, ts("challenges.continueChallenge", "Continue"));
+    const visibleLabel = continuationLabel(
+      continuation.direction,
+      ts("challenges.continueChallenge", "Continue"),
+      76,
+    );
     trackClientEvent("answer_followup_asked", {
       mode,
       kind: `suggested_${continuation.kind}`,
@@ -13326,9 +13332,49 @@ function startFirstRunGuestFlow() {
                 : resolvedTheme === "sunset"
                   ? "rgba(250, 241, 246, 0.18)"
                   : "rgba(238, 242, 239, 0.18)", top: 0 }}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+        <div className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-1.5 md:flex md:justify-between md:gap-3">
+          <div className="flex min-w-0 items-center gap-1 md:hidden">
+            <label
+              className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
+              suppressHydrationWarning
+            >
+              <span aria-hidden="true" className="text-sm leading-none" suppressHydrationWarning>{languageFlags[preferences.language]}</span>
+              <span className="sr-only">{ui.languageSelect}</span>
+              <select
+                value={preferences.language}
+                aria-label={ui.languageSelect}
+                onChange={(event) => updatePreferences(preferencePatchForLanguage(event.target.value as LanguageCode))}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              >
+                {Object.entries(languages).map(([code, language]) => (
+                  <option key={code} value={code}>{language.nativeName}</option>
+                ))}
+              </select>
+            </label>
+            <label
+              className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
+              suppressHydrationWarning
+            >
+              <BookOpen size={15} aria-hidden="true" />
+              <span className="sr-only">{ui.bibleSelect}</span>
+              <select
+                value={preferences.bibleTranslation}
+                aria-label={ui.bibleSelect}
+                onChange={(event) => updatePreferences({ bibleTranslation: event.target.value as BibleTranslation })}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              >
+                {topBibleOptions.map((code) => (
+                  <option key={code} value={code}>{languages[bibleTranslations[code].language].nativeName} · {bibleTranslations[code].label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           <button
-            className="app-brand-button flex min-w-0 items-center gap-2.5 text-left"
+            className="app-brand-button flex min-w-0 flex-col items-center justify-center gap-0.5 text-center md:flex-row md:justify-start md:gap-2.5 md:text-left"
             onClick={() => showView("companion")}
             aria-label={ts('labels.goToAletheiaHome')}
           >
@@ -13343,8 +13389,8 @@ function startFirstRunGuestFlow() {
               />
             </div>
             <div className="app-brand-copy min-w-0">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] sm:text-[0.72rem]" style={{ color: theme.textPrimary }}>{ts('labels.appName')}</p>
-              <p className="hidden whitespace-nowrap text-[11px] leading-4 min-[430px]:block" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
+              <p className="text-[0.48rem] font-semibold uppercase tracking-[0.16em] md:text-[0.72rem] md:tracking-[0.22em]" style={{ color: theme.textPrimary }}>{ts('labels.appName')}</p>
+              <p className="hidden whitespace-nowrap text-[11px] leading-4 md:block" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
             </div>
           </button>
 
@@ -13356,7 +13402,7 @@ function startFirstRunGuestFlow() {
             <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-end gap-1 md:gap-1.5">
             {!isOnline ? (
               <span className="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
                 <WifiOff size={13} />
@@ -13364,7 +13410,7 @@ function startFirstRunGuestFlow() {
               </span>
             ) : null}
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition"
+              className="app-chrome-control premium-tap-card relative hidden h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition md:grid"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.languageSelect}: ${languages[preferences.language].nativeName}`}
               suppressHydrationWarning
@@ -13385,7 +13431,7 @@ function startFirstRunGuestFlow() {
               </select>
             </label>
             <label
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition"
+              className="app-chrome-control premium-tap-card relative hidden h-[46px] w-[46px] shrink-0 place-items-center overflow-hidden rounded-full border transition md:grid"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               title={`${ui.bibleSelect}: ${preferences.bibleTranslation}`}
               suppressHydrationWarning
@@ -13410,7 +13456,17 @@ function startFirstRunGuestFlow() {
               </select>
             </label>
             <button
-              className="app-chrome-control premium-tap-card relative grid h-[46px] w-[46px] place-items-center overflow-hidden rounded-full border transition"
+              className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              aria-label={ts('listen.compactTitle')}
+              title={ts('listen.compactTitle')}
+              onClick={openListenForScriptureFromHome}
+            >
+              <Mic size={15} aria-hidden="true" />
+              <BookOpen className="pointer-events-none absolute bottom-1.5 right-1.5" size={8} aria-hidden="true" />
+            </button>
+            <button
+              className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
               style={{
                 borderColor: theme.accentLight,
                 background: `linear-gradient(145deg, ${theme.primary} 0%, color-mix(in srgb, ${theme.primary} 76%, ${theme.accentLight}) 100%)`,
@@ -13709,6 +13765,8 @@ function startFirstRunGuestFlow() {
                       preferences={preferences}
                       ts={ts}
                       requestedSection={requestedLibrarySection}
+                      listenOpenRequest={listenOpenRequest}
+                      onListenOpenRequestHandled={() => setListenOpenRequest(0)}
                       onRequestedSectionHandled={() => setRequestedLibrarySection(null)}
                       pendingEntryFocusId={pendingLibraryEntryFocusId}
                       onPendingEntryFocusHandled={() => setPendingLibraryEntryFocusId(null)}
@@ -15028,21 +15086,21 @@ function WorkflowNotice({
 
   return (
     <div
-      className={`app-safe-floating-panel pointer-events-none fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px] ${readerOpen ? "bottom-36" : "bottom-24"}`}
+      className="app-safe-floating-panel pointer-events-none fixed inset-x-3 top-[calc(max(var(--aletheia-safe-area-top,env(safe-area-inset-top,0px)),var(--aletheia-top-reserve,0px))+5.35rem)] z-50 mx-auto max-w-sm md:bottom-auto md:left-auto md:right-4 md:top-24 md:mx-0 md:w-[320px]"
       style={{
-        paddingBottom: "max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0px)",
+        paddingTop: readerOpen ? "0.25rem" : "0px",
       }}
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto rounded-2xl border px-3 py-3 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
-        <div className="flex items-start gap-3">
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.border }}>
+      <div className="pointer-events-auto rounded-[1rem] border px-3 py-2.5 shadow-lg backdrop-blur-xl" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
+        <div className="flex items-start gap-2.5">
+          <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.border }}>
             <span className="size-2 rounded-full" style={{ backgroundColor: colors.border }} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[0.9rem] font-semibold leading-5">{notice.title}</p>
-            <p className="mt-1 line-clamp-2 text-[0.78rem] leading-5 opacity-85">{notice.body}</p>
+            <p className="text-[0.82rem] font-semibold leading-5">{notice.title}</p>
+            <p className="line-clamp-1 text-[0.72rem] leading-5 opacity-80">{notice.body}</p>
             {notice.action ? (
               <button
                 type="button"
@@ -15050,7 +15108,7 @@ function WorkflowNotice({
                   notice.action!.onClick();
                   onClose();
                 }}
-                className="mt-2 h-9 rounded-full px-3 text-[11px] font-semibold transition"
+                className="mt-1.5 h-8 rounded-full px-3 text-[10px] font-semibold transition"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 {notice.action.label}
@@ -27922,7 +27980,6 @@ function CompanionPanel({
       : history;
   const hasCounselSurface = Boolean((currentExchange && currentExchange.answer.id !== "thinking") || visibleHistory.length);
   const historyRailHasOverflow = useRailOverflowCue(historyRailRef, visibleHistory.length > 1, [visibleHistory.length, selectedHistoryExchange?.id]);
-  const focusLabels = focusIntentionLabels(focusIntentions, ts);
   const suggestedFocusPrompt = focusIntentionPrompt(focusIntentions, "companion", ts);
   const promptChips = [suggestedFocusPrompt, ...modeProfile.prompts].filter(Boolean).slice(0, 3);
   const currentModeCard = modeCards.find((item) => item.label === mode) ?? modeCards[0];
@@ -28145,15 +28202,17 @@ function CompanionPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                 {ui.yourQuestion}
               </p>
+              <div className="relative">
+                <MessageCircle className="pointer-events-none absolute left-4 top-4 z-10" size={18} style={{ color: theme.accentGold }} aria-hidden="true" />
                 <textarea
                   id="companion-question-input"
                   name="question"
                   aria-label={ui.yourQuestion}
                   value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
+                placeholder={copy.askPlaceholder}
                 data-testid="ask-question-composer"
-                className="min-h-52 w-full resize-none rounded-[1.55rem] border-2 px-4.5 py-5 text-[1.02rem] leading-7 outline-none transition placeholder:text-[1rem] focus-visible:ring-4 sm:min-h-44 sm:px-5 sm:py-4 sm:text-base"
+                className="min-h-36 w-full resize-none rounded-[1.35rem] border-2 pb-4 pl-12 pr-4 pt-3.5 text-base leading-7 outline-none transition placeholder:text-[0.96rem] placeholder:leading-6 focus-visible:ring-4 sm:min-h-40 sm:pl-12 sm:pr-5 sm:pt-4"
                 style={{
                   borderColor: `color-mix(in srgb, ${theme.primary} 48%, ${theme.borderStrong})`,
                   background: `linear-gradient(145deg, ${theme.bgInput}, color-mix(in srgb, ${theme.primary} 5%, ${theme.bgInput}))`,
@@ -28164,6 +28223,7 @@ function CompanionPanel({
                 onFocus={(e) => { e.currentTarget.style.borderColor = theme.primary; }}
                 onBlur={(e) => e.currentTarget.style.borderColor = `color-mix(in srgb, ${theme.primary} 48%, ${theme.borderStrong})`}
               />
+              </div>
             </div>
 
             <div className="flex items-stretch gap-2">
@@ -28425,7 +28485,7 @@ function ScriptureChips({
   preferences: UserPreferences;
   onScriptureOpen: (scripture: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const railRef = useRef<HTMLDivElement | null>(null);
   const uniqueSources = sources?.filter(
     (source, index, all) => all.findIndex((candidate) => candidate.scripture === source.scripture) === index,
@@ -29706,7 +29766,7 @@ function CurrentCounselCard({
           </span>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>{ui.yourQuestion}</p>
           <p className="mt-2.5 break-words text-[0.98rem] leading-7 tracking-[-0.01em]" style={{ color: theme.textPrimary }}>
-            {cleanDisplayText(question)}
+            {cleanQuestionDisplayText(question, ts("challenges.continueChallenge", "Continue"))}
           </p>
         </div>
       ) : null}
@@ -29762,17 +29822,19 @@ function CurrentCounselCard({
             {answerText}
           </div>
         ) : (
-          <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
-            <ScriptureLinkedText
-              theme={theme}
-              text={answerText}
-              language={preferences.language}
-              allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
-              onScriptureOpen={onScriptureOpen}
-            />
-          </div>
+          <>
+            <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
+            <div className="calm-prose mt-3" style={{ color: theme.textPrimary }}>
+              <ScriptureLinkedText
+                theme={theme}
+                text={answerText}
+                language={preferences.language}
+                allowedScriptures={exchange.answer.sources?.map((source) => source.scripture)}
+                onScriptureOpen={onScriptureOpen}
+              />
+            </div>
+          </>
         )}
-        <ScriptureChips ts={ts} theme={theme} sources={exchange.answer.sources} preferences={preferences} onScriptureOpen={onScriptureOpen} />
       </article>
       {!isThinking ? (
         <div className="flex items-start gap-2 px-1 text-xs leading-5" style={{ color: theme.textMuted }}>
@@ -29793,8 +29855,10 @@ function CurrentCounselCard({
             <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] opacity-75">
               {ts("challenges.continueChallenge", "Continue")}
             </span>
-            <span className="mt-1 block text-sm font-semibold leading-5">
-              {continuation.direction}
+            <span className="mt-1 block line-clamp-2 text-sm font-semibold leading-5">
+              {continuation.direction.length > 76
+                ? `${continuation.direction.slice(0, 75).trimEnd()}…`
+                : continuation.direction}
             </span>
           </span>
           <ChevronRight size={17} className="mt-1 shrink-0" aria-hidden="true" />
@@ -32804,6 +32868,8 @@ function LibraryPanel({
   preferences,
   ts,
   requestedSection,
+  listenOpenRequest,
+  onListenOpenRequestHandled,
   onRequestedSectionHandled,
   pendingEntryFocusId,
   onPendingEntryFocusHandled,
@@ -32839,6 +32905,8 @@ function LibraryPanel({
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
   requestedSection: "saved" | "explore" | "formation" | "listen" | null;
+  listenOpenRequest: number;
+  onListenOpenRequestHandled: () => void;
   onRequestedSectionHandled: () => void;
   pendingEntryFocusId: string | null;
   onPendingEntryFocusHandled: () => void;
@@ -33240,6 +33308,8 @@ function LibraryPanel({
 
       {librarySection === "listen" ? (
         <ListenForWisdom
+          openRequest={listenOpenRequest}
+          onOpenRequestHandled={onListenOpenRequestHandled}
           mode={mode}
           language={preferences.language}
           bibleTranslation={preferences.bibleTranslation}

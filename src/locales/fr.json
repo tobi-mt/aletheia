@@ -2621,6 +2621,7 @@
     "attachNow": "Joindre",
     "shareNow": "Résumé du partage",
     "savedCaptures": "Enregistré de l'écoute",
+    "historyEmpty": "Aucun historique d’écoute pour le moment. Les reconnaissances enregistrées apparaîtront ici.",
     "savedCounsel": "Conseils enregistrés",
     "remove": "Supprimer la capture enregistrée",
     "tryAgainTitle": "Essayons à nouveau",

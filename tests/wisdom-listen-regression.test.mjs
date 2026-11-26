@@ -178,6 +178,18 @@ test("Listen shows Scripture immediately and collapses matching diagnostics", as
   assert.doesNotMatch(matchView, /listen\.context/);
 });
 
+test("Listen shortcut opens the recorder while the Listening tab keeps expandable history", async () => {
+  const component = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
+  assert.match(component, /openRequest <= 0/);
+  assert.match(component, /setOpen\(true\)/);
+  assert.match(component, /onOpenRequestHandled\?\.\(\)/);
+  assert.match(component, /listen\.savedCaptures/);
+  assert.match(component, /visibleCaptures\.map/);
+  assert.match(component, /onClick=\{\(\) => openCapture\(capture\)\}/);
+  assert.match(component, /RailOverflowCorner/);
+  assert.match(component, /listen\.historyEmpty/);
+});
+
 test("generated voices use natural pacing without double-slowing native audio", async () => {
   const [client, route, swift] = await Promise.all([
     readFile(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8"),

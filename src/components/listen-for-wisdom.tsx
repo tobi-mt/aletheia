@@ -30,26 +30,15 @@ import {
   type WisdomListenResult,
   type WisdomListenVerseMatch,
 } from "@/lib/wisdom-listen";
+import { RailOverflowCorner, useRailOverflowCue } from "@/components/surfaces/surface-primitives";
+import type { ThemeColors } from "@/components/surfaces/surface-contracts";
 
 const CAPTURES_KEY = "aletheia_wisdom_listen_captures_v2";
 const MAX_SECONDS = 60;
 
-type Theme = {
-  primary: string;
-  primaryHover: string;
-  textOnPrimary: string;
-  textPrimary: string;
-  textSecondary: string;
-  textMuted: string;
-  bgCard: string;
-  bgCardElevated: string;
-  bgInput: string;
-  borderLight: string;
-  borderMedium: string;
-  accentGold: string;
-};
-
 type Props = {
+  openRequest?: number;
+  onOpenRequestHandled?: () => void;
   mode: Mode;
   language: LanguageCode;
   bibleTranslation: BibleTranslation;
@@ -60,7 +49,7 @@ type Props = {
   onSpeak: (text: string) => Promise<void> | void;
   onStopSpeaking: () => void;
   ts: (key: string, fallback?: string) => string;
-  theme: Theme;
+  theme: ThemeColors;
   decisions: Array<{ id: string; title: string }>;
   counselContacts: Array<{ id: string; name: string }>;
   onOpenScripture: (reference: string) => void;
@@ -145,6 +134,8 @@ function recordingExtension(type: string) {
 
 export default function ListenForWisdom(props: Props) {
   const {
+    openRequest = 0,
+    onOpenRequestHandled,
     mode,
     language,
     bibleTranslation,
@@ -214,6 +205,8 @@ export default function ListenForWisdom(props: Props) {
   const [helpBusy, setHelpBusy] = useState(false);
   const [helpSearched, setHelpSearched] = useState(false);
   const [helpError, setHelpError] = useState("");
+  const historyRailRef = useRef<HTMLDivElement | null>(null);
+  const lastOpenRequestRef = useRef(0);
 
   function matchLabel(strength: WisdomListenVerseMatch["strength"]) {
     return ts(
@@ -344,6 +337,14 @@ export default function ListenForWisdom(props: Props) {
     const recorder = recorderRef.current;
     if (recorder?.state === "recording") recorder.stop();
   }, []);
+
+  useEffect(() => {
+    if (openRequest <= 0 || openRequest === lastOpenRequestRef.current) return;
+    lastOpenRequestRef.current = openRequest;
+    setResult(null);
+    setOpen(true);
+    onOpenRequestHandled?.();
+  }, [onOpenRequestHandled, openRequest]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -883,6 +884,15 @@ export default function ListenForWisdom(props: Props) {
       capture.language === language &&
       capture.bibleTranslation === bibleTranslation
   );
+  const historyRailHasOverflow = useRailOverflowCue(
+    historyRailRef,
+    visibleCaptures.length > 1,
+    [visibleCaptures.length, language, bibleTranslation]
+  );
+  const openCapture = (capture: WisdomListenResult) => {
+    setResult(capture);
+    setOpen(true);
+  };
   return (
     <>
       <button
@@ -923,6 +933,62 @@ export default function ListenForWisdom(props: Props) {
           style={{ color: theme.textMuted }}
         />
       </button>
+
+      <section
+        className="mt-4 min-w-0 rounded-[1.35rem] border p-3.5 sm:p-4"
+        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+        aria-label={ts("listen.savedCaptures", "Saved from listening")}
+      >
+        <div className="flex items-center gap-2">
+          <BookOpen size={15} style={{ color: theme.accentGold }} aria-hidden="true" />
+          <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            {ts("listen.savedCaptures", "Saved from listening")}
+          </h3>
+        </div>
+        {visibleCaptures.length ? (
+          <div className="relative mt-3">
+            <div
+              ref={historyRailRef}
+              className={`flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${historyRailHasOverflow ? "pr-8" : ""}`.trim()}
+            >
+              {visibleCaptures.map((capture) => {
+                const reference = capture.matches[0]
+                  ? localizedScriptureReference(capture.matches[0].reference, language)
+                  : ts("listen.savedCounsel", "Saved counsel");
+                return (
+                  <button
+                    type="button"
+                    key={capture.id}
+                    onClick={() => openCapture(capture)}
+                    className="premium-tap-card flex min-h-[9.5rem] w-[16.5rem] shrink-0 snap-start flex-col rounded-[1.2rem] border p-3.5 text-left shadow-sm transition active:scale-[0.99] sm:w-[18rem]"
+                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}
+                    aria-label={`${ts("showDetails")}: ${reference}`}
+                  >
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
+                      {reference}
+                    </span>
+                    <span className="mt-2 line-clamp-3 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+                      {capture.counsel || capture.application || ts("listen.savedCounsel", "Saved counsel")}
+                    </span>
+                    <span className="mt-auto flex items-center justify-between gap-3 pt-3 text-[11px]" style={{ color: theme.textMuted }}>
+                      <span>{new Date(capture.createdAt).toLocaleDateString(language, { month: "short", day: "numeric", year: "numeric" })}</span>
+                      <span className="inline-flex items-center gap-1 font-semibold" style={{ color: theme.textSecondary }}>
+                        {ts("showDetails")}
+                        <ChevronRight size={13} aria-hidden="true" />
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {historyRailHasOverflow ? <RailOverflowCorner theme={theme} className="right-1 top-1/2 -translate-y-1/2" /> : null}
+          </div>
+        ) : (
+          <p className="mt-3 rounded-[1rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
+            {ts("listen.historyEmpty", "No listening history yet. Saved recognitions will appear here.")}
+          </p>
+        )}
+      </section>
 
       {open && typeof document !== "undefined"
         ? createPortal(
@@ -1762,7 +1828,7 @@ function ResultView({
   voiceEnabled: boolean;
   language: LanguageCode;
   ts: Props["ts"];
-  theme: Theme;
+  theme: ThemeColors;
   onHear: () => void;
   onOpenScripture: (reference: string) => void;
   onSave: () => void;
@@ -2021,7 +2087,7 @@ function VerifiedMatch({
   read?: PassageRead;
   language: LanguageCode;
   ts: Props["ts"];
-  theme: Theme;
+  theme: ThemeColors;
   onOpen: () => void;
 }) {
   const before = read?.before || match.contextBefore;
@@ -2120,7 +2186,7 @@ function ActionButton({
   onClick: () => void;
   disabled?: boolean;
   prominent?: boolean;
-  theme: Theme;
+  theme: ThemeColors;
 }) {
   return (
     <button

@@ -489,6 +489,22 @@ html[data-keyboard-open="true"] .app-bottom-nav {
   min-height: 46px;
 }
 
+.app-mobile-chrome-control {
+  width: 2.35rem;
+  height: 2.35rem;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+}
+
+@media (min-width: 768px) {
+  .app-mobile-chrome-control {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
+  }
+}
+
 @media (pointer: coarse) {
   .app-shell button,
   .app-shell [role="button"],

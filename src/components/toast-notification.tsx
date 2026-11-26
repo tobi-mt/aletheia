@@ -47,7 +47,7 @@ const toastColors: Record<ToastType, { bg: string; text: string; icon: string }>
 
 export function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
   return (
-    <div className="pointer-events-none fixed bottom-24 left-1/2 z-[10060] flex -translate-x-1/2 flex-col gap-2 md:bottom-6">
+    <div className="pointer-events-none fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+5.35rem)] z-[10060] mx-auto flex max-w-sm flex-col gap-2 md:bottom-6 md:left-auto md:right-6 md:top-auto md:mx-0 md:w-auto">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem
@@ -79,7 +79,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.95 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="pointer-events-auto flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg backdrop-blur-md"
+      className="pointer-events-auto flex items-center gap-2.5 rounded-xl px-3 py-2.5 shadow-lg backdrop-blur-md"
       style={{
         backgroundColor: colors.bg,
         borderLeft: `3px solid ${colors.text}`,

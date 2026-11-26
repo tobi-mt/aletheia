@@ -2641,6 +2641,7 @@
     "attachNow": "Attach",
     "shareNow": "Share summary",
     "savedCaptures": "Saved from listening",
+    "historyEmpty": "No listening history yet. Saved recognitions will appear here.",
     "savedCounsel": "Saved counsel",
     "remove": "Remove saved capture",
     "tryAgainTitle": "Let’s try that again",
