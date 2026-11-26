@@ -264,6 +264,7 @@ type NotificationDeliveryReportPayload = {
 };
 
 const SECRET_KEY = "aletheia_analytics_admin_secret";
+const PERSISTENT_SECRET_KEY = "aletheia_analytics_admin_secret_remembered";
 const USER_PAGE_SIZE = 50;
 const PERIOD_ORDER: PeriodKey[] = ["daily", "weekly", "monthly", "yearly"];
 const DASHBOARD_VIEWS: Array<{ key: DashboardView; translationKey: string; fallback: string }> = [
@@ -949,7 +950,7 @@ export default function AnalyticsDashboard() {
   const [secret, setSecret] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      return window.sessionStorage.getItem(SECRET_KEY) ?? "";
+      return window.localStorage.getItem(PERSISTENT_SECRET_KEY) ?? window.sessionStorage.getItem(SECRET_KEY) ?? "";
     } catch {
       return "";
     }
@@ -957,7 +958,7 @@ export default function AnalyticsDashboard() {
   const [lastSuccessfulSecret, setLastSuccessfulSecret] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      return window.sessionStorage.getItem(SECRET_KEY) ?? "";
+      return window.localStorage.getItem(PERSISTENT_SECRET_KEY) ?? window.sessionStorage.getItem(SECRET_KEY) ?? "";
     } catch {
       return "";
     }
@@ -978,6 +979,7 @@ export default function AnalyticsDashboard() {
   const [userSearch, setUserSearch] = useState("");
   const [userPage, setUserPage] = useState(0);
   const [notificationReportLoading, setNotificationReportLoading] = useState(false);
+  const [rememberSecret, setRememberSecret] = useState(true);
   const [segments, setSegments] = useState<TrendSegments>({ identity: "all", device: "", country: "", acquisition: "", language: "" });
   const [comparisonPayload, setComparisonPayload] = useState<AnalyticsPayload | null>(null);
   const [inspectedTrendIndex, setInspectedTrendIndex] = useState<number | null>(null);
@@ -1126,6 +1128,8 @@ export default function AnalyticsDashboard() {
 
       try {
         window.sessionStorage.setItem(SECRET_KEY, token);
+        if (rememberSecret) window.localStorage.setItem(PERSISTENT_SECRET_KEY, token);
+        else window.localStorage.removeItem(PERSISTENT_SECRET_KEY);
       } catch {
         // Session storage is optional for this internal tool.
       }
@@ -1135,6 +1139,18 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function forgetAnalyticsSecret() {
+    try {
+      window.sessionStorage.removeItem(SECRET_KEY);
+      window.localStorage.removeItem(PERSISTENT_SECRET_KEY);
+    } catch { /* Storage is optional. */ }
+    setSecret("");
+    setLastSuccessfulSecret("");
+    setRememberSecret(false);
+    setPayload(null);
+    setComparisonPayload(null);
   }
 
   async function applyRange(event: FormEvent) {
@@ -1528,6 +1544,13 @@ export default function AnalyticsDashboard() {
             />
             Include automation and test traffic
           </label>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={rememberSecret} onChange={(event) => setRememberSecret(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500" />
+              Remember secret on this device
+            </label>
+            {(secret || lastSuccessfulSecret) ? <button type="button" onClick={forgetAnalyticsSecret} className="text-sm font-medium text-rose-700 hover:text-rose-900">Forget saved secret</button> : null}
+          </div>
 
           {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
           {!error && !payload ? (

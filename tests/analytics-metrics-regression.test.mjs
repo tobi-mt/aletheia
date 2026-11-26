@@ -102,6 +102,15 @@ test("dashboard supports comparison, segmentation, targets, drill-down, sharing,
   assert.match(analytics, /eventCoverage: \[\.\.\.ALLOWED_EVENTS\]/);
 });
 
+test("all-time analytics starts at real data and the admin secret can persist on-device", () => {
+  assert.match(analytics, /requestedDateRange\.startDate === "1970-01-01"/);
+  assert.match(analytics, /SELECT MIN\(observed_date\)::text AS earliest_date/);
+  assert.match(dashboard, /PERSISTENT_SECRET_KEY/);
+  assert.match(dashboard, /window\.localStorage\.setItem\(PERSISTENT_SECRET_KEY, token\)/);
+  assert.match(dashboard, /Remember secret on this device/);
+  assert.match(dashboard, /Forget saved secret/);
+});
+
 test("mode-fit calibration events are accepted and reported without question text", () => {
   assert.match(analytics, /"mode_fit_prediction"/);
   assert.match(analytics, /"mode_fit_outcome"/);

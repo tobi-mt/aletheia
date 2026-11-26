@@ -431,7 +431,20 @@ export async function analyticsSummary(
   options: { includeAutomation?: boolean; startDate?: string; endDate?: string; segments?: AnalyticsSegments } = {}
 ) {
   const includeAutomation = options.includeAutomation ?? false;
-  const dateRange = normalizeAnalyticsDateRange({ startDate: options.startDate, endDate: options.endDate });
+  const requestedDateRange = normalizeAnalyticsDateRange({ startDate: options.startDate, endDate: options.endDate });
+  let dateRange = requestedDateRange;
+  if (requestedDateRange.startDate === "1970-01-01") {
+    const earliestRows = await many<{ earliest_date: string | null }>(
+      `SELECT MIN(observed_date)::text AS earliest_date
+       FROM (
+         SELECT MIN(created_at)::date AS observed_date FROM analytics_events
+         UNION ALL
+         SELECT MIN(created_at)::date AS observed_date FROM users
+       ) earliest`
+    );
+    const earliestDate = earliestRows[0]?.earliest_date;
+    if (earliestDate) dateRange = { ...requestedDateRange, startDate: earliestDate.slice(0, 10) };
+  }
   const startDateSql = sqlDateLiteral(dateRange.startDate);
   const endDateSql = sqlDateLiteral(dateRange.endDate);
   const selectedDateFilter = `created_at::date >= ${startDateSql}::date AND created_at::date <= ${endDateSql}::date`;
@@ -600,14 +613,20 @@ export async function analyticsSummary(
        ORDER BY unique_people DESC, actions DESC`
     ),
     many<{ stage: string; stage_order: number; unique_people: number }>(
-      `WITH first_opens AS (
+      `WITH scoped_events AS MATERIALIZED (
          SELECT COALESCE(anon_id, user_id, session_id) AS person_id,
-                MIN(created_at) AS opened_at
+                created_at,
+                event_name
          FROM analytics_events
-         WHERE event_name = 'app_opened'
+         WHERE created_at < (${endDateSql}::date + interval '1 day')
            AND COALESCE(anon_id, user_id, session_id) IS NOT NULL
            AND ${trafficFilter}
-         GROUP BY COALESCE(anon_id, user_id, session_id)
+       ),
+       first_opens AS (
+         SELECT person_id, MIN(created_at) AS opened_at
+         FROM scoped_events
+         WHERE event_name = 'app_opened'
+         GROUP BY person_id
        ),
        entrants AS (
          SELECT person_id, opened_at
@@ -621,11 +640,9 @@ export async function analyticsSummary(
                 MIN(analytics_events.created_at) FILTER (WHERE analytics_events.event_name = 'onboarding_completed') AS onboarded_at,
                 MIN(analytics_events.created_at) FILTER (WHERE analytics_events.event_name IN ('question_asked', 'chat_question_sent')) AS asked_at
          FROM entrants
-         LEFT JOIN analytics_events
-           ON COALESCE(analytics_events.anon_id, analytics_events.user_id, analytics_events.session_id) = entrants.person_id
+         LEFT JOIN scoped_events AS analytics_events
+           ON analytics_events.person_id = entrants.person_id
           AND analytics_events.created_at >= entrants.opened_at
-          AND analytics_events.created_at < (${endDateSql}::date + interval '1 day')
-          AND ${trafficFilter}
          GROUP BY entrants.person_id, entrants.opened_at
        ),
        ordered AS (
@@ -1378,7 +1395,7 @@ export async function analyticsSummary(
       })),
       monthly: retentionMonthlyRows,
     },
-    selectedRange: dateRange,
+    selectedRange: requestedDateRange,
     authFailures30d: authFailureRows,
     topics30d: topicRows,
     emotionalTones30d: emotionRows,
