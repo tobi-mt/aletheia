@@ -1343,7 +1343,10 @@ async function sendNotificationWithTimeout(subscription: PushSubscription, paylo
   return new Promise<unknown>((resolve, reject) => {
     const timeoutId = setTimeout(() => reject(new Error(`Push notification timeout after ${PUSH_DELIVERY_TIMEOUT_MS}ms`)), PUSH_DELIVERY_TIMEOUT_MS);
     webpush
-      .sendNotification(subscription, payload)
+      // Prevent push services from releasing an old alert after a long offline
+      // period. Forty-eight hours still covers human replies while keeping
+      // daily wisdom and reminders from becoming stale backlog.
+      .sendNotification(subscription, payload, { TTL: 48 * 60 * 60, urgency: "normal" })
       .then(resolve)
       .catch(reject)
       .finally(() => clearTimeout(timeoutId));

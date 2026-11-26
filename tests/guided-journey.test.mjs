@@ -64,6 +64,9 @@ test("the UI keeps the journey optional and out of active work", async () => {
   assert.match(client, /isWorking \|\|[\s\S]{0,100}isListening \|\|[\s\S]{0,100}isSpeaking/);
   assert.match(client, /onDismiss=\{\(\) => closeGuidedJourneyStep\("dismissed"\)\}/);
   assert.match(client, /setQuery\(onboardingConcern\.trim\(\)\)/);
+  assert.match(client, /text\.welcomeCounsel!\.replace\("\{mode\}", lensLabel\)/);
+  assert.match(client, /currentMode=\{mode\}/);
+  assert.match(client, /const displayedMode = exchange\.answer\.id === "welcome" \? currentMode : exchange\.mode/);
   assert.doesNotMatch(client, /gem_number/);
   assert.doesNotMatch(client, /guidedJourney\.progress"\)\.replace/);
   assert.doesNotMatch(client, /onboardingSetupNav/);

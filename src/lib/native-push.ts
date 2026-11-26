@@ -366,7 +366,19 @@ function stringifyFcmData(data: NativePushMessagePayload["data"]) {
   return output;
 }
 
+function nativePushTtlSeconds(kind: string) {
+  if (kind === "test") return 5 * 60;
+  if (kind.includes("comment") || kind.includes("counsel") || kind.includes("nudge")) return 48 * 60 * 60;
+  return 12 * 60 * 60;
+}
+
+function nativeCollapseId(message: NativePushMessagePayload) {
+  return message.tag.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 60) || "aletheia-update";
+}
+
 function buildNativePayload(message: NativePushMessagePayload, row: NativePushTargetRow) {
+  const sentAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + nativePushTtlSeconds(message.notificationKind) * 1000).toISOString();
   return {
     title: message.title,
     body: message.body,
@@ -378,6 +390,8 @@ function buildNativePayload(message: NativePushMessagePayload, row: NativePushTa
       notificationId: message.notificationId,
       platform: row.platform,
       deviceId: row.id,
+      sentAt,
+      expiresAt,
     },
   };
 }
@@ -451,6 +465,8 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
     "apns-topic": config.bundleId,
     "apns-push-type": "alert",
     "apns-priority": "10",
+    "apns-expiration": String(Math.floor(Date.now() / 1000) + nativePushTtlSeconds(message.notificationKind)),
+    "apns-collapse-id": nativeCollapseId(message),
     "content-type": "application/json",
   };
 
@@ -576,6 +592,13 @@ async function sendFcmNotification(row: NativePushTargetRow, message: NativePush
         data: stringifyFcmData(buildNativePayload(message, row).data),
         android: {
           priority: "HIGH",
+          ttl: `${nativePushTtlSeconds(message.notificationKind)}s`,
+          collapse_key: nativeCollapseId(message),
+          notification: {
+            channel_id: "aletheia-default",
+            tag: nativeCollapseId(message),
+            default_sound: true,
+          },
         },
       },
     }),

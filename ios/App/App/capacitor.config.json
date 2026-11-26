@@ -7,12 +7,7 @@
 			"enabled": true
 		},
 		"PushNotifications": {
-			"presentationOptions": [
-				"badge",
-				"sound",
-				"banner",
-				"list"
-			]
+			"presentationOptions": []
 		},
 		"SystemBars": {
 			"insetsHandling": "css",

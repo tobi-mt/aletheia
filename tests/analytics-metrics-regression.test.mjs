@@ -4,6 +4,8 @@ import test from "node:test";
 
 const analytics = readFileSync(new URL("../src/lib/analytics.ts", import.meta.url), "utf8");
 const dashboard = readFileSync(new URL("../src/app/internal/analytics/analytics-dashboard.tsx", import.meta.url), "utf8");
+const client = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
+const notificationReport = readFileSync(new URL("../src/lib/notification-delivery-report.ts", import.meta.url), "utf8");
 
 test("human analytics excludes cron traffic and uses a real rolling 24-hour window", () => {
   assert.match(analytics, /COALESCE\(\$\{alias\}\.source, ''\) <> 'cron'/);
@@ -13,10 +15,25 @@ test("human analytics excludes cron traffic and uses a real rolling 24-hour wind
 
 test("journey funnel requires milestones to happen in sequence", () => {
   assert.match(analytics, /MIN\(created_at\) AS opened_at[\s\S]*?event_name = 'app_opened'/);
+  assert.match(analytics, /metadata->>'onboarding_required' = 'true'/);
   assert.match(analytics, /opened_at::date >= \$\{startDateSql\}/);
   assert.match(analytics, /onboarded_at >= opened_at/);
   assert.match(analytics, /asked_at >= onboarded_at/);
   assert.doesNotMatch(analytics, /CASE WHEN authenticated_at >= opened_at/);
+});
+
+test("onboarding analytics cohorts only eligible first-run people with stable variants", () => {
+  assert.match(client, /onboarding_required: onboardingRequired/);
+  assert.match(client, /analytics_schema_version: 2/);
+  assert.match(client, /assignExperimentVariant\(window\.localStorage, "activation_onboarding_v1"\)/);
+  assert.match(client, /experiment: "activation_onboarding_v1"[\s\S]*?variant: onboardingVariant/);
+  assert.doesNotMatch(client, /experiment: "whole_product_refinement_v1",\s*variant: "refined_information_architecture",\s*\}\);/);
+});
+
+test("notification blockers exclude accounts that never opted into push", () => {
+  assert.match(notificationReport, /subscription_history AS/);
+  assert.match(notificationReport, /COALESCE\(subscription_history\.total_subscription_count, 0\) > 0/);
+  assert.match(notificationReport, /FROM push_subscriptions\s+ORDER BY user_id, updated_at DESC/);
 });
 
 test("retention measures return windows only after cohorts mature", () => {
@@ -38,6 +55,9 @@ test("dashboard exposes privacy-safe audience and product-health dimensions", ()
   assert.match(analytics, /'acquisition', COALESCE\(NULLIF\(source/);
   assert.match(analytics, /'returning_rate' AS metric/);
   assert.match(analytics, /'activation_rate'/);
+  assert.match(analytics, /'eligible_activation_rate'/);
+  assert.match(analytics, /'outcome_response_rate'/);
+  assert.match(analytics, /'positive_outcome_rate'/);
   assert.match(analytics, /'impact_rate'/);
   assert.match(analytics, /feature_destinations.*feature_destination_opened/);
   assert.match(analytics, /audienceBreakdowns: audienceBreakdownRows/);
@@ -47,11 +67,16 @@ test("dashboard exposes privacy-safe audience and product-health dimensions", ()
 test("dashboard reports impact experiments and diagnosable authentication failures", () => {
   assert.match(analytics, /event_name IN \('answer_feedback', 'meaningful_outcome_recorded'\)/);
   assert.match(analytics, /impactBreakdowns: impactBreakdownRows/);
-  assert.match(analytics, /event_name IN \('experiment_exposed', 'experiment_converted', 'onboarding_completed'\)/);
+  assert.match(analytics, /WITH exposures AS[\s\S]*?event_name = 'experiment_exposed'/);
+  assert.match(analytics, /conversions\.created_at >= exposures\.exposed_at/);
+  assert.match(analytics, /metadata->>'variant' <> 'unassigned'/);
+  assert.match(analytics, /COALESCE\(metadata->>'eligible', 'true'\) = 'true'/);
   assert.match(analytics, /experiments: experimentRows/);
   assert.match(analytics, /authFailures30d: authFailureRows/);
   assert.match(analytics, /metadata->>'method'/);
   assert.match(analytics, /metadata->>'reason'/);
+  assert.match(analytics, /NULLIF\(metadata->>'runtime', ''\)/);
+  assert.match(dashboard, /<th className="pb-2">Platform<\/th>/);
 });
 
 test("dashboard turns measurements into prioritized actions without double-counting active people", () => {

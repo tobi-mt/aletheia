@@ -6,6 +6,7 @@ type ReportRow = {
   name: string | null;
   avatar_url: string | null;
   active_subscription_count: string | number;
+  total_subscription_count: string | number;
   latest_subscription_id: string | null;
   preferred_local_hour: number | null;
   preferred_timezone: string | null;
@@ -201,13 +202,17 @@ export async function getNotificationDeliveryReport(lookbackDays = 30): Promise<
               last_challenge_notified_at,
               updated_at
        FROM push_subscriptions
-       WHERE enabled = TRUE
        ORDER BY user_id, updated_at DESC, created_at DESC
      ),
      subscription_counts AS (
        SELECT user_id, COUNT(*)::int AS active_subscription_count
        FROM push_subscriptions
        WHERE enabled = TRUE
+       GROUP BY user_id
+     ),
+     subscription_history AS (
+       SELECT user_id, COUNT(*)::int AS total_subscription_count
+       FROM push_subscriptions
        GROUP BY user_id
      ),
      comment_blockers AS (
@@ -240,6 +245,7 @@ export async function getNotificationDeliveryReport(lookbackDays = 30): Promise<
             u.name,
             u.avatar_url,
             COALESCE(subscription_counts.active_subscription_count, 0) AS active_subscription_count,
+            COALESCE(subscription_history.total_subscription_count, 0) AS total_subscription_count,
             latest_subscription.latest_subscription_id,
             latest_subscription.preferred_local_hour,
             latest_subscription.preferred_timezone,
@@ -258,10 +264,15 @@ export async function getNotificationDeliveryReport(lookbackDays = 30): Promise<
             failure_rows.latest_failure_at
       FROM users u
       LEFT JOIN subscription_counts ON subscription_counts.user_id = u.id
+      LEFT JOIN subscription_history ON subscription_history.user_id = u.id
       LEFT JOIN latest_subscription ON latest_subscription.user_id = u.id
       LEFT JOIN comment_blockers ON comment_blockers.user_id = u.id
       LEFT JOIN nudge_blockers ON nudge_blockers.user_id = u.id
       LEFT JOIN failure_rows ON failure_rows.user_id = u.id
+      WHERE COALESCE(subscription_history.total_subscription_count, 0) > 0
+         OR COALESCE(comment_blockers.comment_no_recipient_row_count, 0) > 0
+         OR COALESCE(nudge_blockers.nudge_no_recipient_row_count, 0) > 0
+         OR COALESCE(failure_rows.failure_count, 0) > 0
       ORDER BY
         (COALESCE(subscription_counts.active_subscription_count, 0) = 0) DESC,
         (COALESCE(comment_blockers.comment_no_recipient_row_count, 0)

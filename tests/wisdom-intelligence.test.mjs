@@ -3,6 +3,10 @@ import test from "node:test";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
 import { requiredBiblicalEvidenceCount, resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
 import { defaultPreferences, normalizePreferences } from "../src/lib/localization.ts";
+import { readFileSync } from "node:fs";
+
+const intelligenceSource = readFileSync(new URL("../src/lib/wisdom-intelligence.ts", import.meta.url), "utf8");
+const modeFitRouteSource = readFileSync(new URL("../src/app/api/chat/mode-fit/route.ts", import.meta.url), "utf8");
 
 const sources = [
   { theme: "Stewardship", scripture: "Proverbs 21:5", principle: "Patient planning matters.", context: "Planning", application: "Write the plan.", keywords: ["plan", "money"], emotions: ["pressure"], questions: ["What is the next step?"] },
@@ -111,4 +115,13 @@ test("biblical evidence requirements scale with question substance and preserve 
   assert.equal(requiredBiblicalEvidenceCount("How should I weigh this opportunity, its cost, my motives, and its effect on my family?", 8, "general"), 2);
   assert.equal(requiredBiblicalEvidenceCount("I may hurt myself", 8, "crisis"), 1);
   assert.equal(requiredBiblicalEvidenceCount("Any question", 0, "general"), 0);
+});
+
+test("auto-fit classifies the underlying need without inventing a diagnosis", () => {
+  assert.match(intelligenceSource, /Classify the primary problem the person needs help solving, not merely the nouns/);
+  assert.match(intelligenceSource, /expressed emotion and motive without diagnosing, pathologizing, or inventing personal history/);
+  assert.match(intelligenceSource, /money given from guilt may be Generosity/);
+  assert.match(intelligenceSource, /work damaging health or marriage may be Life/);
+  assert.match(intelligenceSource, /Use ambiguity\.reason to name the primary need/);
+  assert.match(modeFitRouteSource, /Consider expressed emotion, motive, pressure, desired change, and relational stakes/);
 });

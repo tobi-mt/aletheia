@@ -631,6 +631,13 @@ test("analytics summary route forwards notification sync failure causes and filt
         includeAutomation: true,
         startDate: "2026-06-01",
         endDate: "2026-06-30",
+        segments: {
+          identity: "all",
+          device: undefined,
+          country: undefined,
+          acquisition: undefined,
+          language: undefined,
+        },
       },
     ]);
   } finally {
@@ -802,7 +809,9 @@ test("push notification retry helper uses exponential backoff and retries transi
     delays.push(delay);
     return originalSetTimeout(callback, 0, ...args);
   });
-  webpush.sendNotification = async () => {
+  let deliveryOptions = null;
+  webpush.sendNotification = async (_subscription, _payload, options) => {
+    deliveryOptions = options;
     calls += 1;
     if (calls === 1) {
       throw new Error("timeout");
@@ -828,6 +837,7 @@ test("push notification retry helper uses exponential backoff and retries transi
 
     assert.equal(calls, 2);
     assert.ok(delays.includes(800));
+    assert.deepEqual(deliveryOptions, { TTL: 48 * 60 * 60, urgency: "normal" });
   } finally {
     Math.random = originalRandom;
     globalThis.setTimeout = originalSetTimeout;

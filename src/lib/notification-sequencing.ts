@@ -128,6 +128,27 @@ export async function scheduleDecisionNotifications(
  */
 export async function getPendingNotifications(now = new Date()) {
   const currentTime = now.toISOString();
+  const oldestUsefulTime = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+
+  // A reminder is useful only while its decision is still active and while the
+  // scheduled moment is recent. Expire old rows explicitly so a recovered cron
+  // or device cannot release a backlog of stale reminders days later.
+  await run(
+    `UPDATE notification_schedules AS schedules
+     SET status = 'expired'
+     WHERE schedules.status = 'pending'
+       AND (
+         schedules.scheduled_for < ?
+         OR EXISTS (
+           SELECT 1
+           FROM wisdom_decisions AS decisions
+           WHERE decisions.id = schedules.decision_id
+             AND decisions.status = 'closed'
+         )
+       )`,
+    oldestUsefulTime
+  );
+
   const notifications = await many<{
     id: string;
     decision_id: string;
@@ -136,11 +157,18 @@ export async function getPendingNotifications(now = new Date()) {
     title: string;
     body: string;
   }>(
-    `SELECT id, decision_id, user_id, day, title, body
-     FROM notification_schedules
-     WHERE status = 'pending' AND scheduled_for <= ?
-     ORDER BY scheduled_for ASC
+    `SELECT schedules.id, schedules.decision_id, schedules.user_id, schedules.day, schedules.title, schedules.body
+     FROM notification_schedules AS schedules
+     INNER JOIN wisdom_decisions AS decisions
+       ON decisions.id = schedules.decision_id
+      AND decisions.user_id = schedules.user_id
+     WHERE schedules.status = 'pending'
+       AND decisions.status <> 'closed'
+       AND schedules.scheduled_for >= ?
+       AND schedules.scheduled_for <= ?
+     ORDER BY schedules.scheduled_for ASC
      LIMIT 100`,
+    oldestUsefulTime,
     currentTime
   );
   return notifications || [];

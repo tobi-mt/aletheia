@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
 import process from "node:process";
 
 const requireAll = process.argv.includes("--require-all");
@@ -30,13 +31,16 @@ const physicalIosDevices = onlineAppleDeviceSection
 const identities = capture("security", ["find-identity", "-v", "-p", "codesigning"]);
 const hasDevelopmentIdentity = /Apple Development/.test(identities.output);
 const hasDistributionIdentity = /Apple Distribution/.test(identities.output);
+const googleServicesPath = new URL("../android/app/google-services.json", import.meta.url);
+const hasAndroidFirebaseConfig = existsSync(googleServicesPath) && statSync(googleServicesPath).size > 0;
 
 console.log(`[native readiness] Android physical devices: ${androidDevices.length}`);
 console.log(`[native readiness] iOS physical devices online: ${physicalIosDevices.length}`);
 console.log(`[native readiness] Apple Development identity: ${hasDevelopmentIdentity ? "yes" : "no"}`);
 console.log(`[native readiness] Apple Distribution identity: ${hasDistributionIdentity ? "yes" : "no"}`);
+console.log(`[native readiness] Android Firebase client config: ${hasAndroidFirebaseConfig ? "yes" : "no"}`);
 console.log("[native readiness] Physical acceptance still requires push delivery, keyboard, VoiceOver, and TalkBack journey evidence.");
 
-if (requireAll && (androidDevices.length === 0 || physicalIosDevices.length === 0 || !hasDistributionIdentity)) {
+if (requireAll && (androidDevices.length === 0 || physicalIosDevices.length === 0 || !hasDistributionIdentity || !hasAndroidFirebaseConfig)) {
   process.exitCode = 1;
 }

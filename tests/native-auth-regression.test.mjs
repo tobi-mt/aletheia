@@ -188,10 +188,30 @@ test("native notification badges cannot survive an iOS reinstall or device re-re
   assert.match(client, /removeAllDeliveredNotifications/);
   assert.match(client, /App\.addListener\("appStateChange"/);
   assert.match(client, /if \(!startupPaintReady \|\| !isNativePushShell\(\)/);
-  assert.match(client, /\}, \[startupPaintReady\]\);/);
+  assert.match(client, /pushNotificationReceived/);
+  assert.match(client, /notification_foreground_discarded/);
+  assert.match(client, /registerNativePushSubscription\(\{ silent: true \}\)/);
+  assert.match(client, /persistNotificationSubscriptionRefreshAt\(\)/);
   assert.match(appDelegate, /didFinishLaunchingWithOptions[\s\S]*?clearNotificationBadge\(\)/);
   assert.match(appDelegate, /removeAllDeliveredNotifications\(\)/);
   assert.match(appDelegate, /setBadgeCount\(0\)/);
+});
+
+test("native push uses expiring collapsed delivery and calm foreground presentation", async () => {
+  const [nativePush, config, client, sequencing] = await Promise.all([
+    read("src/lib/native-push.ts"),
+    read("capacitor.config.ts"),
+    read("src/components/aletheia-app.tsx"),
+    read("src/lib/notification-sequencing.ts"),
+  ]);
+  assert.match(nativePush, /"apns-expiration"/);
+  assert.match(nativePush, /"apns-collapse-id"/);
+  assert.match(nativePush, /collapse_key/);
+  assert.match(nativePush, /channel_id: "aletheia-default"/);
+  assert.match(config, /presentationOptions: \[\]/);
+  assert.match(client, /pointer-events-none fixed/);
+  assert.match(sequencing, /SET status = 'expired'/);
+  assert.match(sequencing, /decisions\.status <> 'closed'/);
 });
 
 test("session checks stay on the splash instead of flashing the welcome gate", async () => {
@@ -251,25 +271,27 @@ test("native social authentication uses one main-thread system session and retur
   assert.doesNotMatch(appleAuth, /returnUrl\.searchParams\.set\("view", "account"\)/);
 });
 
-test("successful sign-in defaults to Home and retains Account only for an explicit Account entry", async () => {
+test("successful sign-in returns to the task and section where authentication was requested", async () => {
   const client = await read("src/components/aletheia-app.tsx");
   const oauthComplete = await read("src/app/api/auth/oauth/complete/route.ts");
   const googleAuth = client.slice(client.indexOf("async function handleGoogleSignIn"), client.indexOf("async function handleAppleSignIn"));
   const appleAuth = client.slice(client.indexOf("async function handleAppleSignIn"), client.indexOf("async function updateProfileAvatar"));
   const emailAuth = client.slice(client.indexOf("async function handleAuth"), client.indexOf("async function logout"));
 
-  assert.match(googleAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
-  assert.match(googleAuth, /postAuthDestination = `\/\?auth=google_success\$\{returnToAccount \? "&view=account" : ""\}`/);
+  assert.match(googleAuth, /new URLSearchParams\(\{[\s\S]*?auth: "google_success",[\s\S]*?view: activeView,[\s\S]*?home: homeSection/);
+  assert.match(googleAuth, /postAuthDestination = `\/\?\$\{postAuthParams\.toString\(\)\}`/);
   assert.doesNotMatch(appleAuth, /returnToAccount/);
   assert.doesNotMatch(appleAuth, /apple_returning"\}&view=account/);
   assert.match(emailAuth, /const returnToAccount = activeView === "account" && !welcomeAuthOpen/);
-  assert.match(emailAuth, /else if \(!needsAccountOnboarding && !returnToAccount\) \{[\s\S]*?setActiveView\("companion", "post_sign_in"\)/);
   const successfulOAuthRedirect = oauthComplete.slice(
     oauthComplete.indexOf('const requestedNext = request.nextUrl.searchParams.get("next")'),
     oauthComplete.indexOf("return NextResponse.redirect(redirectUrl);", oauthComplete.indexOf('const requestedNext = request.nextUrl.searchParams.get("next")'))
   );
   assert.doesNotMatch(successfulOAuthRedirect, /redirectUrl\.searchParams\.set\("view", "account"\)/);
-  assert.match(client, /if \(!isNewSocialAccount && params\.get\("view"\) === "account"\)/);
+  assert.match(client, /const requestedView = params\.get\("view"\)/);
+  assert.match(client, /validViews\.includes\(requestedView as View\)/);
+  assert.match(client, /const requestedHome = params\.get\("home"\)/);
+  assert.match(client, /validHomeSections\.includes\(requestedHome as HomeSection\)/);
 });
 
 test("native uses ManagedAudio before browser speech and verifies push configuration per platform", async () => {

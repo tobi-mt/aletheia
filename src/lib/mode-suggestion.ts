@@ -21,9 +21,12 @@ const SIGNALS: Record<Mode, ModeSignals> = {
   [MODE_KEYS.MONEY]: {
     contextPairs: [
       { intent: ["afford", "pay", "cost"], context: ["home", "house", "car", "rent", "bill"] },
+      { intent: ["anxious", "anxiety", "afraid", "fear", "worry", "secure", "enough", "comparison"], context: ["money", "income", "debt", "saving", "spending", "financial"] },
+      { intent: ["impuls", "control", "avoid", "regret"], context: ["spend", "buy", "purchase", "money", "budget"] },
     ],
     phrases: [
       "credit card", "pay off debt", "student loan", "home loan", "financial plan", "emergency fund",
+      "money anxiety", "financially safe", "never have enough money", "impulse spending", "afraid of running out of money",
       "tarjeta de crédito", "pagar deudas", "prêt étudiant", "carte de crédit", "schulden abzahlen",
       "kreditkarte", "cartão de crédito", "pagar dívida", "بطاقة ائتمان", "سداد الدين",
       "biyan bashi", "katin bashi", "kwụghachi ụgwọ", "kaadị kredit", "san gbese",
@@ -47,9 +50,12 @@ const SIGNALS: Record<Mode, ModeSignals> = {
     contextPairs: [
       { intent: ["productiv", "focus", "efficient", "procrastinat", "perform"], context: ["work", "job", "office", "career", "profession"] },
       { intent: ["lead", "manag", "delegat"], context: ["team", "employee", "staff", "coworker", "project"] },
+      { intent: ["prove", "worth", "approval", "fail", "disappoint", "perform"], context: ["boss", "manager", "work", "job", "career", "team"] },
+      { intent: ["overwhelm", "exhaust", "burnout", "boundary", "rest"], context: ["work", "job", "manager", "deadline", "career", "office"] },
     ],
     phrases: [
       "new job", "job offer", "leave my job", "quit my job", "career change", "start a business", "work burnout",
+      "work is consuming me", "disappoint my boss", "prove myself at work", "worth through work", "no boundaries at work",
       "productive at work", "productivity at work", "more productive at work", "focus at work", "work productivity",
       "nuevo trabajo", "oferta de trabajo", "cambio de carrera", "dejar mi trabajo",
       "productivo en el trabajo", "productiva en el trabajo", "productividad en el trabajo",
@@ -90,9 +96,12 @@ const SIGNALS: Record<Mode, ModeSignals> = {
   [MODE_KEYS.PURPOSE]: {
     contextPairs: [
       { intent: ["lost", "stuck", "uncertain", "confus"], context: ["direction", "calling", "purpose", "meaning", "future"] },
+      { intent: ["prove", "worth", "identity", "approval", "fear", "afraid"], context: ["success", "future", "path", "calling", "direction", "choice"] },
+      { intent: ["pressure", "expect", "supposed"], context: ["purpose", "path", "future", "calling", "direction"] },
     ],
     phrases: [
       "meaning of my life", "what am i called to", "sense of direction", "who am i becoming", "next chapter of my life",
+      "what should i do with my life", "afraid of choosing wrong", "trying to prove myself", "everyone expects me to",
       "sentido de mi vida", "cuál es mi llamado", "sentido de dirección",
       "sens de ma vie", "quelle est ma vocation", "manque de direction",
       "sinn meines lebens", "wozu bin ich berufen", "keine richtung",
@@ -121,9 +130,12 @@ const SIGNALS: Record<Mode, ModeSignals> = {
   [MODE_KEYS.GENEROSITY]: {
     contextPairs: [
       { intent: ["help", "support", "lend", "give"], context: ["financial", "money", "rent", "bill", "debt"] },
+      { intent: ["guilt", "obligat", "pressure", "afraid", "boundary", "resent", "no"], context: ["give", "help", "support", "lend", "family", "charity"] },
+      { intent: ["rescu", "enable", "responsib"], context: ["family", "friend", "give", "help", "money"] },
     ],
     phrases: [
       "help family financially", "give to charity", "how much should i give", "lend money to family",
+      "feel guilty saying no", "afraid to say no", "keep rescuing", "they depend on me financially",
       "ayudar económicamente a mi familia", "dar a la caridad", "cuánto debo dar",
       "aider financièrement ma famille", "donner à une association", "combien donner",
       "familie finanziell unterstützen", "für wohltätigkeit spenden", "wie viel soll ich geben",
@@ -152,9 +164,12 @@ const SIGNALS: Record<Mode, ModeSignals> = {
   [MODE_KEYS.LIFE]: {
     contextPairs: [
       { intent: ["heal", "repair", "improve", "struggl"], context: ["marriage", "relationship", "family", "friendship", "health"] },
+      { intent: ["shame", "ashamed", "hide", "lonely", "isolat", "stuck"], context: ["habit", "relationship", "family", "addiction", "temptation", "health"] },
+      { intent: ["safe", "unsafe", "abuse", "harm", "control"], context: ["relationship", "marriage", "family", "home"] },
     ],
     phrases: [
       "family conflict", "marriage problem", "feel lonely", "sexual feelings", "mental health", "physical health",
+      "ashamed of this habit", "unsafe in my relationship", "cannot stop hiding", "can't stop hiding", "relationship is controlling",
       "conflicto familiar", "problema matrimonial", "me siento solo", "salud mental",
       "conflit familial", "problème de couple", "je me sens seul", "santé mentale",
       "familienkonflikt", "eheproblem", "ich fühle mich einsam", "psychische gesundheit",
@@ -232,7 +247,7 @@ export function suggestModeForQuestion(
   if (
     !best ||
     best.mode === currentMode ||
-    (joinsDistinctConcerns && (runnerUp?.score ?? 0) >= 2) ||
+    (joinsDistinctConcerns && (runnerUp?.score ?? 0) >= 2 && best.score - (runnerUp?.score ?? 0) < 6) ||
     best.score < 2 ||
     best.score - (runnerUp?.score ?? 0) < 2 ||
     best.score - currentScore < 2

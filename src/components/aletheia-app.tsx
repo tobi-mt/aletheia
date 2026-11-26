@@ -21,7 +21,8 @@ import {
   useRailOverflowCue,
 } from "@/components/surfaces/surface-primitives";
 import { Capacitor, SystemBars, SystemBarsStyle, type PluginListenerHandle } from "@capacitor/core";
-import { readExperimentVariant } from "@/lib/product-experiments";
+import { assignExperimentVariant, readExperimentVariant } from "@/lib/product-experiments";
+import { recommendAnswerNextAction } from "@/lib/answer-next-action";
 import type { ModeFitPolicy } from "@/lib/mode-fit-rollout";
 import { App } from "@capacitor/app";
 import { PushNotifications } from "@capacitor/push-notifications";
@@ -2081,6 +2082,25 @@ function trackClientEvent(eventName: string, metadata: AnalyticsMetadata = {}) {
 
 function trackAuthFailure(metadata: AnalyticsMetadata) {
   trackClientEvent("auth_failure", metadata);
+}
+
+function classifyClientAuthFailure(error: unknown) {
+  const name = error instanceof Error ? error.name : "UnknownError";
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = `${name} ${message}`.toLowerCase();
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return { category: "network", reason: "offline", errorName: name };
+  }
+  if (/abort|cancel|closed|accessdenied/.test(normalized)) {
+    return { category: "canceled", reason: "user_canceled", errorName: name };
+  }
+  if (/network|fetch|load failed|internet|timeout/.test(normalized)) {
+    return { category: "network", reason: "network_failure", errorName: name };
+  }
+  if (/configuration|client id|provider/.test(normalized)) {
+    return { category: "configuration", reason: "provider_configuration", errorName: name };
+  }
+  return { category: "provider_failure", reason: "start_failed", errorName: name };
 }
 
 async function getReliableServiceWorkerRegistration() {
@@ -5876,7 +5896,7 @@ export function AletheiaApp({
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
   const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
-  const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | "formation" | null>(null);
+  const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | "formation" | "listen" | null>(null);
   const [pendingLibraryEntryFocusId, setPendingLibraryEntryFocusId] = useState<string | null>(null);
   const [clientStateRestored, setClientStateRestored] = useState(false);
   const bootReadyReportedRef = useRef(false);
@@ -6075,6 +6095,8 @@ export function AletheiaApp({
   const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
   const [pendingChallengeFocus, setPendingChallengeFocus] = useState<"nudges" | null>(null);
   const appOpenedAtRef = useRef<number>(Date.now());
+  const firstMeaningfulActionRef = useRef(false);
+  const authAttemptInFlightRef = useRef(false);
   const guestQuestionCountRef = useRef(0);
   const authPromptSessionIdRef = useRef<string | null>(null);
   const authPromptActiveIdRef = useRef<string | null>(null);
@@ -6164,6 +6186,8 @@ export function AletheiaApp({
   const workspaceRef = useRef<HTMLElement | null>(null);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
+  const updateContextRef = useRef({ activeView, homeSection, query, decisionTitle, decisionPressure, journalBody });
+  updateContextRef.current = { activeView, homeSection, query, decisionTitle, decisionPressure, journalBody };
   const pendingViewportResetRef = useRef(false);
   const pendingWorkspaceFocusRef = useRef(false);
   const keyboardOpenRef = useRef(false);
@@ -7447,6 +7471,7 @@ export function AletheiaApp({
 
     let active = true;
     let actionHandle: PluginListenerHandle | null = null;
+    let receivedHandle: PluginListenerHandle | null = null;
     let appStateHandle: PluginListenerHandle | null = null;
 
     const clearNativeBadge = () => {
@@ -7480,12 +7505,38 @@ export function AletheiaApp({
       })
       .catch(() => undefined);
 
+    void PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      if (!active) {
+        return;
+      }
+      const data = notification.data as Record<string, unknown> | undefined;
+      const expiresAt = typeof data?.expiresAt === "string" ? Date.parse(data.expiresAt) : Number.NaN;
+      if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
+        trackClientEvent("notification_foreground_discarded", { reason: "expired" });
+        return;
+      }
+      const title = notification.title?.trim() || ts("labels.notifications");
+      const body = notification.body?.trim() || ts("notifications.notificationsEnabledBody");
+      announceWorkflow(title, body, "info", {
+        label: ts("labels.open"),
+        onClick: () => handleNativePushActionPerformed({ notification: { data: data ?? null } }),
+      });
+      trackClientEvent("notification_foreground_received", {
+        notification_kind: typeof data?.notificationKind === "string" ? data.notificationKind : "unknown",
+      });
+    })
+      .then((handle) => {
+        receivedHandle = handle;
+      })
+      .catch(() => undefined);
+
     return () => {
       active = false;
       void actionHandle?.remove().catch(() => undefined);
+      void receivedHandle?.remove().catch(() => undefined);
       void appStateHandle?.remove().catch(() => undefined);
     };
-  }, [startupPaintReady]);
+  }, [announceWorkflow, startupPaintReady, ts]);
 
   useEffect(() => {
     if (!clientStateRestored) {
@@ -7886,19 +7937,34 @@ export function AletheiaApp({
     } catch {
       // If storage is unavailable, still record the open with an ephemeral ID.
     }
+    let onboardingRequired = true;
+    let onboardingVariant: "control" | "focused" | "unassigned" = "unassigned";
+    try {
+      onboardingRequired = shouldShowOnboarding();
+      onboardingVariant = assignExperimentVariant(window.localStorage, "activation_onboarding_v1");
+    } catch {
+      // Analytics must never block the first-run experience when storage is unavailable.
+    }
     trackClientEvent("app_opened", {
       standalone: window.matchMedia("(display-mode: standalone)").matches,
+      onboarding_required: onboardingRequired,
+      analytics_schema_version: 2,
     });
     trackClientEvent("experiment_exposed", {
-      experiment: "whole_product_refinement_v1",
-      variant: "refined_information_architecture",
+      experiment: "activation_onboarding_v1",
+      variant: onboardingVariant,
+      eligible: onboardingRequired,
     });
   }, []);
 
   useEffect(() => {
-    const onBeforeInstallPrompt = () => {
+    const onBeforeInstallPrompt = (event: Event) => {
       trackClientEvent("pwa_install_prompt_available", {
         standalone: window.matchMedia("(display-mode: standalone)").matches,
+      });
+      const installEvent = event as Event & { userChoice?: Promise<{ outcome: "accepted" | "dismissed" }> };
+      void installEvent.userChoice?.then((choice) => {
+        trackClientEvent("pwa_install_prompt_outcome", { outcome: choice.outcome });
       });
     };
     const onAppInstalled = () => {
@@ -8150,15 +8216,21 @@ export function AletheiaApp({
         setOnboardingPath(isNewSocialAccount ? "account" : null);
         setShowWelcomeGate(false);
         setShowOnboarding(isNewSocialAccount);
-        // OAuth callbacks return to Home by default. Only retain Account when the
-        // user explicitly began sign-in there; notification and invite routes are
-        // handled independently and must keep their own destination.
-        if (!isNewSocialAccount && params.get("view") === "account") {
+        // Return people to the task they were doing before OAuth. Notification and
+        // invite routes still retain their own more specific destinations.
+        const requestedView = params.get("view");
+        const requestedHome = params.get("home");
+        const validViews: View[] = ["companion", "decisions", "reflect", "library", "account"];
+        const validHomeSections: HomeSection[] = ["today", "ask"];
+        if (!isNewSocialAccount && requestedView && validViews.includes(requestedView as View)) {
           traceStartup("aletheia-app:session-restore:replace-state:start", {
-            view: params.get("view"),
+            view: requestedView,
             auth: params.get("auth"),
           });
-          setActiveView("account");
+          setActiveView(requestedView as View, "post_sign_in_restore");
+          if (requestedView === "companion" && requestedHome && validHomeSections.includes(requestedHome as HomeSection)) {
+            setHomeSection(requestedHome as HomeSection, "post_sign_in_restore");
+          }
           window.history.replaceState({}, "", window.location.pathname);
           traceStartup("aletheia-app:session-restore:replace-state:ok");
         }
@@ -8468,6 +8540,15 @@ export function AletheiaApp({
             cycle_id: cycleId,
             reload_delay_ms: 1300,
             trigger: "service_worker_controllerchange",
+            active_view: updateContextRef.current.activeView,
+            home_section: updateContextRef.current.homeSection,
+            build_id: BUILD_ID,
+            had_unsaved_work: Boolean(
+              updateContextRef.current.query.trim() ||
+              updateContextRef.current.decisionTitle.trim() ||
+              updateContextRef.current.decisionPressure.trim() ||
+              updateContextRef.current.journalBody.trim()
+            ),
           });
           setIsRefreshingForUpdate(true);
           if (updateRefreshTimeoutRef.current !== null) {
@@ -8559,6 +8640,7 @@ export function AletheiaApp({
         setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       }
       if (isNativePushShell()) {
+        const nativePermission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
         const nativeStatusResponse = await fetch("/api/notifications/native", { cache: "no-store" }).catch(() => null);
         const nativeStatus = nativeStatusResponse?.ok
           ? await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; latestDevice?: { enabled?: boolean } | null }
@@ -8575,7 +8657,7 @@ export function AletheiaApp({
         setNotificationDeviceSubscribed(nativeDeviceSubscribed);
         setNotificationsEnabled(nativeDeviceSubscribed);
         setNotificationDiagnostics(null);
-        setNotificationPermission("default");
+        setNotificationPermission(nativePermission.receive === "granted" ? "granted" : nativePermission.receive === "denied" ? "denied" : "default");
         setNotificationStatus(
           !user
             ? ts('notifications.signInRequiredBody')
@@ -8585,6 +8667,14 @@ export function AletheiaApp({
                 : ts('notifications.notificationsOptionalWhenReady')
               : ts('notifications.nativeServerSetupRequiredBody')
         );
+        if (
+          user &&
+          nativeConfigured &&
+          nativePermission.receive === "granted" &&
+          (!nativeDeviceSubscribed || shouldRefreshNotificationSubscription())
+        ) {
+          void selfHealNotificationSubscription("status_load");
+        }
         return;
       }
       const response = await fetch("/api/notifications/status");
@@ -8709,7 +8799,7 @@ export function AletheiaApp({
         return;
       }
       if (
-        getBrowserNotificationPermission() === "granted" &&
+        (isNativePushShell() ? notificationPermission === "granted" : getBrowserNotificationPermission() === "granted") &&
         (!notificationsEnabled || !notificationDeviceSubscribed || shouldRefreshNotificationSubscription())
       ) {
         void selfHealNotificationSubscription("focus");
@@ -8731,7 +8821,7 @@ export function AletheiaApp({
       window.removeEventListener("focus", syncDeviceTimezone);
       document.removeEventListener("visibilitychange", syncDeviceTimezone);
     };
-  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user, notificationsEnabled, notificationDeviceSubscribed]);
+  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, notificationPermission, user, notificationsEnabled, notificationDeviceSubscribed]);
 
   // Detect newly accepted counsel invites
   useEffect(() => {
@@ -9337,6 +9427,15 @@ function startFirstRunGuestFlow() {
     setQuery((current) => current || modeProfile.prompts[0]);
     scrollToSection("companion-ask");
     announceWorkflow(ts('notifications.questionReady'), ts('notifications.questionReadyBody'), "success");
+  }
+
+  function openListenForScriptureFromHome() {
+    setRequestedLibrarySection("listen");
+    trackClientEvent("feature_destination_opened", {
+      surface: "home",
+      destination: "listen",
+    });
+    showView("library");
   }
 
   function carryCompanionCard(card: TodayCompanionCard) {
@@ -10820,12 +10919,16 @@ function startFirstRunGuestFlow() {
     }
     const requestController = new AbortController();
     chatAbortControllerRef.current = requestController;
+    const isFirstMeaningfulAction = !firstMeaningfulActionRef.current;
+    if (isFirstMeaningfulAction) firstMeaningfulActionRef.current = true;
     const questionAnalytics = {
       mode: questionMode,
       language: preferences.language,
       region: preferences.region,
       persisted: Boolean(user),
       followup: messages.some((message) => message.role === "aletheia"),
+      first_meaningful_action: isFirstMeaningfulAction,
+      milliseconds_since_app_open: Math.max(0, Date.now() - appOpenedAtRef.current),
       onboarding_variant: (() => {
         try { return readExperimentVariant(window.localStorage, "activation_onboarding_v1") ?? "unassigned"; } catch { return "unassigned"; }
       })(),
@@ -11079,6 +11182,8 @@ function startFirstRunGuestFlow() {
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (authAttemptInFlightRef.current) return;
+    authAttemptInFlightRef.current = true;
     const returnToAccount = activeView === "account" && !welcomeAuthOpen;
     trackClientEvent("auth_signin_started", { method: "email", flow: authMode });
     setIsWorking(true);
@@ -11203,6 +11308,7 @@ function startFirstRunGuestFlow() {
       }
       announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
     } finally {
+      authAttemptInFlightRef.current = false;
       setAuthProvider(null);
       setIsWorking(false);
     }
@@ -11219,6 +11325,22 @@ function startFirstRunGuestFlow() {
       user?.name?.trim().split(/\s+/).filter(Boolean)[0] ||
       user?.email?.trim().split("@")[0] ||
       null;
+    // A push token is account-bound state. Detach this device before the
+    // authenticated session disappears so the previous account cannot keep
+    // receiving reminders after sign-out or an account switch.
+    if (isNativePushShell()) {
+      await disableNativePushSubscription().catch(() => undefined);
+    } else if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration("/").catch(() => undefined);
+      const subscription = await registration?.pushManager.getSubscription().catch(() => null);
+      await fetch("/api/notifications/unsubscribe", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription?.endpoint }),
+      }).catch(() => undefined);
+      await subscription?.unsubscribe().catch(() => undefined);
+    }
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
@@ -11242,12 +11364,23 @@ function startFirstRunGuestFlow() {
   }
 
   async function handleGoogleSignIn() {
+    if (authAttemptInFlightRef.current || authStatus === "signing-in") return;
     if (!googleAuthAvailable) {
       setAuthError(ts('notifications.googleUnavailableBody'));
       setAuthNotice("");
       announceWorkflow(ts('notifications.googleUnavailable'), ts('notifications.googleUnavailableBody'), "warning");
       return;
     }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const message = `${ts('notifications.apiUnavailable')} ${ts('auth.useEmailToContinue')}`;
+      setAuthMode("login");
+      setAuthError(message);
+      setAuthNotice("");
+      trackAuthFailure({ method: "google", flow: "oauth_start", category: "network", reason: "offline", online: false });
+      announceWorkflow(ts('notifications.signInNotFinish'), message, "warning");
+      return;
+    }
+    authAttemptInFlightRef.current = true;
     setAuthStatus("signing-in");
     setAuthProvider("google");
     trackClientEvent("auth_signin_started", { method: "google", flow: "oauth_start" });
@@ -11263,8 +11396,12 @@ function startFirstRunGuestFlow() {
         ? buildCounselInviteUrl(counselInviteToken, window.location.href)
         : null;
       const inviteReturnUrl = challengeInviteReturnUrl ?? counselInviteReturnUrl;
-      const returnToAccount = activeView === "account" && !welcomeAuthOpen;
-      const postAuthDestination = `/?auth=google_success${returnToAccount ? "&view=account" : ""}`;
+      const postAuthParams = new URLSearchParams({
+        auth: "google_success",
+        view: activeView,
+        home: homeSection,
+      });
+      const postAuthDestination = `/?${postAuthParams.toString()}`;
       const callbackUrl = inviteReturnUrl
         ? `/api/auth/oauth/complete?next=${encodeURIComponent(inviteReturnUrl)}`
         : `/api/auth/oauth/complete?next=${encodeURIComponent(postAuthDestination)}`;
@@ -11290,21 +11427,28 @@ function startFirstRunGuestFlow() {
         callbackUrl,
       });
     } catch (error) {
+      const failure = classifyClientAuthFailure(error);
       const message = error instanceof Error
-        ? ts('notifications.signInNotFinish')
+        ? `${ts('notifications.signInNotFinish')} ${ts('auth.useEmailToContinue')}`
         : ts('notifications.signInNotFinish');
       trackAuthFailure({
         method: "google",
         flow: "oauth_start",
-        category: "provider_failure",
-        reason: "start_failed",
+        category: failure.category,
+        reason: failure.reason,
+        error_name: failure.errorName,
+        online: typeof navigator === "undefined" ? null : navigator.onLine,
+        native: Capacitor.isNativePlatform(),
       });
       setAuthStatus("guest");
       setAuthProvider(null);
+      setAuthMode("login");
       setAuthError(message);
       setAuthNotice("");
       setStatusMessage(message);
       announceWorkflow(ts('notifications.signInNotFinish'), message, "error");
+    } finally {
+      authAttemptInFlightRef.current = false;
     }
   }
 
@@ -11426,7 +11570,7 @@ function startFirstRunGuestFlow() {
   async function saveNativePushSubscription(token: string) {
     const platform = getNativePushPlatform();
     if (!platform) {
-      return { ok: false, status: 400, errorCode: "native_unsupported", error: "Native push is not available." };
+      return { ok: false, status: 400, errorCode: "native_unsupported", error: ts('notifications.apiUnavailable') };
     }
 
     const appInfo = await App.getInfo().catch(() => null);
@@ -11476,11 +11620,14 @@ function startFirstRunGuestFlow() {
     }).catch(() => undefined);
   }
 
-  async function registerNativePushSubscription() {
+  async function registerNativePushSubscription({ silent = false }: { silent?: boolean } = {}) {
+    const announceNativeRegistration = (...args: Parameters<typeof announceWorkflow>) => {
+      if (!silent) announceWorkflow(...args);
+    };
     const platform = getNativePushPlatform();
     if (!platform) {
       setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
-      announceWorkflow(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
+      announceNativeRegistration(ts('notifications.notificationsUnavailable'), ts('notifications.notificationsUnavailableBody'), "warning");
       return false;
     }
 
@@ -11491,7 +11638,7 @@ function startFirstRunGuestFlow() {
     if (permission.receive !== "granted") {
       trackClientEvent("notification_enable_failed", { reason: "permission_denied", platform });
       setNotificationStatus(ts('notifications.notificationsNotEnabledBody'));
-      announceWorkflow(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
+      announceNativeRegistration(ts('notifications.notificationsNotEnabled'), ts('notifications.notificationsNotEnabledBody'), "warning");
       return false;
     }
 
@@ -11561,7 +11708,7 @@ function startFirstRunGuestFlow() {
       }
       trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
       setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
-      announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      announceNativeRegistration(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
       console.error("Native push registration failed", error);
       return false;
     }
@@ -11572,7 +11719,7 @@ function startFirstRunGuestFlow() {
     } catch (error) {
       trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
       setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
-      announceWorkflow(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      announceNativeRegistration(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
       console.error("Native push registration failed", error);
       return false;
     }
@@ -11586,7 +11733,7 @@ function startFirstRunGuestFlow() {
         status: response.status,
       });
       setNotificationStatus(failureBody);
-      announceWorkflow(ts('notifications.notificationSyncFailed'), failureBody, "error");
+      announceNativeRegistration(ts('notifications.notificationSyncFailed'), failureBody, "error");
       return false;
     }
 
@@ -11596,8 +11743,9 @@ function startFirstRunGuestFlow() {
     setNotificationDeviceSubscribed(true);
     setNotificationPermission("granted");
     setNotificationStatus(ts('notifications.notificationsEnabledBody'));
+    persistNotificationSubscriptionRefreshAt();
     trackClientEvent("notification_self_healed", { trigger: "native_register" });
-    announceWorkflow(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBody'), "success");
+    announceNativeRegistration(ts('notifications.notificationsEnabled'), ts('notifications.notificationsEnabledBody'), "success");
     return true;
   }
 
@@ -11779,6 +11927,24 @@ function startFirstRunGuestFlow() {
     announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
 
+  async function sendTestNotification() {
+    if (notificationBusy || !user || !notificationsEnabled) return;
+    setNotificationBusy(true);
+    try {
+      const response = await fetch("/api/notifications/test", { method: "POST" });
+      if (!response.ok) throw new Error("notification_test_failed");
+      trackClientEvent("notification_test_sent", { runtime: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web" });
+      setNotificationStatus(ts("notifications.testNotificationSentBody"));
+      announceWorkflow(ts("notifications.testNotificationSent"), ts("notifications.testNotificationSentBody"), "success");
+    } catch {
+      trackClientEvent("notification_enable_failed", { reason: "test_delivery_failed" });
+      setNotificationStatus(ts("notifications.notificationSetupFailedBody"));
+      announceWorkflow(ts("notifications.notificationSetupFailed"), ts("notifications.notificationSetupFailedBody"), "error");
+    } finally {
+      setNotificationBusy(false);
+    }
+  }
+
   async function saveNotificationSubscription(
     subscription: PushSubscription,
     timing: NotificationTiming,
@@ -11844,7 +12010,11 @@ function startFirstRunGuestFlow() {
     notificationSelfHealInFlightRef.current = true;
     try {
       if (isNativePushShell()) {
-        return await registerNativePushSubscription();
+        const permission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
+        if (permission.receive !== "granted") {
+          return false;
+        }
+        return await registerNativePushSubscription({ silent: true });
       }
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
         return false;
@@ -13403,6 +13573,7 @@ function startFirstRunGuestFlow() {
                         onContinueDecision={continueDecisionFlow}
                         onOpenAccount={openManualContextFlow}
                         onAskOneQuestion={askOneQuestionFlow}
+                        onListenForScripture={openListenForScriptureFromHome}
                         onCarryToday={carryCompanionCard}
                         onReflectCard={reflectOnCompanionCard}
                         onAskAboutCard={askAboutCompanionCard}
@@ -13654,6 +13825,7 @@ function startFirstRunGuestFlow() {
                       onNotificationTimingChange={updateNotificationTiming}
                       onEnableNotifications={enableNotifications}
                       onDisableNotifications={disableNotifications}
+                      onSendTestNotification={sendTestNotification}
                       onRequestSignInForNotifications={promptSignInForNotifications}
                       messages={messages}
                       decisions={wisdomDecisions}
@@ -14856,14 +15028,14 @@ function WorkflowNotice({
 
   return (
     <div
-      className="app-safe-floating-panel fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px]"
+      className={`app-safe-floating-panel pointer-events-none fixed inset-x-3 z-50 md:bottom-auto md:left-auto md:right-4 md:top-24 md:w-[320px] ${readerOpen ? "bottom-36" : "bottom-24"}`}
       style={{
-        top: `calc(max(var(--aletheia-safe-area-top, env(safe-area-inset-top, 0px)), var(--aletheia-top-reserve, 0px)) + ${readerOpen ? "6.5rem" : "5rem"})`,
+        paddingBottom: "max(var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)), 0px)",
       }}
       role="status"
       aria-live="polite"
     >
-      <div className="rounded-2xl border px-3 py-3 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
+      <div className="pointer-events-auto rounded-2xl border px-3 py-3 shadow-xl backdrop-blur" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
         <div className="flex items-start gap-3">
           <div className="grid size-8 shrink-0 place-items-center rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.border }}>
             <span className="size-2 rounded-full" style={{ backgroundColor: colors.border }} />
@@ -15190,6 +15362,7 @@ function HomeDashboard({
   onContinueDecision,
   onOpenAccount,
   onAskOneQuestion,
+  onListenForScripture,
   onCarryToday,
   onReflectCard,
   onAskAboutCard,
@@ -15219,6 +15392,7 @@ function HomeDashboard({
   onContinueDecision: () => void;
   onOpenAccount: () => void;
   onAskOneQuestion: () => void;
+  onListenForScripture: () => void;
   onCarryToday: (card: TodayCompanionCard) => void;
   onReflectCard: (card: TodayCompanionCard) => void;
   onAskAboutCard: (card: TodayCompanionCard) => void;
@@ -15366,6 +15540,41 @@ function HomeDashboard({
               </span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={onListenForScripture}
+            className="premium-tap-card group flex min-h-16 w-full items-center gap-3 rounded-[1.15rem] border px-4 py-3 text-left transition hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            style={{
+              borderColor: `color-mix(in srgb, ${theme.primary} 42%, ${theme.borderLight})`,
+              background: `linear-gradient(120deg, color-mix(in srgb, ${theme.primary} 8%, ${theme.bgCardElevated}), ${theme.bgCardElevated})`,
+              color: theme.textPrimary,
+              '--tw-ring-color': theme.primary,
+              '--tw-ring-offset-color': theme.bgCard,
+            } as CSSProperties}
+            aria-label={ts('listen.compactTitle')}
+          >
+            <span
+              className="relative grid size-11 shrink-0 place-items-center rounded-[0.9rem] border shadow-sm"
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              aria-hidden="true"
+            >
+              <Mic size={18} />
+              <BookOpen className="absolute -bottom-1 -right-1 rounded-full p-0.5" size={15} style={{ backgroundColor: theme.bgCard, color: theme.primary }} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
+                {ts('listen.eyebrow')}
+              </span>
+              <span className="mt-0.5 block text-sm font-semibold leading-5 sm:text-base">
+                {ts('listen.compactTitle')}
+              </span>
+              <span className="mt-0.5 block text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {ts('listen.compactBody')}
+              </span>
+            </span>
+            <ChevronRight size={18} className="shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </button>
 
           {personalizationContextEmpty ? (
             <button
@@ -16620,6 +16829,7 @@ function AccountPanel({
   onNotificationTimingChange,
   onEnableNotifications,
   onDisableNotifications,
+  onSendTestNotification,
   onRequestSignInForNotifications,
   messages,
   decisions,
@@ -16696,6 +16906,7 @@ function AccountPanel({
   onNotificationTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
+  onSendTestNotification: () => void;
   onRequestSignInForNotifications: () => void;
   messages: ChatMessage[];
   decisions: WisdomDecision[];
@@ -16983,6 +17194,7 @@ function AccountPanel({
           onTimingChange={onNotificationTimingChange}
           onEnable={onEnableNotifications}
           onDisable={onDisableNotifications}
+          onSendTest={onSendTestNotification}
           onRequestSignIn={onRequestSignInForNotifications}
         />
       ) : null}
@@ -23865,6 +24077,7 @@ function NotificationPanel({
   onTimingChange,
   onEnable,
   onDisable,
+  onSendTest,
   onRequestSignIn,
 }: {
   theme: ThemeColors;
@@ -23884,6 +24097,7 @@ function NotificationPanel({
   onTimingChange: (patch: Partial<NotificationTiming>) => void;
   onEnable: () => void;
   onDisable: () => void;
+  onSendTest: () => void;
   onRequestSignIn: (mode?: AuthMode) => void;
 }) {
   const timezoneOptions = useMemo(
@@ -24108,6 +24322,22 @@ function NotificationPanel({
       )}
 
       <div className="mt-3 space-y-4">
+        {signedIn && enabled && deviceSubscribed ? (
+          <div className="flex items-center justify-between gap-3 rounded-[1rem] border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {ts("notifications.testNotificationBody")}
+            </p>
+            <button
+              type="button"
+              onClick={onSendTest}
+              disabled={busy}
+              className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+            >
+              {ts("notifications.sendTestNotification")}
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -27911,8 +28141,8 @@ function CompanionPanel({
               ) : null}
             </div>
 
-            <div className="space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
+            <div className="space-y-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>
                 {ui.yourQuestion}
               </p>
                 <textarea
@@ -27922,15 +28152,17 @@ function CompanionPanel({
                   value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`${copy.askPlaceholder} ${(focusLabels[0] ?? modeProfile.focus).toLowerCase()}...`}
-                className="min-h-44 w-full resize-none rounded-[1.4rem] border-2 px-4 py-4 text-[1rem] leading-7 outline-none transition placeholder:text-[0.96rem] sm:min-h-48 sm:text-sm"
+                data-testid="ask-question-composer"
+                className="min-h-52 w-full resize-none rounded-[1.55rem] border-2 px-4.5 py-5 text-[1.02rem] leading-7 outline-none transition placeholder:text-[1rem] focus-visible:ring-4 sm:min-h-44 sm:px-5 sm:py-4 sm:text-base"
                 style={{
-                  borderColor: theme.borderStrong,
-                  backgroundColor: theme.bgInput,
+                  borderColor: `color-mix(in srgb, ${theme.primary} 48%, ${theme.borderStrong})`,
+                  background: `linear-gradient(145deg, ${theme.bgInput}, color-mix(in srgb, ${theme.primary} 5%, ${theme.bgInput}))`,
                   color: theme.textPrimary,
-                  boxShadow: `0 10px 22px color-mix(in srgb, ${theme.primary} 8%, transparent)`,
-                }}
+                  boxShadow: `0 14px 30px color-mix(in srgb, ${theme.primary} 12%, transparent)`,
+                  '--tw-ring-color': `color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+                } as CSSProperties}
                 onFocus={(e) => { e.currentTarget.style.borderColor = theme.primary; }}
-                onBlur={(e) => e.currentTarget.style.borderColor = theme.borderStrong}
+                onBlur={(e) => e.currentTarget.style.borderColor = `color-mix(in srgb, ${theme.primary} 48%, ${theme.borderStrong})`}
               />
             </div>
 
@@ -28112,6 +28344,7 @@ function CompanionPanel({
                   ts={ts}
                   theme={theme}
                   exchange={currentExchange}
+                  currentMode={mode}
                   preferences={preferences}
                   ui={ui}
                   isSpeaking={isSpeaking}
@@ -29373,6 +29606,7 @@ function CurrentCounselCard({
   ts,
   theme,
   exchange,
+  currentMode,
   preferences,
   ui,
   isSpeaking,
@@ -29400,6 +29634,7 @@ function CurrentCounselCard({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
   exchange: ConversationExchange;
+  currentMode: Mode;
   preferences: UserPreferences;
   ui: UiText;
   isSpeaking: boolean;
@@ -29431,16 +29666,25 @@ function CurrentCounselCard({
     createAnswerCard: "Save as a wisdom card",
     shareAletheia: "Share this counsel",
   } : null;
-  const exchangeModeProfile = localizedModeProfile(exchange.mode, preferences.language);
+  // The synthetic welcome exchange predates the user's onboarding selection.
+  // Real counsel must remain tied to the lens that produced it, while welcome
+  // counsel should reflect the user's currently selected lens immediately.
+  const displayedMode = exchange.answer.id === "welcome" ? currentMode : exchange.mode;
+  const exchangeModeProfile = localizedModeProfile(displayedMode, preferences.language);
   const question = exchange.question?.text;
   const isThinking = exchange.answer.id === "thinking";
   const showDecisionActions = Boolean(question) && !isThinking;
   const continuation = question && !isThinking ? buildAnswerContinuation(question, exchange.answer.text, exchange.mode) : null;
+  const recommendedAction = question && !isThinking
+    ? recommendAnswerNextAction(question, exchange.answer.text)
+    : null;
   const moreCounselRailRef = useRef<HTMLDivElement | null>(null);
   const moreCounselRailHasOverflow = useRailOverflowCue(moreCounselRailRef, showDecisionActions, [showDecisionActions, exchange.id]);
-  const answerText = exchange.answer.id === "welcome" ? text.welcomeCounsel! : exchange.answer.text;
-  const lensLabel = exchangeModeProfile.displayLabel ?? exchange.mode;
-  const CurrentLensIcon = (modes.find((item) => item.label === exchange.mode) ?? modes[0]).icon;
+  const lensLabel = exchangeModeProfile.displayLabel ?? displayedMode;
+  const answerText = exchange.answer.id === "welcome"
+    ? text.welcomeCounsel!.replace("{mode}", lensLabel)
+    : exchange.answer.text;
+  const CurrentLensIcon = (modes.find((item) => item.label === displayedMode) ?? modes[0]).icon;
 
   return (
     <section className="space-y-3">
@@ -29558,11 +29802,20 @@ function CurrentCounselCard({
       ) : null}
       {showDecisionActions ? (
         <>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
-            <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
-            <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
-          </div>
+          <section className="mt-3 rounded-[1.1rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts("nextFaithfulStep")}
+            </p>
+            {recommendedAction === "wait" ? (
+              <CounselAction theme={theme} label={calmerActionCopy?.waitThreeDays ?? text.waitThreeDays!} onClick={() => onWait(exchange)} />
+            ) : recommendedAction === "counsel" ? (
+              <CounselAction theme={theme} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
+            ) : recommendedAction === "decision" ? (
+              <CounselAction theme={theme} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
+            ) : (
+              <CounselAction theme={theme} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
+            )}
+          </section>
           {!signedIn ? (
             <div className="mt-3 flex flex-col gap-3 rounded-[1rem] border p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
               <div className="min-w-0">
@@ -29591,6 +29844,9 @@ function CurrentCounselCard({
               {moreCounselRailHasOverflow ? <ChevronRight size={15} style={{ color: theme.accentGold, opacity: 0.76 }} /> : <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>{ts('showDetails')}</span>}
             </div>
             <div ref={moreCounselRailRef} className="mt-3 flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <CounselRailAction theme={theme} ts={ts} icon={Compass} label={text.trackThisDecision!} onClick={() => onTrackDecision(exchange)} />
+              <CounselRailAction theme={theme} ts={ts} icon={BookOpen} label={text.saveAsReflection!} onClick={() => onDraftReflection(exchange)} />
+              <CounselRailAction theme={theme} ts={ts} icon={Users} label={text.createCounselSummary!} onClick={() => onCreateCounselSummary(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Compass} label={calmerActionCopy?.goDeeper ?? text.goDeeper!} onClick={() => onGoDeeper(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Clock3} label={calmerActionCopy?.waitThreeDays ?? text.waitThreeDays!} onClick={() => onWait(exchange)} />
               <CounselRailAction theme={theme} ts={ts} icon={Share2} label={calmerActionCopy?.createAnswerCard ?? ts('labels.createAnswerCard')} onClick={() => onSharePostcard(exchange)} />
@@ -32582,7 +32838,7 @@ function LibraryPanel({
   mode: Mode;
   preferences: UserPreferences;
   ts: (key: string, fallback?: string) => string;
-  requestedSection: "saved" | "explore" | "formation" | null;
+  requestedSection: "saved" | "explore" | "formation" | "listen" | null;
   onRequestedSectionHandled: () => void;
   pendingEntryFocusId: string | null;
   onPendingEntryFocusHandled: () => void;

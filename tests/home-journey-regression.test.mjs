@@ -14,6 +14,28 @@ test("Home chooses one explainable next wise step and keeps secondary work resum
   assert.match(home, /continueJourneyRailHasOverflow \? <RailOverflowCorner/);
 });
 
+test("Home exposes a calm labeled shortcut to the canonical Scripture listening surface", () => {
+  const home = app.slice(app.indexOf("function HomeDashboard"), app.indexOf("function WeeklyReviewRailStat"));
+  const navigation = app.slice(app.indexOf("function openListenForScriptureFromHome"), app.indexOf("function carryCompanionCard"));
+  assert.match(home, /onClick=\{onListenForScripture\}/);
+  assert.match(home, /listen\.compactTitle/);
+  assert.match(home, /listen\.compactBody/);
+  assert.match(home, /<Mic size=\{18\}/);
+  assert.match(home, /<BookOpen className="absolute -bottom-1 -right-1/);
+  assert.match(navigation, /setRequestedLibrarySection\("listen"\)/);
+  assert.match(navigation, /surface: "home"/);
+  assert.match(navigation, /destination: "listen"/);
+  assert.match(navigation, /showView\("library"\)/);
+});
+
+test("Ask gives the mobile question composer primary visual weight", () => {
+  const ask = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function CurrentCounselCard"));
+  assert.match(ask, /data-testid="ask-question-composer"/);
+  assert.match(ask, /min-h-52/);
+  assert.match(ask, /focus-visible:ring-4/);
+  assert.match(ask, /linear-gradient\(145deg/);
+});
+
 test("journey priority covers reminders, counsel, active decisions, outcomes, and reflections", () => {
   const journey = app.slice(app.indexOf("const journeyItems = useMemo"), app.indexOf("const journeySearchItems = useMemo"));
   assert.match(journey, /kind: "reminder"/);

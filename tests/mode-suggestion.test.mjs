@@ -87,6 +87,33 @@ test("stays quiet for vague or genuinely cross-mode questions", () => {
   assert.equal(suggestModeForQuestion("What does meaningful work look like in my life?", "Life"), null);
 });
 
+test("classifies the underlying psychological need instead of only the surface topic", () => {
+  assert.deepEqual(
+    suggestModeForQuestion("I feel guilty saying no whenever my family asks me for money, and I am becoming resentful.", "Money"),
+    { mode: "Generosity", confidence: "very_high", evidence: "explicit_phrase" },
+  );
+  assert.equal(
+    suggestModeForQuestion("My job is consuming me and harming my marriage, but I am afraid to disappoint my boss.", "Work"),
+    null,
+  );
+  assert.equal(
+    suggestModeForQuestion("I keep chasing promotions because I need success to prove that I matter.", "Work")?.mode,
+    "Purpose",
+  );
+  assert.equal(
+    suggestModeForQuestion("I am anxious that I will never have enough money even though my budget is stable.", "Purpose")?.mode,
+    "Money",
+  );
+  assert.equal(
+    suggestModeForQuestion("I am ashamed of this habit and keep hiding it from everyone who cares about me.", "Money")?.mode,
+    "Life",
+  );
+  assert.equal(
+    suggestModeForQuestion("Everyone expects me to choose this path, but I am afraid it is not who I am becoming.", "Work")?.mode,
+    "Purpose",
+  );
+});
+
 test("supports distinctive questions in other app languages", () => {
   assert.equal(suggestModeForQuestion("¿Cómo puedo pagar deudas de mi tarjeta de crédito?", "Life")?.mode, "Money");
   assert.equal(suggestModeForQuestion("Soll ich dieses neue Jobangebot annehmen?", "Money")?.mode, "Work");

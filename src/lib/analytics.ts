@@ -72,12 +72,14 @@ const ALLOWED_EVENTS = new Set([
   "notification_self_heal_failed",
   "notification_clicked",
   "notification_timing_updated",
+  "notification_test_sent",
   "gate_hit_notifications",
   "onboarding_completed",
   "guided_journey_presented",
   "guided_journey_dismissed",
   "guided_journey_actioned",
   "pwa_install_prompt_available",
+  "pwa_install_prompt_outcome",
   "read_aloud_started",
   "rule_created",
   "rule_created_local",
@@ -626,6 +628,7 @@ export async function analyticsSummary(
          SELECT person_id, MIN(created_at) AS opened_at
          FROM scoped_events
          WHERE event_name = 'app_opened'
+           AND metadata->>'onboarding_required' = 'true'
          GROUP BY person_id
        ),
        entrants AS (
@@ -746,9 +749,10 @@ export async function analyticsSummary(
        GROUP BY retention.cohort_week
        ORDER BY retention.cohort_week ASC`
     ),
-    many<{ method: string; flow: string; category: string; reason: string; count: number; unique_people: number }>(
+    many<{ method: string; flow: string; platform: string; category: string; reason: string; count: number; unique_people: number }>(
       `SELECT COALESCE(metadata->>'method', 'unknown') AS method,
               COALESCE(metadata->>'flow', 'unknown') AS flow,
+              COALESCE(NULLIF(metadata->>'runtime', ''), NULLIF(metadata->>'platform', ''), 'unknown') AS platform,
               COALESCE(metadata->>'category', 'unknown') AS category,
               COALESCE(metadata->>'reason', 'unknown') AS reason,
               COUNT(*)::int AS count,
@@ -757,8 +761,10 @@ export async function analyticsSummary(
        WHERE event_name = 'auth_failure'
          AND ${selectedDateFilter}
          AND ${trafficFilter}
-       GROUP BY metadata->>'method', metadata->>'flow', metadata->>'category', metadata->>'reason'
-       ORDER BY count DESC, unique_people DESC, method ASC, flow ASC, category ASC, reason ASC`
+       GROUP BY metadata->>'method', metadata->>'flow',
+                COALESCE(NULLIF(metadata->>'runtime', ''), NULLIF(metadata->>'platform', ''), 'unknown'),
+                metadata->>'category', metadata->>'reason'
+       ORDER BY count DESC, unique_people DESC, method ASC, flow ASC, platform ASC, category ASC, reason ASC`
     ),
     many<{ topic: string; count: number; unique_people: number; helpful_rate: number }>(
       `WITH questions AS (
@@ -1140,6 +1146,9 @@ export async function analyticsSummary(
                   'question_asked', 'chat_question_sent', 'decision_created',
                   'journal_entry_created', 'gratitude_entry_created', 'scripture_opened'
                 )) AS activated,
+                BOOL_OR(event_name = 'app_opened' AND metadata->>'onboarding_required' = 'true') AS activation_eligible,
+                BOOL_OR(event_name IN ('question_asked', 'chat_question_sent')) AS received_answer,
+                BOOL_OR(event_name IN ('answer_feedback', 'meaningful_outcome_recorded')) AS outcome_response,
                 BOOL_OR(
                   event_name = 'meaningful_outcome_recorded'
                   OR (event_name = 'answer_feedback' AND metadata->>'value' IN ('helpful', 'mildly_helpful'))
@@ -1156,6 +1165,10 @@ export async function analyticsSummary(
            COUNT(*) FILTER (WHERE active_days >= 2)::int AS returning_people,
            COUNT(*) FILTER (WHERE active_days >= 3)::int AS engaged_people,
            COUNT(*) FILTER (WHERE activated)::int AS activated_people,
+           COUNT(*) FILTER (WHERE activation_eligible)::int AS activation_eligible_people,
+           COUNT(*) FILTER (WHERE activation_eligible AND activated)::int AS eligible_activated_people,
+           COUNT(*) FILTER (WHERE received_answer)::int AS answer_people,
+           COUNT(*) FILTER (WHERE outcome_response)::int AS outcome_response_people,
            COUNT(*) FILTER (WHERE impactful)::int AS impactful_people,
            COUNT(*) FILTER (WHERE shared)::int AS sharing_people
          FROM person_days
@@ -1168,6 +1181,15 @@ export async function analyticsSummary(
        UNION ALL
        SELECT 'activation_rate', activated_people, active_people,
               COALESCE(ROUND((100.0 * activated_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'eligible_activation_rate', eligible_activated_people, activation_eligible_people,
+              COALESCE(ROUND((100.0 * eligible_activated_people / NULLIF(activation_eligible_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'outcome_response_rate', outcome_response_people, answer_people,
+              COALESCE(ROUND((100.0 * outcome_response_people / NULLIF(answer_people, 0))::numeric, 1), 0)::double precision FROM activity
+       UNION ALL
+       SELECT 'positive_outcome_rate', impactful_people, outcome_response_people,
+              COALESCE(ROUND((100.0 * impactful_people / NULLIF(outcome_response_people, 0))::numeric, 1), 0)::double precision FROM activity
        UNION ALL
        SELECT 'impact_rate', impactful_people, active_people,
               COALESCE(ROUND((100.0 * impactful_people / NULLIF(active_people, 0))::numeric, 1), 0)::double precision FROM activity
@@ -1200,25 +1222,41 @@ export async function analyticsSummary(
        ORDER BY dimension ASC, count DESC`
     ),
     many<{ experiment: string; variant: string; exposed: number; converted: number; conversion_rate: number }>(
-      `WITH assignments AS (
+      `WITH exposures AS (
          SELECT metadata->>'experiment' AS experiment,
                 metadata->>'variant' AS variant,
                 COALESCE(anon_id, user_id, session_id) AS person_id,
-                BOOL_OR(event_name = 'experiment_exposed') AS exposed,
-                BOOL_OR(event_name IN ('experiment_converted', 'onboarding_completed')) AS converted
+                MIN(created_at) AS exposed_at
          FROM analytics_events
-         WHERE event_name IN ('experiment_exposed', 'experiment_converted', 'onboarding_completed')
+         WHERE event_name = 'experiment_exposed'
            AND ${selectedDateFilter}
            AND ${trafficFilter}
            AND metadata->>'experiment' IS NOT NULL
            AND metadata->>'variant' IS NOT NULL
+           AND metadata->>'variant' <> 'unassigned'
+           AND COALESCE(metadata->>'eligible', 'true') = 'true'
          GROUP BY metadata->>'experiment', metadata->>'variant', COALESCE(anon_id, user_id, session_id)
+       ), assignments AS (
+         SELECT exposures.experiment,
+                exposures.variant,
+                exposures.person_id,
+                EXISTS (
+                  SELECT 1
+                  FROM analytics_events conversions
+                  WHERE COALESCE(conversions.anon_id, conversions.user_id, conversions.session_id) = exposures.person_id
+                    AND conversions.created_at >= exposures.exposed_at
+                    AND conversions.event_name IN ('experiment_converted', 'onboarding_completed')
+                    AND conversions.metadata->>'experiment' = exposures.experiment
+                    AND conversions.metadata->>'variant' = exposures.variant
+                    AND ${trafficFilterWhere(includeAutomation, "conversions")}
+                ) AS converted
+         FROM exposures
        )
        SELECT experiment,
               variant,
-              COUNT(*) FILTER (WHERE exposed)::int AS exposed,
+              COUNT(*)::int AS exposed,
               COUNT(*) FILTER (WHERE converted)::int AS converted,
-              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE converted) / NULLIF(COUNT(*) FILTER (WHERE exposed), 0))::numeric, 1), 0)::double precision AS conversion_rate
+              COALESCE(ROUND((100.0 * COUNT(*) FILTER (WHERE converted) / NULLIF(COUNT(*), 0))::numeric, 1), 0)::double precision AS conversion_rate
        FROM assignments
        GROUP BY experiment, variant
        ORDER BY experiment ASC, variant ASC`

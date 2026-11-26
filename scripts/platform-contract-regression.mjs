@@ -49,6 +49,7 @@ if (nativeSafeServiceWorkerGuards.length < 2) {
 requireMatch(nativeConfig, new RegExp(`appId:\\s*"${APP_ID.replaceAll(".", "\\.")}"`), "Capacitor appId drifted", failures);
 requireMatch(androidBuild, new RegExp(`namespace\\s*=\\s*"${APP_ID.replaceAll(".", "\\.")}"`), "Android namespace drifted", failures);
 requireMatch(androidBuild, new RegExp(`applicationId\\s+"${APP_ID.replaceAll(".", "\\.")}"`), "Android applicationId drifted", failures);
+requireMatch(androidBuild, /google-services\.json is required for Android release builds/, "Android release builds can silently ship without Firebase push configuration", failures);
 requireMatch(androidStrings, new RegExp(`<string name="custom_url_scheme">${APP_ID.replaceAll(".", "\\.")}</string>`), "Android callback scheme drifted", failures);
 requireMatch(plist, new RegExp(`<string>${APP_ID.replaceAll(".", "\\.")}</string>`), "iOS callback scheme drifted", failures);
 

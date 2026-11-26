@@ -114,6 +114,7 @@ type ExperimentRow = {
 type AuthFailureRow = {
   method: string;
   flow: string;
+  platform: string;
   category: string;
   reason: string;
   count: number;
@@ -533,15 +534,18 @@ function percentageChange(current: number, previous: number) {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-function buildRangeMomentum(rows: UsageTrendRow[]) {
-  const midpoint = Math.floor(rows.length / 2);
-  const previous = rows.slice(0, midpoint);
-  const current = rows.slice(midpoint);
-  const average = (values: UsageTrendRow[], key: "events" | "unique_people") =>
-    values.length > 0 ? values.reduce((sum, row) => sum + row[key], 0) / values.length : 0;
+function buildRangeMomentum(rows: UsageTrendRow[], generatedAt?: string) {
+  const generatedDay = generatedAt?.slice(0, 10);
+  const completedRows = generatedDay
+    ? rows.filter((row) => row.bucket_start.slice(0, 10) < generatedDay)
+    : rows;
+  const [previous, current] = completedRows.slice(-2);
+  if (!previous || !current) {
+    return { eventChange: null, activeUserChange: null };
+  }
   return {
-    eventChange: percentageChange(average(current, "events"), average(previous, "events")),
-    activeUserChange: percentageChange(average(current, "unique_people"), average(previous, "unique_people")),
+    eventChange: percentageChange(current.events, previous.events),
+    activeUserChange: percentageChange(current.unique_people, previous.unique_people),
   };
 }
 
@@ -1257,7 +1261,7 @@ export default function AnalyticsDashboard() {
 
   async function shareReportSnapshot() {
     if (!payload) return setError("Load the dashboard before sharing a snapshot.");
-    const summary = `Aletheia analytics — ${formatRangeLabel(selectedRange, reportTs)}\nActive people: ${activePeople}\nEvents: ${overview.events_30d ?? 0}\nActivation: ${growthMetrics.activation_rate?.rate ?? 0}%\n30-day retention: ${monthlyCohorts.at(-1)?.retention_pct ?? 0}%`;
+    const summary = `Aletheia analytics — ${formatRangeLabel(selectedRange, reportTs)}\nActive people: ${activePeople}\nEvents: ${overview.events_30d ?? 0}\nEligible activation: ${(growthMetrics.eligible_activation_rate ?? growthMetrics.activation_rate)?.rate ?? 0}%\n30-day retention: ${monthlyCohorts.at(-1)?.retention_pct ?? 0}%`;
     try {
       if (navigator.share) await navigator.share({ title: "Aletheia analytics snapshot", text: summary });
       else await navigator.clipboard.writeText(summary);
@@ -1335,6 +1339,10 @@ export default function AnalyticsDashboard() {
   const audienceRows = payload?.audienceBreakdowns ?? [];
   const growthMetrics = Object.fromEntries((payload?.growthMetrics ?? []).map((row) => [row.metric, row]));
   const previousGrowthMetrics = Object.fromEntries((comparisonPayload?.growthMetrics ?? []).map((row) => [row.metric, row]));
+  const activationMetric = growthMetrics.eligible_activation_rate ?? growthMetrics.activation_rate;
+  const previousActivationMetric = previousGrowthMetrics.eligible_activation_rate ?? previousGrowthMetrics.activation_rate;
+  const positiveOutcomeMetric = growthMetrics.positive_outcome_rate ?? growthMetrics.impact_rate;
+  const outcomeResponseMetric = growthMetrics.outcome_response_rate;
   const impactRows = payload?.impactBreakdowns ?? [];
   const experimentRows = payload?.experiments ?? [];
   const authFailureRows = payload?.authFailures30d ?? [];
@@ -1367,10 +1375,10 @@ export default function AnalyticsDashboard() {
   const notificationSyncFailureTrend = buildNotificationSyncFailureSeries(notificationSyncFailureTrendRows, reportTs);
   const notificationSyncFailureSpike = buildNotificationSyncFailureSpike(notificationSyncFailureTrendRows);
   const selectedUsageCard = usageCards.find((card) => card.period === selectedPeriod) ?? usageCards[0];
-  const rangeMomentum = buildRangeMomentum(payload?.usageTrends?.daily ?? []);
+  const rangeMomentum = buildRangeMomentum(payload?.usageTrends?.daily ?? [], payload?.generatedAt);
   const actionInsights = buildDashboardInsights({
     funnelRows,
-    growthMetrics,
+    growthMetrics: { ...growthMetrics, activation_rate: activationMetric, impact_rate: positiveOutcomeMetric },
     notificationIssues: notificationReportSummary?.usersWithIssues ?? 0,
     authFailureRows,
     authPrompt: authPromptOverview,
@@ -1397,9 +1405,9 @@ export default function AnalyticsDashboard() {
   });
   const alerts = [
     activePeople < targets.active_people ? `Active people are below the ${targets.active_people} target.` : null,
-    (growthMetrics.activation_rate?.rate ?? 0) < targets.activation_rate ? `Activation is below the ${targets.activation_rate}% target.` : null,
+    (activationMetric?.rate ?? 0) < targets.activation_rate ? `Eligible-visitor activation is below the ${targets.activation_rate}% target.` : null,
     (monthlyCohorts.at(-1)?.retention_pct ?? 0) < targets.retention_30d ? `30-day retention is below the ${targets.retention_30d}% target.` : null,
-    (growthMetrics.impact_rate?.rate ?? 0) < targets.impact_rate ? `Meaningful-value reporting is below the ${targets.impact_rate}% target.` : null,
+    (positiveOutcomeMetric?.rate ?? 0) < targets.impact_rate ? `Positive reported outcomes are below the ${targets.impact_rate}% target.` : null,
     rangeMomentum.activeUserChange !== null && Math.abs(rangeMomentum.activeUserChange) >= 50 ? `Daily active people changed ${formatDelta(rangeMomentum.activeUserChange)} versus the prior day.` : null,
     rangeMomentum.eventChange !== null && Math.abs(rangeMomentum.eventChange) >= 50 ? `Daily events changed ${formatDelta(rangeMomentum.eventChange)} versus the prior day.` : null,
     notificationSyncFailureSpike.detected ? `Notification sync failures are ${notificationSyncFailureSpike.ratio.toFixed(1)}× the trailing average.` : null,
@@ -1601,7 +1609,7 @@ export default function AnalyticsDashboard() {
         <section className={`${viewClass("overview")} grid grid-cols-2 gap-3 xl:grid-cols-4`}>
           <MetricCard label="Active people" value={formatCount(activePeople)} tone="teal" comparison={formatComparison(activePeople, previousActivePeople)} target={formatCount(targets.active_people)} />
           <MetricCard label="Events" value={formatCount(overview.events_30d ?? 0)} tone="blue" comparison={formatComparison(overview.events_30d ?? 0, comparisonPayload?.overview.events_30d)} />
-          <MetricCard label="Activation rate" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="amber" comparison={formatComparison(growthMetrics.activation_rate?.rate ?? 0, previousGrowthMetrics.activation_rate?.rate)} target={`${targets.activation_rate}%`} />
+          <MetricCard label="Eligible activation" value={`${activationMetric?.rate ?? 0}%`} tone="amber" comparison={formatComparison(activationMetric?.rate ?? 0, previousActivationMetric?.rate)} target={`${targets.activation_rate}%`} />
           <MetricCard label="30-day retention" value={monthlyCohorts.at(-1) ? `${monthlyCohorts.at(-1)?.retention_pct}%` : "Not mature"} tone="slate" comparison={formatComparison(monthlyCohorts.at(-1)?.retention_pct ?? 0, previousMonthlyCohort?.retention_pct)} target={`${targets.retention_30d}%`} />
         </section>
 
@@ -1643,7 +1651,7 @@ export default function AnalyticsDashboard() {
               <MetricCard label="Signed-in coverage" value={`${coverageRate(overview.identified_active_users_30d ?? 0, activePeople)}%`} tone="blue" />
               <MetricCard label="Known country" value={`${coverageRate(knownCountryObservations, countryObservations)}%`} tone={knownCountryObservations > 0 ? "teal" : "rose"} />
               <MetricCard label="Classified browser" value={`${coverageRate(classifiedBrowserObservations, browserObservations)}%`} tone="amber" />
-              <MetricCard label="Outcome signal" value={`${growthMetrics.impact_rate?.rate ?? 0}%`} tone={(growthMetrics.impact_rate?.rate ?? 0) > 0 ? "teal" : "rose"} />
+              <MetricCard label="Outcome response coverage" value={`${outcomeResponseMetric?.rate ?? 0}%`} tone={(outcomeResponseMetric?.rate ?? 0) > 0 ? "teal" : "rose"} />
             </div>
             <p className="mt-3 text-xs text-slate-500">Coverage describes observability, not product success. Low coverage should trigger instrumentation work before causal conclusions.</p>
           </section>
@@ -1694,8 +1702,9 @@ export default function AnalyticsDashboard() {
             <p className="text-sm text-slate-600">Behavioral rates for the selected range, using unique people as the denominator.</p>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-5">
-            <MetricCard label="Activated" value={`${growthMetrics.activation_rate?.rate ?? 0}%`} tone="teal" />
-            <MetricCard label="Reported meaningful value" value={`${growthMetrics.impact_rate?.rate ?? 0}%`} tone="teal" />
+            <MetricCard label="Eligible activation" value={`${activationMetric?.rate ?? 0}%`} tone="teal" />
+            <MetricCard label="Outcome response coverage" value={`${outcomeResponseMetric?.rate ?? 0}%`} tone="amber" />
+            <MetricCard label="Positive outcome rate" value={`${positiveOutcomeMetric?.rate ?? 0}%`} tone="teal" />
             <MetricCard label="Returned on 2+ days" value={`${growthMetrics.returning_rate?.rate ?? 0}%`} tone="blue" />
             <MetricCard label="Active on 3+ days" value={`${growthMetrics.engaged_rate?.rate ?? 0}%`} tone="amber" />
             <MetricCard label="Shared" value={`${growthMetrics.sharing_rate?.rate ?? 0}%`} tone="slate" />
@@ -1733,13 +1742,13 @@ export default function AnalyticsDashboard() {
         <section className={`${viewClass("journeys", "operations")} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm`}>
           <div>
             <h2 className="text-lg font-semibold">Authentication failure diagnosis</h2>
-            <p className="text-sm text-slate-600">Failure events grouped by method, flow, category, and normalized cause. Client transport failures are recorded only when the server did not already record the response.</p>
+            <p className="text-sm text-slate-600">Failure events grouped by method, flow, platform, category, and normalized cause. Client transport failures are recorded only when the server did not already record the response.</p>
           </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[48rem] text-left text-sm">
-              <thead className="text-slate-500"><tr><th className="pb-2">Method</th><th className="pb-2">Flow</th><th className="pb-2">Category</th><th className="pb-2">Cause</th><th className="pb-2">Events</th><th className="pb-2">People</th></tr></thead>
+            <table className="w-full min-w-[54rem] text-left text-sm">
+              <thead className="text-slate-500"><tr><th className="pb-2">Method</th><th className="pb-2">Flow</th><th className="pb-2">Platform</th><th className="pb-2">Category</th><th className="pb-2">Cause</th><th className="pb-2">Events</th><th className="pb-2">People</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {authFailureRows.map((row, index) => <tr key={`${row.method}-${row.flow}-${row.reason}-${index}`}><td className="py-2 font-medium">{formatLabel(row.method)}</td><td>{formatLabel(row.flow)}</td><td>{formatLabel(row.category)}</td><td>{formatLabel(row.reason)}</td><td>{formatCount(row.count)}</td><td>{formatCount(row.unique_people)}</td></tr>)}
+                {authFailureRows.map((row, index) => <tr key={`${row.method}-${row.flow}-${row.platform}-${row.reason}-${index}`}><td className="py-2 font-medium">{formatLabel(row.method)}</td><td>{formatLabel(row.flow)}</td><td>{formatLabel(row.platform)}</td><td>{formatLabel(row.category)}</td><td>{formatLabel(row.reason)}</td><td>{formatCount(row.count)}</td><td>{formatCount(row.unique_people)}</td></tr>)}
               </tbody>
             </table>
             {authFailureRows.length === 0 ? <p className="py-3 text-sm text-slate-500">No authentication failures in this range.</p> : null}

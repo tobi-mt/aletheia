@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "508460596105",
+    "project_id": "aletheia-dddc7",
+    "storage_bucket": "aletheia-dddc7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:508460596105:android:43d5646c4610e2d2043f58",
+        "android_client_info": {
+          "package_name": "com.tobi.aletheia.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClekspm4tI6_MgOWUcqAZGzzPzzB7WFqg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
