@@ -408,8 +408,9 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
         <div className="flex items-center gap-2 rounded-2xl border px-3 py-2.5 shadow-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
           <Search size={15} style={{ color: theme.textSecondary }} aria-hidden="true" />
           <input
-            className="bible-reader-field flex-1 appearance-none bg-transparent text-sm outline-none placeholder:opacity-60"
+            className="bible-reader-field min-h-11 min-w-0 flex-1 appearance-none bg-transparent text-base"
             style={{ color: theme.textPrimary, backgroundColor: "transparent" }}
+            aria-label={ui.search}
             placeholder={ui.search}
             value={bookSearch}
             onChange={(e) => setBookSearch(e.target.value)}
@@ -424,7 +425,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 <button
                   key={book}
                   onClick={() => selectBook(book)}
-                  className="rounded-2xl border px-3 py-3 text-left text-sm leading-5 transition hover:-translate-y-px hover:shadow-sm active:scale-[0.99]"
+                  className="min-h-11 rounded-xl border px-3 py-2 text-start text-sm leading-5 transition-colors"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
                 >
                   {localizedBookName(book, preferences.language)}
@@ -442,7 +443,7 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                 <button
                   key={book}
                   onClick={() => selectBook(book)}
-                  className="rounded-2xl border px-3 py-3 text-left text-sm leading-5 transition hover:-translate-y-px hover:shadow-sm active:scale-[0.99]"
+                  className="min-h-11 rounded-xl border px-3 py-2 text-start text-sm leading-5 transition-colors"
                   style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
                 >
                   {localizedBookName(book, preferences.language)}
@@ -671,7 +672,8 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
               </div>
             ) : null}
 
-            {chapterData.verses.map((v, index) => {
+            <div className="rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+            {chapterData.verses.map((v) => {
                 const saved = savedScriptures.find((item) => item.book === selectedBook && item.chapter === selectedChapter && item.verse === v.verse);
                 const highlightColor = saved?.highlight ?? scriptureHighlights[scriptureHighlightKey(selectedBook, selectedChapter, v.verse)] ?? null;
                 const highlight = highlightColor ? highlightStyles[highlightColor] : null;
@@ -680,12 +682,10 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                   ref={(node) => setVerseRef(v.verse, node)}
                   id={`verse-${v.verse}`}
                   tabIndex={-1}
-                  className="scroll-mt-24 rounded-[1.55rem] border px-4 py-[1.05rem] shadow-[0_10px_22px_rgba(7,10,8,0.05)] sm:px-5 sm:py-5"
+                  className="scroll-mt-24 border-b px-3 py-4 first:rounded-t-2xl last:rounded-b-2xl last:border-b-0 sm:px-5"
                   style={{
                     borderColor: theme.borderLight,
-                    background: highlight ? `linear-gradient(180deg, color-mix(in srgb, ${highlight.color} 38%, ${theme.bgCard}), ${theme.bgCard})` : index % 2 === 0
-                      ? `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCard} 97%, white 3%), ${theme.bgCard})`
-                      : `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 95%, white 5%), ${theme.bgCardElevated})`,
+                    backgroundColor: highlight ? `color-mix(in srgb, ${highlight.color} 20%, ${theme.bgCard})` : undefined,
                   }}
                 >
                 <div className="flex items-start gap-3.5 sm:gap-4">
@@ -703,11 +703,11 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                   >
                     {v.verse}
                   </button>
-                  <p className="min-w-0 flex-1 pt-0.5 text-[1rem] leading-[1.9] tracking-[-0.01em] sm:max-w-[38rem] sm:text-[1.06rem] sm:leading-[1.95]" style={{ color: theme.textPrimary }}>
+                  <p className="min-w-0 flex-1 pt-0.5 text-[1.0625rem] leading-[1.8] sm:max-w-[38rem] sm:text-lg" style={{ color: theme.textPrimary }}>
                     {v.text}
                   </p>
                 </div>
-                {(onSaveScripture || saved || onSetScriptureHighlight || onCopyScripture || onShareScripture) ? <div className="mt-3 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                {(onSaveScripture || saved || onSetScriptureHighlight || onCopyScripture || onShareScripture) ? <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
                   {onCopyScripture ? <button type="button" onClick={() => { void onCopyScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "copy" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.copyVerse} title={annotations.copyVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "copy" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</button> : null}
                   {onShareScripture ? <button type="button" onClick={() => { void onShareScripture(selectedBook, selectedChapter, v.verse, v.text).then((success) => success && setVerseActionFeedback({ key: scriptureHighlightKey(selectedBook, selectedChapter, v.verse), kind: "share" })); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }} aria-label={annotations.shareVerse} title={annotations.shareVerse}>{verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) && verseActionFeedback.kind === "share" ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}</button> : null}
                   {verseActionFeedback?.key === scriptureHighlightKey(selectedBook, selectedChapter, v.verse) ? <span role="status" className="shrink-0 text-xs font-semibold" style={{ color: accessibleAccentText(theme) }}>{verseActionFeedback.kind === "copy" ? annotations.copied : annotations.shared}</span> : null}
@@ -715,13 +715,14 @@ export default function BibleReader({ preferences, theme, initialBook, initialCh
                     {saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}
                     {saved ? ui.saved : annotations.saveVerse}
                   </button>
-                  {onSetScriptureHighlight ? <>
-                    <span className="inline-flex h-9 shrink-0 items-center gap-1 text-xs" style={{ color: theme.textSecondary }}><Highlighter size={14} aria-hidden="true" /> {annotations.highlight}</span>
-                    {(Object.keys(highlightStyles) as ScriptureHighlightColor[]).map((color) => <button key={color} type="button" onClick={() => onSetScriptureHighlight(selectedBook, selectedChapter, v.verse, highlightColor === color ? null : color)} className="size-8 shrink-0 rounded-full border-2" style={{ backgroundColor: highlightStyles[color].color, borderColor: highlightColor === color ? theme.textPrimary : "transparent" }} aria-label={annotations.highlight} title={annotations.highlight} />)}
-                  </> : null}
+                  {onSetScriptureHighlight ? <div className="flex min-w-0 flex-wrap items-center gap-1.5" role="group" aria-label={annotations.highlight}>
+                    <Highlighter size={14} aria-hidden="true" style={{ color: theme.textSecondary }} />
+                    {(Object.keys(highlightStyles) as ScriptureHighlightColor[]).map((color) => <button key={color} type="button" onClick={() => onSetScriptureHighlight(selectedBook, selectedChapter, v.verse, highlightColor === color ? null : color)} className="grid size-11 shrink-0 place-items-center rounded-full" aria-pressed={highlightColor === color} aria-label={annotations.highlight} title={annotations.highlight}><span className="size-6 rounded-full border-2" style={{ backgroundColor: highlightStyles[color].color, borderColor: highlightColor === color ? theme.textPrimary : "transparent" }} /></button>)}
+                  </div> : null}
                 </div> : null}
               </article>;
             })}
+            </div>
           </div>
         ) : null
       ) : showStudyLoadingState ? (

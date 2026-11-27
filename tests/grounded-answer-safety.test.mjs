@@ -7,6 +7,8 @@ import { scriptureCounselIndex } from "../src/lib/scripture-counsel-index.ts";
 import { wisdomEntries } from "../src/lib/wisdom-data.ts";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
 import { generateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
+import { buildAnswerContinuation } from "../src/lib/answer-continuation.ts";
+import { counselSafetyBoundary } from "../src/lib/counsel-safety.ts";
 
 test("the actual deterministic answer addresses exhaustion before citing Scripture and ends with one next step", async () => {
   const question = "Should I accept a promotion when I already feel exhausted?";
@@ -31,6 +33,39 @@ test("crisis fallback puts immediate human help before one Scripture anchor", ()
   assert.equal(paragraphs[1], localizedCrisisSupportCopy("es").selfHarmImmediate);
   assert.equal(result.biblicalEvidence.length, 1);
   assert.equal(paragraphs.at(-1), result.biblicalEvidence[0].connection);
+  assert.match(paragraphs.at(-1), /Isaías 41:10.*No tienes que afrontar esto a solas/);
+});
+
+test("emergencies use localized immediate help without self-harm wording or continuation", async () => {
+  const question = "I am being attacked right now. What do I do?";
+  const sources = scriptureCounselIndex.filter(({ scripture }) => scripture === "Isaiah 41:10");
+  const preferences = normalizePreferences({ language: "fr" });
+  const result = await generateWisdomIntelligence({ question, selectedMode: "Life", sources, preferences });
+  const [help, connection] = result.counsel.split("\n\n");
+  assert.match(help, /appelle les secours locaux maintenant/);
+  assert.ok(!result.counsel.includes(localizedCrisisSupportCopy("fr").selfHarmOpening));
+  assert.equal(connection, result.biblicalEvidence[0].connection);
+  assert.match(connection, /Ésaïe 41:10.*il est avec eux/i);
+  assert.equal(result.routing.attempts, 0);
+  assert.equal(buildAnswerContinuation(question, result.counsel, "Life"), null);
+});
+
+test("offline counsel includes the same topic-specific guidance in every supported response language", () => {
+  for (const language of Object.keys(languages)) {
+    const preferences = normalizePreferences({ language });
+    for (const [question, topic] of [
+      ["¿Cómo puedo hablar de mis síntomas?", "medical"],
+      ["How should I think about my custody dispute?", "legal"],
+      ["How should I respond to spiritual abuse?", "pastoral"],
+    ]) {
+      const boundary = counselSafetyBoundary(topic, language);
+      assert.ok(boundary, `${language}: ${topic}`);
+      assert.ok(composeCompanionCounsel(question, [], preferences).text.split("\n\n").includes(boundary), `${language}: ${topic}`);
+      if (language !== "en") assert.notEqual(boundary, counselSafetyBoundary(topic, "en"));
+    }
+  }
+  assert.ok(!composeCompanionCounsel("How can I volunteer at church?", [], defaultPreferences).text
+    .includes(counselSafetyBoundary("pastoral", "en")));
 });
 
 test("fallback respects a closed workload negotiation instead of asking again", () => {
@@ -95,7 +130,30 @@ test("deterministic non-English answers do not expose untranslated database wisd
     questions: ["What foundation is this decision building on?"],
   };
   const preferences = normalizePreferences({ language: "de", region: "eu", bibleTranslation: "LUTH1912" });
-  const { text: answer } = composeCompanionCounsel("Was mache ich mit meinem Leben?", [databaseOnlySource], preferences);
+  const { text: answer, sources } = composeCompanionCounsel("Was mache ich mit meinem Leben?", [databaseOnlySource], preferences);
   assert.doesNotMatch(answer, /A life built|English-only|Test the decision|What foundation/);
-  assert.match(answer, /hilfreiche biblische Orientierung/);
+  assert.deepEqual(sources, []);
+});
+
+test("exhaustion has a localized rest anchor without unrelated passages across all 11 locales", () => {
+  const prompts = {
+    en: ["How do I rest when I am exhausted from caring for my family?", /heavy burdens/],
+    es: ["¿Cómo descanso cuando estoy agotada por el trabajo?", /cargas pesadas/],
+    fr: ["Comment trouver du repos quand je suis épuisé par le travail ?", /lourds fardeaux/],
+    de: ["Wie finde ich Ruhe, wenn ich von meinen Aufgaben erschöpft bin?", /schweren Lasten/],
+    pt: ["Como posso descansar quando estou cansado de cuidar da minha família?", /fardos pesados/],
+    yo: ["Báwo ni mo ṣe lè rí ìsinmi nígbà tí iṣẹ́ ti mú kí n rẹ̀?", /ẹrù wúwo/],
+    ig: ["Olee otú m ga-esi zuru ike mgbe ike gwụrụ m n’ọrụ?", /ibu dị arọ/],
+    ha: ["Ta yaya zan samu hutu idan na gaji da aiki?", /kaya masu nauyi/],
+    tl: ["Paano ako makapagpapahinga kapag pagod na ako sa trabaho?", /mabigat na pasanin/],
+    ar: ["كيف أجد الراحة عندما أشعر بالإرهاق من العمل؟", /أعباء ثقيلة/],
+    hi: ["जब मैं काम से थक जाता हूँ तो मुझे आराम कैसे मिल सकता है?", /भारी बोझ/],
+  };
+  for (const [language, [question, explanation]] of Object.entries(prompts)) {
+    const preferences = normalizePreferences({ language });
+    const sources = rankWisdomEvidence(scriptureCounselIndex, question, "Life");
+    const result = composeCompanionCounsel(question, sources, preferences);
+    assert.deepEqual(result.biblicalEvidence.map(({ reference }) => reference), ["Matthew 11:28-30"], language);
+    assert.match(result.biblicalEvidence[0].connection, explanation, language);
+  }
 });

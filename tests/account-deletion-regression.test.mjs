@@ -15,7 +15,7 @@ test("signed-in account controls expose permanent account deletion without openi
 
   assert.ok(accountPanelStart >= 0 && accountControlsStart > accountPanelStart);
   assert.ok(accountControlsEnd > accountControlsStart);
-  assert.match(accountPanel, /title=\{user \? ts\('labels\.accountControls'\)[\s\S]*?defaultOpen[\s\S]*?<AccountStatusCard/);
+  assert.match(accountPanel, /accountSection === "profile"[\s\S]*?<AccountStatusCard/);
   assert.match(accountControls, /onRequestDeleteAccount/);
   assert.match(accountControls, /ts\('labels\.deleteAccount'\)/);
   assert.match(accountControls, /disabled=\{deleteAccountBusy \|\| authStatus === "signing-out"\}/);
@@ -94,7 +94,7 @@ test("Ask Aletheia relies on viewport keyboard handling without forced focus scr
 
   assert.doesNotMatch(askInput, /scrollIntoView/);
   assert.match(askInput, /style\.borderColor = theme\.primary/);
-  assert.match(client, /document\.documentElement\.dataset\.keyboardOpen = keyboardOpen \? "true" : "false"/);
+  assert.match(client, /document\.documentElement\.dataset\.keyboardOpen = keyboardOpen \|\| editingPointer !== null \? "true" : "false"/);
   assert.match(css, /html\[data-keyboard-open="true"\] \.app-bottom-nav[\s\S]*?display: none/);
 });
 
@@ -123,8 +123,8 @@ test("native iOS uses StoreKit support instead of external mission payment metho
 
 test("third-party AI consent is a Privacy control and withdrawal persists without duplicate notices", async () => {
   const client = await read("src/components/aletheia-app.tsx");
-  const personalizationStart = client.indexOf('accountSection === "personalization"');
-  const settingsStart = client.indexOf('accountSection === "system"', personalizationStart);
+  const personalizationStart = client.indexOf('accountSection === "appearance"');
+  const settingsStart = client.indexOf('accountSection === "privacy"', personalizationStart);
   const nextComponent = client.indexOf("function ChallengeRecommendationCard", settingsStart);
   const personalization = client.slice(personalizationStart, settingsStart);
   const settings = client.slice(settingsStart, nextComponent);

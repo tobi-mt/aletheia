@@ -1,5 +1,5 @@
 import { answerContinuationPromptPrefix, focusedContinuation } from "@/lib/companion-counsel";
-import { detectLifeSupportConcern } from "@/lib/life-support";
+import { counselSafetyTopic } from "@/lib/counsel-safety";
 import type { UserPreferences } from "@/lib/localization";
 import type { Mode } from "@/lib/wisdom-data";
 
@@ -127,7 +127,7 @@ export function buildAnswerContinuation(
 ): AnswerContinuation | null {
   const normalizedQuestion = clean(question);
   if (!normalizedQuestion || context.safeTopic === "crisis"
-    || detectLifeSupportConcern(normalizedQuestion) === "self_harm"
+    || counselSafetyTopic(normalizedQuestion) === "crisis"
     || /immediate danger/i.test(`${question} ${answer}`)) return null;
 
   const language = context.responseLanguage ?? "en";

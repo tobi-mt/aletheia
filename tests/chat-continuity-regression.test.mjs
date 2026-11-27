@@ -87,7 +87,8 @@ test("provisional answers are persisted and counted only through finalization", 
 });
 
 test("crisis counsel prioritizes safety and a deliberately relevant biblical anchor", () => {
-  assert.match(route, /lifeConcern === "self_harm"/);
+  assert.match(route, /const safeTopic = counselSafetyTopic\(message\)/);
+  assert.match(route, /if \(safeTopic === "crisis"\)/);
   assert.match(route, /crisisPriority = \["Isaiah 41:10", "1 Peter 5:6-7", "Psalm 23:1-6", "Lamentations 3:22-24"\]/);
   assert.match(route, /sources = \[crisisAnchor, \.\.\.sources\.filter/);
 });

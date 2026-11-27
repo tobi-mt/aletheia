@@ -40,6 +40,7 @@ const baseViewports = [
 ];
 
 const expandedViewports = [
+  { name: 'Compact 320', width: 320, height: 568, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
   { name: 'Galaxy S8', width: 360, height: 740, mobile: true, touch: true, tabs: ['Home', 'Decide', 'Reflect', 'Library', 'Account'] },
   { name: 'iPad Mini landscape', width: 1024, height: 768, mobile: false, touch: true, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
   { name: 'Desktop 1280', width: 1280, height: 800, mobile: false, touch: false, tabs: ['Home', 'Decisions', 'Reflect', 'Library', 'Account'] },
@@ -59,7 +60,7 @@ const markers = {
   Decisions: journeyFixtures.decisionCounsel.marker,
   Reflect: 'Reflection Journal',
   Library: 'Search one wisdom theme',
-  Account: 'Sign in to keep your work synced',
+  Account: 'Privacy & data',
 };
 
 function color(code, text) {
@@ -234,14 +235,14 @@ async function checkGlobalLayout(page) {
     const body = document.body;
     const overflowX = Math.max(0, Math.round(Math.max(doc.scrollWidth - window.innerWidth, body.scrollWidth - window.innerWidth)));
     const nav = document.querySelector('nav.app-top-nav');
-    const firstHeading = Array.from(document.querySelectorAll('main.app-shell h1, main.app-shell h2, main.app-shell h3'))
+    const firstHeading = Array.from(document.querySelectorAll('.app-main-content :is(h1, h2, h3)'))
       .map((heading) => {
         const rect = heading.getBoundingClientRect();
         return { top: rect.top, visible: rect.height > 0 && rect.bottom > 0 };
       })
       .filter((item) => item.visible)
       .sort((left, right) => left.top - right.top)[0] || null;
-    const overlap = nav && firstHeading ? Math.max(0, Math.round(nav.getBoundingClientRect().bottom - firstHeading.top)) : 0;
+    const overlap = window.scrollY <= 1 && nav && firstHeading ? Math.max(0, Math.round(nav.getBoundingClientRect().bottom - firstHeading.top)) : 0;
     return { overflowX, overlap };
   });
 }
@@ -337,6 +338,8 @@ async function runNavigationFlowStress(page, viewport) {
       if (!markerVisible) {
         failures.push(`tab stress marker missing after ${tab}`);
       }
+      const { overflowX, overlap } = await checkGlobalLayout(page);
+      if (overflowX || overlap) failures.push(`${tab}: overflow=${overflowX}px, header overlap=${overlap}px`);
     }
   }
   return failures;
@@ -589,93 +592,109 @@ async function checkFeatureDiscovery(page, mobile) {
     }
     return false;
   };
-  const expectSectionVisual = async (label, expectedSource) => {
-    const visual = page.locator('[data-testid="section-visual"]');
-    if (await visual.count() !== 1) {
-      failures.push(`${label} contextual visual missing or duplicated`);
-      return;
+  const openWorkspace = async (label) => {
+    const tab = page.getByRole('tab', { name: label, exact: true });
+    if (await tab.count() !== 1) {
+      failures.push(`workspace destination missing: ${label}`);
+      return false;
     }
-    const sourceMatches = await visual.getAttribute('data-visual-src') === expectedSource;
-    if (!sourceMatches) failures.push(`${label} contextual visual source is incorrect`);
-    if (!await imageHasLoaded(visual.locator('img'), expectedSource)) failures.push(`${label} contextual visual did not load`);
+    await tab.click();
+    const panel = page.locator(`[id="${await tab.getAttribute('aria-controls')}"]`);
+    if (await tab.getAttribute('aria-selected') !== 'true' || !await panel.isVisible()
+        || await panel.getAttribute('aria-labelledby') !== await tab.getAttribute('id')) {
+      failures.push(`workspace destination did not activate: ${label}`);
+      return false;
+    }
+    return true;
+  };
+  const checkWorkspaceNavigation = async () => {
+    const tabs = page.locator('button[role="tab"][aria-controls$="-workspace-panel"]');
+    const clipped = await tabs.evaluateAll((buttons) => buttons.filter((button) => {
+      const bounds = button.getBoundingClientRect();
+      return bounds.left < 0 || bounds.right > innerWidth || bounds.height < 44 || button.scrollWidth > button.clientWidth;
+    }).map((button) => button.textContent.trim()));
+    if (clipped.length) failures.push(`workspace tabs clipped or too small: ${clipped.join(', ')}`);
   };
 
   await clickTab(page, 'Home', mobile);
-  for (const label of ['Today', 'Ask Aletheia']) {
-    const tab = page.getByRole('tab', { name: label, exact: true });
-    if (await tab.count() !== 1) {
-      failures.push(`home destination missing: ${label}`);
-      continue;
-    }
-    await tab.click();
-    if (await tab.getAttribute('aria-selected') !== 'true') {
-      failures.push(`home destination did not activate: ${label}`);
+  await checkWorkspaceNavigation();
+  await openWorkspace('Today');
+  if (await openWorkspace('Ask Aletheia')) {
+    const composer = await page.getByTestId('ask-question-composer').boundingBox();
+    if (!composer || composer.height < 144) {
+      failures.push(`Ask question composer height below 144px: ${composer?.height ?? 'not visible'}`);
     }
   }
 
   await clickTab(page, mobile ? 'Decide' : 'Decisions', mobile);
-  for (const [label, source] of [
-    ['Decisions', '/images/section-visuals/decisions-discernment.jpg'],
-    ['Counsel Circle', '/images/today-premium/counsel-table.jpg'],
-    ['Rhythm', '/images/section-visuals/rhythm-steady-practice.jpg'],
-  ]) {
-    const tab = page.getByRole('tab', { name: label, exact: true });
-    if (await tab.count() !== 1) {
-      failures.push(`decision destination missing: ${label}`);
-      continue;
-    }
-    await tab.click();
-    await page.waitForTimeout(80);
-    if (await tab.getAttribute('aria-selected') !== 'true') {
-      failures.push(`decision destination did not activate: ${label}`);
-    }
-    await expectSectionVisual(`decision ${label}`, source);
-  }
+  await checkWorkspaceNavigation();
+  for (const label of ['Decisions', 'Counsel Circle', 'Rhythm']) await openWorkspace(label);
 
   await clickTab(page, 'Reflect', mobile);
-  for (const [label, source] of [
-    ['Gratitude Lens', '/images/section-visuals/gratitude-noticing.jpg'],
-    ['Reflection Journal', '/images/section-visuals/reflect-stillness.jpg'],
-  ]) {
-    const tab = page.getByRole('tab', { name: label, exact: true });
-    if (await tab.count() !== 1) {
-      failures.push(`reflection destination missing: ${label}`);
-      continue;
-    }
-    await tab.click();
-    if (label === 'Reflection Journal' && !await page.locator('#reflect-journal').isVisible()) {
-      failures.push('reflection journal destination is not visible');
-    }
-    await expectSectionVisual(`reflection ${label}`, source);
+  await checkWorkspaceNavigation();
+  await openWorkspace('Gratitude Lens');
+  await openWorkspace('Formation');
+  if (await openWorkspace('Reflection Journal') && !await page.locator('#reflect-journal').isVisible()) {
+    failures.push('reflection journal destination is not visible');
   }
 
   await clickTab(page, 'Library', mobile);
+  await checkWorkspaceNavigation();
+  if (await openWorkspace('Explore')) {
+    const tabs = page.getByRole('tablist', { name: 'Library sections' });
+    for (const [key, destination] of [
+      ['ArrowRight', 'Bible'], ['End', 'Formation'], ['ArrowRight', 'Explore'],
+      ['ArrowLeft', 'Formation'], ['Home', 'Explore'],
+    ]) {
+      await page.keyboard.press(key);
+      const active = tabs.getByRole('tab', { name: destination, exact: true, selected: true });
+      if (await active.count() !== 1 || !await active.evaluate((tab) => tab === document.activeElement)
+          || !await page.getByRole('tabpanel', { name: destination, exact: true }).isVisible()) {
+        failures.push(`workspace keyboard navigation did not activate and focus ${destination} with ${key}`);
+      }
+    }
+  }
   const exploreVisualLoaded = await imageHasLoaded(page.locator('[aria-label="Wisdom Library"] article img').first());
   if (!exploreVisualLoaded) failures.push('library Explore visual did not load');
 
-  const bibleTab = page.getByRole('tab', { name: 'Bible', exact: true });
-  if (await bibleTab.count() !== 1) {
-    failures.push('Bible destination missing');
-  } else {
-    await bibleTab.click();
-    await expectSectionVisual('library Bible', '/images/library/saved-scripture-first-use.jpg');
+  if (await openWorkspace('Bible')) {
+    const bible = page.getByRole('tabpanel', { name: 'Bible', exact: true });
+    const search = bible.getByRole('textbox', { name: 'Search books…', exact: true });
+    const chapterUrl = (url) => url.pathname === '/api/bible'
+      && url.searchParams.get('book') === 'Genesis' && url.searchParams.get('chapter') === '1';
+    await page.route(chapterUrl, (route) => route.fulfill({
+      json: { book: 'Genesis', chapter: 1, translation: 'WEB', verses: [{ verse: 1, text: 'In the beginning, God created the heavens and the earth.' }] },
+    }));
+    try {
+      await search.fill('Genesis');
+      await search.blur();
+      await bible.getByRole('button', { name: 'Genesis', exact: true }).click();
+      const verse = bible.locator('#verse-1');
+      await verse.waitFor({ timeout: 5000 });
+      const fontSize = await verse.locator('p').evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+      if (fontSize < 17) failures.push(`Bible verse text below 17px: ${fontSize}`);
+      const highlights = verse.getByRole('group', { name: 'Highlight', exact: true }).getByRole('button');
+      const sizes = await highlights.evaluateAll((buttons) => buttons.map((button) => {
+        const { width, height } = button.getBoundingClientRect();
+        return Math.min(width, height);
+      }));
+      if (sizes.length !== 4 || sizes.some((size) => size < 44)) failures.push('Bible highlight controls unavailable or smaller than 44px');
+      await highlights.first().click();
+      if (await highlights.first().getAttribute('aria-pressed') !== 'true') failures.push('Bible highlight selection was not announced');
+    } catch (error) {
+      failures.push(`Bible reader check failed: ${error.message.split('\n')[0]} (${(await bible.innerText().catch(() => '')).slice(0, 240)})`);
+    } finally {
+      await page.unroute(chapterUrl);
+    }
   }
+  await openWorkspace('Formation');
 
-  const listenTab = page.getByRole('tab', { name: 'Listening', exact: true });
-  if (await listenTab.count() !== 1) {
-    failures.push('listen-for-scripture destination missing');
-  } else {
-    await listenTab.click();
+  if (await openWorkspace('Listening')) {
     const listenTrigger = page.getByRole('button', { name: /Listen for Scripture Recognize a verse/i });
     await listenTrigger.waitFor({ state: 'visible', timeout: 2500 }).catch(() => undefined);
     if (!await listenTrigger.isVisible()) failures.push('listen-for-scripture action is not visible');
-    await expectSectionVisual('library Listening', '/images/section-visuals/listening-scripture.jpg');
   }
-  const savedTab = page.getByRole('tab', { name: 'Saved', exact: true });
-  if (await savedTab.count() !== 1) {
-    failures.push('saved-scripture destination missing');
-  } else {
-    await savedTab.click();
+  if (await openWorkspace('Saved')) {
     if (!await page.getByRole('heading', { name: 'Saved', exact: true }).isVisible()) {
       failures.push('saved-scripture empty state is not visible');
     }
@@ -684,22 +703,125 @@ async function checkFeatureDiscovery(page, mobile) {
   }
 
   await clickTab(page, 'Account', mobile);
-  for (const [label, source] of [
-    ['Profile', '/images/section-visuals/account-continuity.jpg'],
-    ['Personalize', '/images/section-visuals/personalization-choice.jpg'],
-    ['Notifications', '/images/section-visuals/notifications-gentle-return.jpg'],
-    ['System', '/images/section-visuals/account-continuity.jpg'],
-  ]) {
-    const tab = page.getByRole('tab', { name: label, exact: true });
-    if (await tab.count() !== 1) {
-      failures.push(`account destination missing: ${label}`);
-      continue;
+  for (const section of ['appearance', 'language', 'voice', 'focus', 'notifications', 'privacy', 'context', 'support', 'system']) {
+    const row = page.locator(`[data-account-destination="${section}"]`);
+    await row.click();
+    const detail = page.locator(`[data-account-section="${section}"]`);
+    if (!await detail.getByRole('heading', { level: 2 }).isVisible()) failures.push(`account destination did not open: ${section}`);
+    if (section === 'appearance') {
+      if (await detail.getByText('Language settings are ready.', { exact: true }).count()) failures.push('Appearance shows unrelated language status');
+      await detail.getByRole('button', { name: 'Classic', exact: true }).click();
+      if (await detail.getByRole('status').textContent() !== 'Theme applied automatically.') failures.push('Appearance did not confirm the theme change');
+      await detail.getByRole('button', { name: 'System', exact: true }).click();
     }
-    await tab.click();
-    if (await tab.getAttribute('aria-selected') !== 'true') {
-      failures.push(`account destination did not activate: ${label}`);
+    if (section === 'language' && await detail.getByText('Theme applied automatically.', { exact: true }).count()) {
+      failures.push('Appearance feedback leaked into Language');
     }
-    await expectSectionVisual(`account ${label}`, source);
+    if (section === 'context') {
+      const topic = detail.getByRole('combobox', { name: 'Edit current and future context' });
+      if (await detail.locator('details, [aria-expanded]').count() || await topic.locator('option').count() !== 9) {
+        failures.push('Personal context should have nine directly accessible topics and no expanders');
+      }
+      const permission = detail.getByRole('checkbox', { name: 'Allow Aletheia to use this context in answers' });
+      const moneyUse = detail.getByRole('checkbox', { name: 'Use money context in answers' });
+      const savedContext = () => page.evaluate(() => JSON.parse(localStorage.getItem('aletheia_manual_context') || '{}'));
+      const controlsFit = await detail.locator('select, textarea, input, button').evaluateAll((controls) => controls.every((control) => {
+        const { left, right } = control.getBoundingClientRect();
+        return left >= 0 && right <= document.documentElement.clientWidth + 1;
+      }));
+      if (!controlsFit || !await detail.getByRole('combobox', { name: /^Guidance region/ }).isVisible()) failures.push('Personal context controls do not fit or guidance region is missing');
+      await moneyUse.uncheck();
+      await permission.uncheck();
+      const paused = await savedContext();
+      if (!await moneyUse.isDisabled() || paused.useInAnswers !== false || paused.useMoneyInAnswers !== false) failures.push('Personal context privacy choices did not save immediately');
+      const dismissNotice = page.getByRole('button', { name: 'Dismiss workflow notice' });
+      const safeArea = await page.addStyleTag({ content: ':root { --safe-area-inset-top: 52px; }' });
+      try {
+        await page.waitForFunction(() => {
+          const header = document.querySelector('nav.app-top-nav');
+          const notice = document.querySelector('.app-safe-floating-panel[role="status"]');
+          return header && notice && notice.getBoundingClientRect().top >= header.getBoundingClientRect().bottom + 4;
+        }, undefined, { timeout: 2000 });
+      } catch {
+        failures.push('Workflow notice overlaps the fixed header after the safe area changes');
+      } finally {
+        await safeArea.evaluate((style) => style.remove());
+      }
+      if (await dismissNotice.isVisible()) await dismissNotice.click();
+      await permission.check();
+      if (await moneyUse.isChecked()) failures.push('Resuming personalization reset a category choice');
+      await topic.selectOption('future:posture');
+      const goals = detail.getByRole('textbox', { name: 'Future goals', exact: true });
+      await goals.fill('Synthetic UI regression goal');
+      await topic.selectOption('current:money');
+      const income = detail.getByRole('spinbutton', { name: 'Monthly income', exact: true });
+      const incomeSlider = detail.getByRole('slider', { name: 'Monthly income', exact: true });
+      await income.fill('1200');
+      if (await incomeSlider.inputValue() !== '1200') failures.push('Personal context income slider did not reflect direct input');
+      await detail.getByRole('button', { name: /^Clear Monthly income$/i }).press('Enter');
+      if (await income.inputValue() !== '') failures.push('Personal context numeric input could not be cleared');
+      const money = detail.getByRole('textbox', { name: 'Money context', exact: true });
+      await money.fill('Draft money note');
+      const quick = detail.getByRole('combobox', { name: 'Add one helpful detail', exact: true });
+      await quick.selectOption('financeContext');
+      const quickInput = detail.locator('form').filter({
+        has: page.getByRole('button', { name: 'Add detail', exact: true }),
+      }).getByRole('textbox');
+      await quickInput.fill('First short note');
+      const addDetail = detail.getByRole('button', { name: 'Add detail', exact: true });
+      if (mobile) {
+        const point = await addDetail.evaluate((button) => {
+          const rect = button.getBoundingClientRect();
+          window.scrollBy({ top: rect.top + rect.height / 2 - (window.innerHeight - 40), behavior: 'instant' });
+          const placed = button.getBoundingClientRect();
+          return { x: placed.x + placed.width / 2, y: placed.y + placed.height / 2 };
+        });
+        await page.mouse.move(point.x, point.y);
+        await page.mouse.down();
+        const obscured = await addDetail.evaluate((button, { x, y }) => !button.contains(document.elementFromPoint(x, y)), point);
+        await page.mouse.up();
+        if (obscured) failures.push('Mobile navigation obscured Quick Add between pointerdown and pointerup');
+      } else {
+        await addDetail.click();
+      }
+      await quickInput.fill('Second short note');
+      await addDetail.click();
+      const quickSaved = await savedContext();
+      if (quickSaved.financeContext !== 'First short note\nSecond short note' || quickSaved.futureGoals || await money.inputValue() !== 'Draft money note\nFirst short note\nSecond short note') {
+        failures.push('Quick Add did not append notes independently of pending editor changes');
+      }
+      await topic.selectOption('future:posture');
+      if (await goals.inputValue() !== 'Synthetic UI regression goal') failures.push('Personal context lost draft edits when switching topics');
+      await detail.getByRole('button', { name: 'Save manual context', exact: true }).click();
+      const saved = await savedContext();
+      if (saved.futureGoals !== 'Synthetic UI regression goal' || saved.financeContext !== 'Draft money note\nFirst short note\nSecond short note') {
+        failures.push('Personal context did not save edits across topics');
+      }
+    }
+    if (section === 'focus') {
+      const options = detail.getByRole('list').getByRole('button');
+      const boxes = await options.evaluateAll((buttons) => buttons.map((button) => {
+        const { x, y, right, height } = button.getBoundingClientRect();
+        return { x, y, right, height };
+      }));
+      if (boxes.length < 4 || boxes.some(({ x, y, right, height }, index) => (
+        x < 0 || right > page.viewportSize().width || height < 44 || (index > 0 && y <= boxes[index - 1].y)
+      ))) {
+        failures.push('focus intentions are not a full-width vertical checklist');
+      } else {
+        for (let index = 0; index < 3; index++) await options.nth(index).click();
+        if (await detail.getByRole('button', { pressed: true }).count() !== 3 || !await options.nth(3).isDisabled()) {
+          failures.push('focus intentions did not enforce the three-option limit');
+        }
+        await options.first().click();
+        await options.nth(3).click();
+        if (await options.first().getAttribute('aria-pressed') !== 'false' || await options.nth(3).getAttribute('aria-pressed') !== 'true') {
+          failures.push('focus intentions could not be deselected and replaced');
+        }
+      }
+    }
+    await detail.getByRole('button', { name: 'Back to Account' }).click();
+    if (!await row.evaluate((element) => element === document.activeElement)) failures.push(`account destination focus was not restored: ${section}`);
   }
 
   return { pass: failures.length === 0, failures };
@@ -930,103 +1052,15 @@ async function checkConversationHistoryChrome(page, viewport, colorScheme) {
 
 async function checkAccount(page, mobile) {
   await clickTab(page, 'Account', mobile);
-  const profileTab = page.getByRole('tab', { name: 'Profile', exact: true });
-  if (await profileTab.count() === 1) {
-    await profileTab.click();
-    await page.waitForTimeout(100);
-  }
-  let initial = { markerVisible: false, canToggle: false, before: '' };
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    initial = await page.evaluate((marker) => {
-      const markerVisible = document.body.innerText.toLowerCase().includes(marker.toLowerCase());
-      const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-        const text = (button.textContent || '').toLowerCase();
-        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
-        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
-      });
-      return {
-        markerVisible,
-        canToggle: profileButton instanceof HTMLButtonElement,
-        before: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
-      };
-    }, markers.Account);
-    if (initial.markerVisible && initial.canToggle) {
-      break;
-    }
-    await page.waitForTimeout(140);
-  }
-
-  if (!initial.canToggle) {
-    return {
-      markerVisible: initial.markerVisible,
-      extraPass: false,
-      pass: false,
-    };
-  }
-
-  let afterFirst = '';
-  await page.evaluate(() => {
-    const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-      const text = (button.textContent || '').toLowerCase();
-      const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
-      return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
-    });
-    if (profileButton instanceof HTMLButtonElement) {
-      profileButton.click();
-    }
-  });
-
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    ({ after: afterFirst } = await page.evaluate(() => {
-      const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-        const text = (button.textContent || '').toLowerCase();
-        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
-        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
-      });
-      return {
-        after: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
-      };
-    }));
-    if (afterFirst && afterFirst !== initial.before) {
-      break;
-    }
-    await page.waitForTimeout(120);
-  }
-
-  await page.evaluate(() => {
-    const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-      const text = (button.textContent || '').toLowerCase();
-      const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
-      return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
-    });
-    if (profileButton instanceof HTMLButtonElement) {
-      profileButton.click();
-    }
-  });
-
-  let afterSecond = '';
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    ({ after: afterSecond } = await page.evaluate(() => {
-      const profileButton = Array.from(document.querySelectorAll('button')).find((button) => {
-        const text = (button.textContent || '').toLowerCase();
-        const isAccountProfileDisclosure = text.includes('sign in or continue as guest') || text.includes('signed in as');
-        return isAccountProfileDisclosure && (text.includes('show details') || text.includes('hide details'));
-      });
-      return {
-        after: profileButton instanceof HTMLButtonElement ? profileButton.textContent || '' : '',
-      };
-    }));
-    if (afterSecond && afterSecond === initial.before) {
-      break;
-    }
-    await page.waitForTimeout(120);
-  }
-
-  return {
-    markerVisible: initial.markerVisible,
-    extraPass: initial.before !== afterFirst && afterSecond === initial.before,
-    pass: initial.markerVisible && initial.before !== afterFirst && afterSecond === initial.before,
-  };
+  const overview = page.locator('[data-account-section="overview"]');
+  const markerVisible = await overview.getByText(markers.Account, { exact: true }).isVisible();
+  const profile = overview.locator('[data-account-destination="profile"]');
+  await profile.click();
+  const detail = page.locator('[data-account-section="profile"]');
+  const signInVisible = await detail.locator('input[type="email"]').isVisible();
+  await detail.getByRole('button', { name: 'Back to Account' }).click();
+  const extraPass = signInVisible && await profile.evaluate((element) => element === document.activeElement);
+  return { markerVisible, extraPass, pass: markerVisible && extraPass };
 }
 
 async function checkSimpleMarker(page, tabName, mobile, extraCheck) {
@@ -1151,12 +1185,45 @@ async function checkThemeContrast(browser) {
       if (clipped.length) failures.push(`${preference}/${colorScheme}: clipped tablet navigation: ${clipped.join(', ')}`);
       await page.setViewportSize({ width: 390, height: 844 });
       await check('current mobile destination', page.locator('.app-bottom-nav').getByRole('button', { name: 'Home', exact: true }), 4.5);
+      for (const destination of ['Home', 'Decide', 'Reflect', 'Library']) {
+        await clickTab(page, destination, true);
+        const tabs = page.locator('button[role="tab"][aria-controls$="-workspace-panel"]');
+        await tabs.first().waitFor();
+        for (const tab of await tabs.all()) {
+          const label = await tab.innerText();
+          await check(`${destination} / ${label} label`, tab, 4.5);
+          await check(`${destination} / ${label} icon`, tab.locator('svg'), 3);
+        }
+      }
     } finally {
       await context.close();
     }
   }
   if (failures.length) throw new Error(`Theme contrast regressions:\n${failures.join('\n')}`);
   console.log(ok(`Theme contrast passed for ${settings.length} settings (text 4.5:1; icons 3:1)`));
+}
+
+async function checkOnboardingDismissal(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 320, height: 667 },
+    isMobile: true,
+    hasTouch: true,
+    serviceWorkers: 'block',
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(runtimeBaseUrl);
+    await page.getByRole('button', { name: 'Continue without account', exact: true }).click();
+    const onboarding = page.getByRole('dialog', { name: 'Begin with what matters today' });
+    const close = onboarding.getByRole('button', { name: 'Close and continue' });
+    const box = await close.boundingBox();
+    if (!box || box.width < 44 || box.height < 44) throw new Error('Onboarding close target is smaller than 44px');
+    await close.click();
+    await onboarding.waitFor({ state: 'hidden' });
+    await page.getByTestId('ask-question-composer').waitFor();
+  } finally {
+    await context.close();
+  }
 }
 
 async function run() {
@@ -1192,6 +1259,12 @@ async function run() {
         await browser.close();
       }
       return;
+    }
+    try {
+      await checkOnboardingDismissal(browser);
+    } catch (error) {
+      await browser.close();
+      throw error;
     }
     const results = [];
 

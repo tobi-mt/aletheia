@@ -5,7 +5,7 @@ import { many, run } from "@/lib/db";
 import { defaultPreferences, normalizePreferences, type UserPreferences } from "@/lib/localization";
 import { manualContextSummary, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
-import { detectLifeSupportConcern } from "@/lib/life-support";
+import { counselSafetyTopic } from "@/lib/counsel-safety";
 import { retrieveWisdomEvidence } from "@/lib/wisdom";
 import { composeCompanionCounsel } from "@/lib/companion-counsel";
 import { generateWisdomIntelligence } from "@/lib/wisdom-intelligence";
@@ -197,7 +197,7 @@ export async function PATCH(request: Request) {
     return apiError(400, "invalid_input", "A complete generated exchange is required.");
   }
 
-  const sources = Array.isArray(reply.sources) ? reply.sources.slice(0, 12) : [];
+  const sources = Array.isArray(reply.sources) ? reply.sources : [];
   const preferences = normalizePreferences(parsedBody.data.preferences ?? defaultPreferences);
   const now = new Date().toISOString();
   const persistenceResult = await run(
@@ -273,9 +273,9 @@ export async function POST(request: Request) {
     return apiError(400, "invalid_input", "Message is required.");
   }
 
-  const lifeConcern = detectLifeSupportConcern(message);
-  let sources = await retrieveWisdomEvidence(message, mode, 8);
-  if (lifeConcern === "self_harm") {
+  const safeTopic = counselSafetyTopic(message);
+  let sources = await retrieveWisdomEvidence(message, mode, 8, preferences.language);
+  if (safeTopic === "crisis") {
     const crisisCandidates = await retrieveWisdomEvidence(
       "Isaiah 41:10 fear help presence suffering anxiety care hope",
       mode,
@@ -487,6 +487,8 @@ export async function POST(request: Request) {
   });
   const effectiveMode = body.autoFit === false ? mode : intelligence.recommendedMode;
   const aiText = intelligence.counsel;
+  const citedReferences = new Set(intelligence.biblicalEvidence.map(({ reference }) => reference));
+  sources = sources.filter(({ scripture }) => citedReferences.has(scripture));
   const usedOpenAI = intelligence.routing.route !== "deterministic";
   const userMessageId = crypto.randomUUID();
   const replyMessageId = crypto.randomUUID();

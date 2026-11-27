@@ -38,8 +38,9 @@ test("Library prioritizes orientation and browsing while progressively disclosin
 
 test("Account keeps settings ahead of optional formation recommendations", () => {
   const account = component("AccountPanel", "ChallengeRecommendationCard");
-  const tabs = account.indexOf("<ScreenTabs");
+  const overview = account.indexOf("<nav");
   const system = account.indexOf('accountSection === "system"');
-  const recommendation = account.lastIndexOf("challengeRecommendation ?");
-  assert.ok(tabs > 0 && tabs < system && system < recommendation);
+  const recommendation = account.lastIndexOf('accountSection === "profile" && challengeRecommendation ?');
+  assert.ok(overview > 0 && overview < system && system < recommendation);
+  assert.doesNotMatch(account, /<ScreenTabs|<SectionVisualBanner/);
 });

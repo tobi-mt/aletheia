@@ -1,4 +1,5 @@
 import {
+  canonicalScriptureReference,
   defaultPreferences,
   hasCompleteLocalizedWisdomEntry,
   localizedCrisisSupportCopy,
@@ -9,6 +10,8 @@ import {
 } from "@/lib/localization";
 import { detectLifeSupportConcern } from "@/lib/life-support";
 import { wisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
+import { scriptureTextMatches } from "@/lib/scripture-text-matches";
+import { counselSafetyBoundary, counselSafetyTopic, crisisScriptureConnection, type SafeTopic } from "@/lib/counsel-safety";
 
 const promotion = /\b(?:promotion|new role|more (?:work|hours|responsibility))\b/i;
 const fixedWorkload = /\b(?:no (?:duties|responsibilities) (?:can|will) be (?:removed|reduced)|(?:will not|won['’]t|can['’]t|cannot) (?:remove|reduce|drop|offload) (?:any |my |the )?(?:duties|responsibilities|workload)|workload (?:cannot|can['’]t|won['’]t) change)\b/i;
@@ -22,7 +25,23 @@ const fixedWorkloadNextStep = "If the workload makes the role unsustainable, you
 const fixedWorkloadContinuation = "If you decline this offer, what would you want to keep open for your future at work?";
 export const answerContinuationPromptPrefix = "Help me explore this one continuation question: ";
 
-type CounselFocus = "workCapacity" | "familyRest" | "debtInvestment" | "givingCapacity" | "careerComparison";
+const fatigue = /(?:\b(?:exhausted|burned out|worn out|erschöpft|ausgebrannt|agotad\p{L}*|cansad\p{L}*|exaust\p{L}*|napapagod|pagod|gaji)\b|épuis\p{L}*|mú kí n rẹ̀|ike gwụrụ|الإرهاق|مرهق|थक)/iu;
+const restPassage = "Matthew 11:28-30";
+const restConnection: Record<UserPreferences["language"], string> = {
+  en: "Jesus invites those carrying heavy burdens to come to him for rest. Take your exhaustion seriously: name one responsibility someone could share this week.",
+  es: "Jesús invita a quienes llevan cargas pesadas a descansar en él. Toma en serio tu cansancio: piensa en una responsabilidad que alguien pueda compartir esta semana.",
+  fr: "Jésus invite ceux qui portent de lourds fardeaux à trouver du repos auprès de lui. Prends ta fatigue au sérieux : nomme une responsabilité que quelqu’un pourrait partager cette semaine.",
+  de: "Jesus lädt Menschen mit schweren Lasten ein, bei ihm Ruhe zu finden. Nimm deine Erschöpfung ernst: Welche Aufgabe könnte diese Woche jemand mit dir teilen?",
+  pt: "Jesus convida quem carrega fardos pesados a descansar nele. Leve seu cansaço a sério: pense em uma responsabilidade que alguém possa dividir com você nesta semana.",
+  yo: "Jésù pe àwọn tó ru ẹrù wúwo láti wá ìsinmi lọ́dọ̀ rẹ̀. Má ṣe fojú kéré àárẹ̀ rẹ; ronú nípa ojúṣe kan tí ẹlòmíràn lè bá ọ ṣe lọ́sẹ̀ yìí.",
+  ig: "Jizọs na-akpọ ndị bu ibu dị arọ ka ha bịakwute ya nweta izu ike. Elegharala ike ọgwụgwụ gị anya: chee otu ọrụ mmadụ nwere ike inyere gị aka ime n’izu a.",
+  ha: "Yesu ya kira masu ɗauke da kaya masu nauyi su zo wurinsa don su sami hutu. Kada ka yi watsi da gajiyarka: ka zaɓi wani aiki da wani zai iya taimaka maka a wannan makon.",
+  tl: "Inaanyayahan ni Jesus ang mga may mabigat na pasanin na lumapit sa kanya at magpahinga. Huwag balewalain ang pagod: mag-isip ng isang tungkuling puwedeng ipabahagi sa iba ngayong linggo.",
+  ar: "يدعو يسوع من يحملون أعباء ثقيلة إلى أن يجدوا الراحة عنده. لا تتجاهل إرهاقك: حدّد مسؤولية واحدة يمكن لشخص آخر أن يشاركك فيها هذا الأسبوع.",
+  hi: "यीशु भारी बोझ उठाने वालों को अपने पास विश्राम पाने के लिए बुलाते हैं। अपनी थकान को हल्के में न लें: एक ज़िम्मेदारी चुनें जिसे इस सप्ताह कोई आपके साथ बाँट सके।",
+};
+
+type CounselFocus = "workCapacity" | "familyRest" | "debtInvestment" | "givingCapacity" | "careerComparison" | "fatigue";
 
 function counselFocus(question: string): CounselFocus | undefined {
   if (promotion.test(question) && hasCapacityPressure(question)) return "workCapacity";
@@ -30,6 +49,7 @@ function counselFocus(question: string): CounselFocus | undefined {
   if (debt.test(question) && investment.test(question)) return "debtInvestment";
   if (rentPressure.test(question) && family.test(question) && /\b(?:give|help|ask\w*|lend|money)\b/i.test(question)) return "givingCapacity";
   if (/\b(?:career|job|work)\b/i.test(question) && /\bcompar\w*\b/i.test(question)) return "careerComparison";
+  if (fatigue.test(question)) return "fatigue";
 }
 
 const focusReferences: Record<CounselFocus, readonly string[]> = {
@@ -38,6 +58,7 @@ const focusReferences: Record<CounselFocus, readonly string[]> = {
   debtInvestment: ["Proverbs 22:7", "Luke 14:28-30"],
   givingCapacity: ["2 Corinthians 8:12-14", "Galatians 6:2-5"],
   careerComparison: ["Colossians 3:23-24", "Proverbs 15:22"],
+  fatigue: [restPassage],
 };
 
 export function preferredCounselReferences(question: string): readonly string[] {
@@ -183,35 +204,56 @@ function focusedCopy(question: string, language: UserPreferences["language"]): F
   }
 }
 
-export function needsFinancialBoundary(question: string) {
-  return /\b(?:invest\w*|debt\w*|loan\w*|tax\w*|mortgage\w*|financ\w*|money|dettes?|deudas?|préstamos?)\b/i.test(question);
-}
-
 export function composeCompanionCounsel(
   question: string,
   sources: WisdomEntryData[],
   preferences: UserPreferences = defaultPreferences,
-  limit = 2,
+  topic: SafeTopic = counselSafetyTopic(question),
 ) {
   const concern = detectLifeSupportConcern(question);
   const crisis = localizedCrisisSupportCopy(preferences.language);
   const copy = localizedWisdomResponseCopy(preferences.language);
   const focused = focusedCopy(question, preferences.language);
-  const candidates = [...new Map((sources.length ? sources : wisdomEntries.slice(0, 2))
+  const curatedConnections = focused?.connections ?? (counselFocus(question) === "fatigue"
+    ? { [restPassage]: restConnection[preferences.language] } : undefined);
+  const candidates = [...new Map((sources.length ? sources : wisdomEntries)
     .map((source) => [source.scripture, source])).values()];
   const preferred = preferredCounselReferences(question);
-  const selected = [
+  const ranked = [
     ...preferred.flatMap((reference) => candidates.filter(({ scripture }) => scripture === reference)),
     ...candidates.filter(({ scripture }) => !preferred.includes(scripture)),
-  ].slice(0, concern === "self_harm" ? 1 : limit);
+  ];
+  const requested = new Set(scriptureTextMatches(question, ranked.map(({ scripture }) => scripture), preferences.language).map(({ scripture }) => scripture));
+  const normalize = (text: string) => text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+  const words = normalize(question).match(/[\p{L}\p{N}]+/gu) ?? [];
+  const questionWords = ` ${words.join(" ")} `;
+  const genericKeywords = new Set(["ask", "decision", "help", "life", "next", "plan", "plans", "what", "wisdom", "work"]);
+  const relevant = ranked.filter((source) => {
+    if (curatedConnections?.[source.scripture]) return true;
+    if (!hasCompleteLocalizedWisdomEntry(source, preferences.language)) return false;
+    if (requested.has(canonicalScriptureReference(source.scripture))) return true;
+    if (preferred.length) return preferred.includes(source.scripture);
+    const keywords = preferences.language === "en" ? source.keywords : localizedWisdomEntry(source, preferences).keywords;
+    return keywords.some((keyword) => {
+      const phrase = (normalize(keyword).match(/[\p{L}\p{N}]+/gu) ?? []).join(" ");
+      return phrase.length >= 3 && !genericKeywords.has(phrase) && questionWords.includes(` ${phrase} `);
+    });
+  });
+  const crisisAnchor = topic === "crisis"
+    ? candidates.find(({ scripture }) => crisisScriptureConnection(scripture, preferences.language)) ?? candidates[0]
+    : undefined;
+  const selected = topic === "crisis" ? (crisisAnchor ? [crisisAnchor] : []) : relevant;
   const evidence = selected.map((source, index) => {
     const entry = localizedWisdomEntry(source, preferences);
     const localized = hasCompleteLocalizedWisdomEntry(source, preferences.language);
     const reference = localizedScriptureReference(source.scripture, preferences.language);
     const anchor = index === 0 ? copy.primaryAnchor : copy.secondAnchor;
+    const crisisConnection = topic === "crisis" ? crisisScriptureConnection(source.scripture, preferences.language) : undefined;
     return {
       reference: source.scripture,
-      connection: anchor(reference, focused?.connections?.[source.scripture] ?? (localized ? `${entry.context} ${entry.principle}` : "")),
+      connection: crisisConnection
+        ? `${reference} — ${crisisConnection}`
+        : anchor(reference, curatedConnections?.[source.scripture] ?? (localized ? `${entry.context} ${entry.principle} ${entry.application}` : "")),
       application: localized ? entry.application : "",
     };
   });
@@ -223,14 +265,14 @@ export function composeCompanionCounsel(
     : null;
   const opening = focused?.opening ?? copy.opening;
   const nextStep = focused?.nextStep ?? (evidence[0]?.application ? copy.ordinaryLife(evidence[0].application) : copy.nextStepQuestion);
-  const qualifiedCounsel = needsFinancialBoundary(question) || /\b(?:lawyer|legal|lawsuit)\b/i.test(question)
-    ? copy.disclaimer : "";
+  const qualifiedCounsel = counselSafetyBoundary(topic, preferences.language);
   const paragraphs = concern === "self_harm"
     ? [crisis.selfHarmOpening, crisis.selfHarmImmediate, crisis.selfHarmFollowUp, evidence[0]?.connection]
+    : topic === "crisis" ? [qualifiedCounsel, evidence[0]?.connection]
     : [support?.[0] ?? opening, ...evidence.map((item) => item.connection), qualifiedCounsel, support?.[1] ?? nextStep];
   return {
     text: paragraphs.filter(Boolean).join("\n\n"),
-    nextStep: concern === "self_harm" ? crisis.selfHarmImmediate : support?.[1] ?? nextStep,
+    nextStep: concern === "self_harm" ? crisis.selfHarmImmediate : topic === "crisis" ? qualifiedCounsel : support?.[1] ?? nextStep,
     sources: selected,
     biblicalEvidence: evidence.map(({ reference, connection }) => ({ reference, connection })),
   };

@@ -81,6 +81,7 @@ import {
 import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, parseDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import { buildAnswerContinuation, continuationLabel, type AnswerContinuation } from "@/lib/answer-continuation";
 import { composeCompanionCounsel, hasCapacityPressure, preferredCounselReferences } from "@/lib/companion-counsel";
+import { normalizeScriptureMatchText, scriptureTextMatches } from "@/lib/scripture-text-matches";
 import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
 import enTranslations from "@/locales/en.json";
 import { DEFAULT_TODAY_VISUAL_THEME, THEME_KEYS } from "@/lib/theme-keys";
@@ -113,7 +114,7 @@ import {
 } from "@/lib/localization";
 import { modeProfiles, type ModeProfile } from "@/lib/mode-profiles";
 import { recordModeSwitchFeedback } from "@/lib/mode-switch-learning";
-import { detectLifeSupportConcern } from "@/lib/life-support";
+import { counselSafetyTopic } from "@/lib/counsel-safety";
 import { normalizeMode, stableHash, todayWisdom as sharedTodayWisdom, wisdomEntries as baseWisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { defaultManualContext, manualContextCounselSignals, manualContextHasContent, normalizeManualContext, type ManualContextProfile } from "@/lib/manual-context";
 import { recommendChallenges } from "@/lib/challenge-recommendations";
@@ -175,12 +176,12 @@ import {
 
 const BibleReader = dynamic(() => import("@/components/bible-reader"), {
   ssr: false,
-  loading: () => <div className="h-72 animate-pulse rounded-xl bg-black/[0.04] motion-reduce:animate-none" aria-hidden="true" />,
+  loading: () => <div className="h-72 animate-pulse rounded-xl bg-current/10 motion-reduce:animate-none" aria-hidden="true" />,
 });
 
 const ListenForWisdom = dynamic(() => import("@/components/listen-for-wisdom"), {
   ssr: false,
-  loading: () => <div className="h-24 animate-pulse rounded-xl bg-black/[0.04] motion-reduce:animate-none" aria-hidden="true" />,
+  loading: () => <div className="h-24 animate-pulse rounded-xl bg-current/10 motion-reduce:animate-none" aria-hidden="true" />,
 });
 
 installNativeWebFetchProxy();
@@ -245,7 +246,7 @@ async function traceAppUrlOpenListener(
 
 type View = "companion" | "decisions" | "reflect" | "library" | "account";
 type HomeSection = "today" | "ask";
-type ViewIdentity = HomeSection | "decisions" | "reflect" | "library" | "account";
+type PersonalizationStatus = { section: "appearance" | "language" | "voice"; message: string };
 type JourneyDestination =
   | { view: "decisions"; section: "decisions"; entryId?: string }
   | { view: "decisions"; section: "counsel"; entryId?: string }
@@ -3538,12 +3539,14 @@ function searchWisdom(query: string, mode: Mode, limit = 3, preferences: UserPre
 
 function composeResponse(question: string, mode: Mode, preferences: UserPreferences = defaultPreferences) {
   const sources = searchWisdom(question, mode, 3, preferences);
+  const library = [...scriptureCounselIndex, ...baseWisdomEntries];
+  const requested = new Set(scriptureTextMatches(question, library.map(({ scripture }) => scripture), preferences.language).map(({ scripture }) => scripture));
   const focusedReferences = preferredCounselReferences(question);
-  const preferredReferences = detectLifeSupportConcern(question) === "self_harm" ? ["Isaiah 41:10"]
+  const preferredReferences = counselSafetyTopic(question) === "crisis" ? ["Isaiah 41:10"]
     : focusedReferences.length ? focusedReferences : hasCapacityPressure(question) ? ["Matthew 11:28-30"] : [];
   const preferred = preferredReferences.flatMap((reference) =>
-    [...scriptureCounselIndex, ...baseWisdomEntries].filter((entry) => entry.scripture === reference).slice(0, 1));
-  return composeCompanionCounsel(question, [...preferred, ...sources], preferences);
+    library.filter((entry) => entry.scripture === reference).slice(0, 1));
+  return composeCompanionCounsel(question, [...preferred, ...library.filter(({ scripture }) => requested.has(canonicalScriptureReference(scripture))), ...sources], preferences);
 }
 
 const STATIC_TODAY_DAY_NUMBER = 0;
@@ -5837,10 +5840,11 @@ export function AletheiaApp({
   const [welcomeAuthOpen, setWelcomeAuthOpen] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [startupLanguage, setStartupLanguage] = useState<LanguageCode>(defaultPreferences.language);
-  const [preferencesStatus, setPreferencesStatus] = useState("");
+  const [preferencesStatus, setPreferencesStatus] = useState<PersonalizationStatus | null>(null);
+  const setVoiceStatus = useCallback((message: string) => setPreferencesStatus({ section: "voice", message }), []);
   const [manualContext, setManualContext] = useState<ManualContextProfile>(defaultManualContext);
   const [manualContextStatus, setManualContextStatus] = useState("");
-  const [requestedAccountSection, setRequestedAccountSection] = useState<"personalization" | "privacy" | "share" | "system">("personalization");
+  const [accountRequest, setAccountRequest] = useState<{ section: AccountSection; revision: number }>({ section: "overview", revision: 0 });
   const [requestedLibrarySection, setRequestedLibrarySection] = useState<"saved" | "explore" | "formation" | "listen" | null>(null);
   const [listenOpenRequest, setListenOpenRequest] = useState(0);
   const [pendingLibraryEntryFocusId, setPendingLibraryEntryFocusId] = useState<string | null>(null);
@@ -6128,9 +6132,7 @@ export function AletheiaApp({
   }, [preferences.language]);
   
   const appShellRef = useRef<HTMLElement | null>(null);
-  const topNavRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
-  const bottomNavRef = useRef<HTMLDivElement | null>(null);
   const updateRefreshTimeoutRef = useRef<number | null>(null);
   const updateContextRef = useRef({ activeView, homeSection, query, decisionTitle, decisionPressure, journalBody });
   updateContextRef.current = { activeView, homeSection, query, decisionTitle, decisionPressure, journalBody };
@@ -6683,15 +6685,13 @@ export function AletheiaApp({
     setActiveView(destination.view, source);
   }, [setActiveView]);
 
-  const openAccountFlow = useCallback((nextAuthMode?: AuthMode) => {
-    if (nextAuthMode) {
-      setAuthMode(nextAuthMode);
-    }
+  const openAccountOverview = useCallback(() => {
+    setAccountRequest(({ revision }) => ({ section: "overview", revision: revision + 1 }));
     showView("account");
   }, [showView]);
 
   const openManualContextFlow = useCallback(() => {
-    setRequestedAccountSection("privacy");
+    setAccountRequest(({ revision }) => ({ section: "context", revision: revision + 1 }));
     showView("account");
   }, [showView]);
 
@@ -7051,7 +7051,7 @@ export function AletheiaApp({
             setReadingLabel("");
             setReadingVoiceId(null);
             setStatusMessage("");
-            setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+            setPreferencesStatus({ section: "voice", message: ts('notifications.voiceOutputUnavailableBody') });
             announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
           }
         });
@@ -7158,24 +7158,60 @@ export function AletheiaApp({
   }, [user]);
 
   useLayoutEffect(() => {
+    let editingPointer: number | null = null;
+    let releaseTimer = 0;
+    let focusoutTimer = 0;
     const isEditableElement = (element: Element | null) =>
-      element instanceof HTMLInputElement ||
+      (element instanceof HTMLInputElement && ["text", "search", "email", "password", "tel", "url", "number"].includes(element.type)) ||
       element instanceof HTMLTextAreaElement ||
       (element instanceof HTMLElement && element.isContentEditable === true);
 
     const syncKeyboardOpenState = () => {
       const keyboardOpen = isEditableElement(document.activeElement);
       keyboardOpenRef.current = keyboardOpen;
-      document.documentElement.dataset.keyboardOpen = keyboardOpen ? "true" : "false";
+      document.documentElement.dataset.keyboardOpen = keyboardOpen || editingPointer !== null ? "true" : "false";
     };
 
     const handleFocusOut = () => {
-      window.setTimeout(syncKeyboardOpenState, 0);
+      window.clearTimeout(focusoutTimer);
+      focusoutTimer = window.setTimeout(syncKeyboardOpenState, 0);
+    };
+
+    const holdNavigation = (event: PointerEvent) => {
+      if (!event.isPrimary || event.button !== 0 || !isEditableElement(document.activeElement)) return;
+      window.clearTimeout(releaseTimer);
+      editingPointer = event.pointerId;
+      syncKeyboardOpenState();
+    };
+
+    const resetNavigation = () => {
+      window.clearTimeout(releaseTimer);
+      editingPointer = null;
+      syncKeyboardOpenState();
+    };
+
+    const releaseNavigation = (event: PointerEvent) => {
+      if (event.pointerId !== editingPointer) return;
+      if (event.type === "pointercancel") {
+        resetNavigation();
+        return;
+      }
+      // Touch browsers can dispatch the compatibility click after pointerup.
+      releaseTimer = window.setTimeout(resetNavigation, event.pointerType === "touch" ? 350 : 0);
+    };
+
+    const finishNavigationClick = (event: MouseEvent) => {
+      if (editingPointer !== null && event.detail > 0) resetNavigation();
     };
 
     syncKeyboardOpenState();
     document.addEventListener("focusin", syncKeyboardOpenState, true);
     document.addEventListener("focusout", handleFocusOut, true);
+    document.addEventListener("pointerdown", holdNavigation, true);
+    window.addEventListener("pointerup", releaseNavigation, true);
+    window.addEventListener("pointercancel", releaseNavigation, true);
+    window.addEventListener("blur", resetNavigation);
+    window.addEventListener("click", finishNavigationClick, true);
 
     const updateViewportChrome = () => {
       const isEditable = isEditableElement(document.activeElement);
@@ -7236,8 +7272,15 @@ export function AletheiaApp({
     window.addEventListener("resize", updateViewportChrome);
     window.visualViewport?.addEventListener("resize", updateViewportChrome);
     return () => {
+      window.clearTimeout(focusoutTimer);
+      window.clearTimeout(releaseTimer);
       document.removeEventListener("focusin", syncKeyboardOpenState, true);
       document.removeEventListener("focusout", handleFocusOut, true);
+      document.removeEventListener("pointerdown", holdNavigation, true);
+      window.removeEventListener("pointerup", releaseNavigation, true);
+      window.removeEventListener("pointercancel", releaseNavigation, true);
+      window.removeEventListener("blur", resetNavigation);
+      window.removeEventListener("click", finishNavigationClick, true);
       window.removeEventListener("resize", updateViewportChrome);
       window.visualViewport?.removeEventListener("resize", updateViewportChrome);
     };
@@ -7484,15 +7527,8 @@ export function AletheiaApp({
     };
   }, [announceWorkflow, startupPaintReady, ts]);
 
-  useEffect(() => {
-    if (!clientStateRestored) {
-      return;
-    }
-
-    const topNav = topNavRef.current;
-    if (!topNav) {
-      return;
-    }
+  const setTopNav = useCallback((topNav: HTMLElement | null) => {
+    if (!topNav) return;
 
     const updateTopNavSpace = () => {
       const navHeight = Math.max(0, Math.ceil(topNav.getBoundingClientRect().height));
@@ -7504,24 +7540,19 @@ export function AletheiaApp({
 
     updateTopNavSpace();
     const resizeObserver = new ResizeObserver(updateTopNavSpace);
-    resizeObserver.observe(topNav);
+    resizeObserver.observe(topNav, { box: "border-box" });
     window.addEventListener("resize", updateTopNavSpace);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateTopNavSpace);
+      document.documentElement.style.removeProperty("--aletheia-top-nav-space");
+      document.documentElement.style.removeProperty("--aletheia-top-glass-height");
     };
-  }, [clientStateRestored]);
+  }, []);
 
-  useEffect(() => {
-    if (!clientStateRestored) {
-      return;
-    }
-
-    const nav = bottomNavRef.current;
-    if (!nav) {
-      return;
-    }
+  const setBottomNav = useCallback((nav: HTMLElement | null) => {
+    if (!nav) return;
 
     const updateBottomNavSpace = () => {
       if (keyboardOpenRef.current) {
@@ -7540,7 +7571,7 @@ export function AletheiaApp({
 
     updateBottomNavSpace();
     const resizeObserver = new ResizeObserver(updateBottomNavSpace);
-    resizeObserver.observe(nav);
+    resizeObserver.observe(nav, { box: "border-box" });
     window.addEventListener("resize", updateBottomNavSpace);
     window.visualViewport?.addEventListener("resize", updateBottomNavSpace);
 
@@ -7548,8 +7579,9 @@ export function AletheiaApp({
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateBottomNavSpace);
       window.visualViewport?.removeEventListener("resize", updateBottomNavSpace);
+      document.documentElement.style.removeProperty("--aletheia-bottom-nav-space");
     };
-  }, [clientStateRestored]);
+  }, []);
 
   // Keep iOS installed-PWA chrome transparent so our themed header owns the safe area.
   useEffect(() => {
@@ -8195,6 +8227,7 @@ export function AletheiaApp({
           }
           setAuthError(authFailureMessage);
           setAuthNotice("");
+          setAccountRequest(({ revision }) => ({ section: "profile", revision: revision + 1 }));
           setActiveView("account");
           setShowOnboarding(false);
           announceWorkflow(ts('notifications.signInNotFinish'), authFailureMessage, "error");
@@ -9192,7 +9225,7 @@ export function AletheiaApp({
 
   function updateThemePreference(nextTheme: ThemePreference) {
     setThemePreference(nextTheme);
-    setPreferencesStatus(ts('notifications.themeAppliedAutomatically'));
+    setPreferencesStatus({ section: "appearance", message: ts('notifications.themeAppliedAutomatically') });
     trackClientEvent("theme_changed", {
       theme: nextTheme,
       previous_theme: themePreference,
@@ -9202,7 +9235,7 @@ export function AletheiaApp({
 
   function updateVoicePreference(voiceURI: string | null) {
     setSelectedVoice(voiceURI);
-    setPreferencesStatus(
+    setVoiceStatus(
       voiceURI
         ? ts('labels.voiceApplied')
         : ts('labels.deviceVoiceApplied')
@@ -9233,7 +9266,6 @@ export function AletheiaApp({
       count: cleanIntentions.length,
       intentions: cleanIntentions.join(","),
     });
-    setPreferencesStatus(ts('labels.focusIntentionsSaved'));
     if (user) void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: { theme: themePreference, selectedVoice, focusIntentions: cleanIntentions } }) }).catch(() => undefined);
   }
 
@@ -9735,7 +9767,7 @@ function startFirstRunGuestFlow() {
         ts('personalization.tooVagueTitle'),
         ts('personalization.tooVagueBody'),
         "info",
-        { label: ts('personalization.addOneDetail'), onClick: openAccountFlow }
+        { label: ts('personalization.addOneDetail'), onClick: openManualContextFlow }
       );
       return;
     }
@@ -10006,12 +10038,14 @@ function startFirstRunGuestFlow() {
         // The choice still applies for this session if storage is unavailable.
       }
     }
-    if (!options.silent) {
-      setPreferencesStatus(
-        user
+    const updatesLanguage = patch.language !== undefined || patch.bibleTranslation !== undefined;
+    if (!options.silent && updatesLanguage) {
+      setPreferencesStatus({
+        section: "language",
+        message: user
           ? getNextTranslation('notifications.preferencesSaving')
           : getNextTranslation('notifications.preferencesSavedBody')
-      );
+      });
     }
     try {
       window.localStorage.setItem("aletheia_preferences", JSON.stringify(next));
@@ -10027,11 +10061,12 @@ function startFirstRunGuestFlow() {
       });
       const saved = response.ok;
       if (!options.silent) {
-        setPreferencesStatus(
-          saved
+        if (updatesLanguage) setPreferencesStatus({
+          section: "language",
+          message: saved
             ? getNextTranslation('notifications.preferencesReady')
             : getNextTranslation('notifications.preferencesSavedLocallyBody')
-        );
+        });
         announceWorkflow(
           saved ? getNextTranslation('notifications.preferencesSynced') : getNextTranslation('notifications.preferencesSavedLocally'),
           saved ? getNextTranslation('notifications.preferencesSyncedBody') : getNextTranslation('notifications.preferencesSavedLocallyBody'),
@@ -10046,7 +10081,7 @@ function startFirstRunGuestFlow() {
   async function updateManualContext(patch: Partial<ManualContextProfile>) {
     const next = normalizeManualContext({ ...manualContext, ...patch });
     setManualContext(next);
-    setManualContextStatus(user ? ts('manualContext.savingManualContext') : ts('notifications.contextSavedLocallyBodySignIn'));
+    setManualContextStatus(user ? ts('manualContext.savingManualContext') : ts('notifications.contextSavedLocally'));
     try {
       window.localStorage.setItem(MANUAL_CONTEXT_STORAGE_KEY, JSON.stringify(next));
     } catch {
@@ -10060,17 +10095,18 @@ function startFirstRunGuestFlow() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(next),
         });
+        if (!response.ok) throw new Error(`Context sync failed (${response.status})`);
         const data = (await response.json()) as { context?: ManualContextProfile; persisted?: boolean };
         if (data.context) {
           const savedContext = normalizeManualContext(data.context);
           setManualContext(savedContext);
           window.localStorage.setItem(MANUAL_CONTEXT_STORAGE_KEY, JSON.stringify(savedContext));
         }
-        setManualContextStatus(data.persisted ? ts('notifications.contextSyncedBody') : ts('notifications.contextSavedLocallyBodyAccount'));
+        setManualContextStatus(data.persisted ? ts('notifications.contextSynced') : ts('notifications.contextSavedLocallyBodyAccount'));
         announceWorkflow(
           data.persisted ? ts('notifications.contextSynced') : ts('notifications.contextSavedLocally'),
           data.persisted
-            ? ts('notifications.contextSyncedBody')
+            ? ts('manualContext.privacyBody')
             : ts('notifications.contextSavedLocallyBodyAccount'),
           data.persisted ? "success" : "warning"
         );
@@ -10312,7 +10348,7 @@ function startFirstRunGuestFlow() {
     const SpeechRecognition =
       browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setPreferencesStatus(ts('notifications.voiceInputUnavailableBody'));
+      setVoiceStatus(ts('notifications.voiceInputUnavailableBody'));
       announceWorkflow(ts('notifications.voiceInputUnavailable'), ts('notifications.voiceInputUnavailableBody'), "warning");
       return;
     }
@@ -10356,7 +10392,7 @@ function startFirstRunGuestFlow() {
     };
     recognition.onerror = () => {
       if (inactivityTimer) clearTimeout(inactivityTimer);
-      setPreferencesStatus(ts('notifications.voiceInputStoppedBody'));
+      setVoiceStatus(ts('notifications.voiceInputStoppedBody'));
       announceWorkflow(ts('notifications.voiceInputStopped'), ts('notifications.voiceInputStoppedBody'), "warning");
     };
     recognition.onend = () => {
@@ -10397,7 +10433,7 @@ function startFirstRunGuestFlow() {
     if (audio?.src) {
       if (audio.paused) {
         audio.play().catch(() => {
-          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         });
         setSpeechPaused(false);
@@ -10411,13 +10447,13 @@ function startFirstRunGuestFlow() {
     if (Capacitor.isNativePlatform()) {
       if (speechPaused) {
         void ManagedAudio.resume().catch(() => {
-          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         });
         setSpeechPaused(false);
       } else {
         void ManagedAudio.pause().catch(() => {
-          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         });
         setSpeechPaused(true);
@@ -10555,7 +10591,7 @@ function startFirstRunGuestFlow() {
           setSpeechProgress(0);
           setReadingLabel("");
           setReadingVoiceId(null);
-          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         };
 
@@ -10611,7 +10647,7 @@ function startFirstRunGuestFlow() {
           setSpeechProgress(0);
           setReadingLabel("");
           setReadingVoiceId(null);
-          setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+          setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
           announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
         });
       }
@@ -10830,7 +10866,7 @@ function startFirstRunGuestFlow() {
         setSpeechProgress(0);
         setReadingLabel("");
         setReadingVoiceId(null);
-        setPreferencesStatus(ts('notifications.voiceOutputUnavailableBody'));
+        setVoiceStatus(ts('notifications.voiceOutputUnavailableBody'));
         announceWorkflow(ts('notifications.voiceOutputUnavailable'), ts('notifications.voiceOutputUnavailableBody'), "warning");
       }
     }
@@ -13259,7 +13295,7 @@ function startFirstRunGuestFlow() {
         ts={ts}
       />
 
-      <nav ref={topNavRef} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
+      <nav ref={setTopNav} className="app-top-nav fixed inset-x-0 z-50 border-b px-3 pb-3 backdrop-blur-xl sm:px-4" style={{ borderColor: theme.bgNavBorder, backgroundColor: resolvedTheme === "black"
         ? "rgba(7, 10, 8, 0.18)"
         : resolvedTheme === "dark"
           ? "rgba(14, 21, 20, 0.16)"
@@ -13272,7 +13308,7 @@ function startFirstRunGuestFlow() {
                 : resolvedTheme === "sunset"
                   ? "rgba(250, 241, 246, 0.18)"
                   : "rgba(238, 242, 239, 0.18)", top: 0 }}>
-        <div className="relative mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-1.5 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3 xl:flex xl:justify-between">
+        <div className="relative mx-auto grid max-w-7xl grid-cols-[minmax(96px,1fr)_minmax(0,auto)_minmax(96px,1fr)] items-center gap-1.5 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3 xl:flex xl:justify-between">
           <div className="flex min-w-0 items-center gap-1 md:hidden">
             <label
               className="app-mobile-chrome-control premium-tap-card relative grid shrink-0 place-items-center overflow-hidden rounded-full border transition"
@@ -13330,7 +13366,7 @@ function startFirstRunGuestFlow() {
             </div>
             <div className="app-brand-copy min-w-0">
               <p className="text-[0.48rem] font-semibold uppercase tracking-[0.16em] md:text-[0.72rem] md:tracking-[0.22em]" style={{ color: theme.textPrimary }}>{ts('labels.appName')}</p>
-              <p className="hidden whitespace-nowrap text-[11px] leading-4 md:block" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
+              <p className="hidden break-words text-[11px] leading-4 min-[430px]:block" style={{ color: theme.textSecondary }}>{ts('labels.appTagline')}</p>
             </div>
           </button>
 
@@ -13339,7 +13375,7 @@ function startFirstRunGuestFlow() {
             <NavButton active={activeView === "decisions"} icon={FileText} label={ui.nav.decisions} onClick={() => showView("decisions")} theme={theme} />
             <NavButton active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
             <NavButton active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
-            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
+            <NavButton active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={openAccountOverview} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
           </div>
 
           <div className="flex items-center justify-end gap-1 md:gap-1.5">
@@ -13438,7 +13474,7 @@ function startFirstRunGuestFlow() {
         </div>
       ) : null}
 
-      <div className="app-main-content mx-auto grid max-w-7xl gap-5 pt-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6" style={{ paddingBottom: "calc(var(--aletheia-bottom-nav-space, 8.5rem) + var(--aletheia-safe-area-bottom, env(safe-area-inset-bottom, 0px)))" }}>
+      <div className="app-main-content mx-auto grid max-w-7xl gap-5 pt-4 sm:pt-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:py-6">
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
             <section className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.borderStrong, backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -13469,7 +13505,7 @@ function startFirstRunGuestFlow() {
             <>
               {activeView === "companion" ? (
                 <Screen key="companion">
-                  <ViewIdentityFrame identity={homeSection} theme={theme}>
+                  <WorkspaceLayout>
                     <div id="home-today" className="mb-3 scroll-mt-24 sm:mb-4">
                       <HomeWelcomeHeader
                         currentLocalMonth={currentLocalMonth}
@@ -13487,12 +13523,14 @@ function startFirstRunGuestFlow() {
                       onChange={(section) => setHomeSection(section, "home_tabs")}
                       ariaLabel={ts('labels.homeSections')}
                       theme={theme}
-                      layout="grid"
+                      layout="workspace"
+                      panelId="home-workspace-panel"
                       tabs={[
-                        { key: "ask", label: ui.askTitle },
-                        { key: "today", label: ts('labels.today') },
+                        { key: "ask", label: ui.askTitle, icon: MessageCircleMore },
+                        { key: "today", label: ts('labels.today'), icon: Sun },
                       ]}
                     />
+                    <div id="home-workspace-panel" role="tabpanel" aria-labelledby={`home-workspace-panel-${homeSection}`}>
                     {homeSection === "ask" ? (
                       <div className="mt-4">
                       <CompanionPanel
@@ -13580,11 +13618,12 @@ function startFirstRunGuestFlow() {
                       />
                     </div>
                     )}
-                  </ViewIdentityFrame>
+                    </div>
+                  </WorkspaceLayout>
                 </Screen>
               ) : activeView === "decisions" ? (
                 <Screen key="decisions">
-                  <ViewIdentityFrame identity="decisions" theme={theme}>
+                  <WorkspaceLayout>
                     <DecisionCompanionPanel
                       language={preferences.language}
                       mode={mode}
@@ -13657,12 +13696,11 @@ function startFirstRunGuestFlow() {
                       onAddRule={addRuleOfLife}
                       theme={theme}
                     />
-                  </ViewIdentityFrame>
+                  </WorkspaceLayout>
                 </Screen>
               ) : activeView === "reflect" ? (
                 <Screen key="reflect">
-                  <ViewIdentityFrame identity="reflect" theme={theme}>
-                    <div className="space-y-4">
+                  <WorkspaceLayout>
                       <ReflectPanel
                         language={preferences.language}
                         mode={mode}
@@ -13691,12 +13729,11 @@ function startFirstRunGuestFlow() {
                         onUseGratitudeAsReflectionPrompt={useGratitudeAsReflectionPrompt}
                         theme={theme}
                       />
-                    </div>
-                  </ViewIdentityFrame>
+                  </WorkspaceLayout>
                 </Screen>
               ) : activeView === "library" ? (
                 <Screen key="library">
-                  <ViewIdentityFrame identity="library" theme={theme}>
+                  <WorkspaceLayout>
                     <LibraryPanel
                       entries={filteredEntries}
                       search={librarySearch}
@@ -13761,15 +13798,14 @@ function startFirstRunGuestFlow() {
                       )}
                       theme={theme}
                     />
-                  </ViewIdentityFrame>
+                  </WorkspaceLayout>
                 </Screen>
               ) : activeView === "account" ? (
                 <Screen key="account">
-                  <ViewIdentityFrame identity="account" theme={theme}>
                     <AccountPanel
-                      key={`account-${requestedAccountSection}`}
+                      key={accountRequest.revision}
                       ts={ts}
-                      requestedSection={requestedAccountSection}
+                      requestedSection={accountRequest.section}
                       user={user}
                       onOpenStreakMilestones={() => setShowStreakMilestonesModal(true)}
                       authMode={authMode}
@@ -13850,7 +13886,6 @@ function startFirstRunGuestFlow() {
                       streakData={streakData}
                       theme={theme}
                     />
-                  </ViewIdentityFrame>
                 </Screen>
               ) : null}
             </>
@@ -13873,38 +13908,16 @@ function startFirstRunGuestFlow() {
       ) : null}
 
       <GuidedJourneyNudge
-        step={activeGuidedJourneyStep}
+        step={isSpeaking || speechPaused ? null : activeGuidedJourneyStep}
         theme={theme}
         ts={ts}
         onDismiss={() => closeGuidedJourneyStep("dismissed")}
         onAction={followGuidedJourneyStep}
       />
 
-      <div ref={bottomNavRef} className="app-bottom-nav fixed z-40 overflow-hidden border shadow-[0_10px_24px_rgba(7,10,8,0.14)] backdrop-blur-xl md:hidden" style={{
+      <nav ref={setBottomNav} aria-label={ts('labels.appName')} className="app-bottom-nav fixed z-40 overflow-hidden border md:hidden" style={{
         borderColor: theme.bgNavBorder,
-        backgroundColor: (() => {
-          // Get accent color for current view for ambient blending
-          let viewAccent = theme.accentGold;
-          if (activeView === "decisions") viewAccent = "#7a6234";
-          else if (activeView === "reflect") viewAccent = "#7b8c78";
-          else if (activeView === "library") viewAccent = "#4f7188";
-          else if (activeView === "account") viewAccent = "#6f6a78";
-          // Blend view accent into nav background at 8% for subtle ambient effect
-          const baseBg = resolvedTheme === "black"
-            ? "rgba(7, 10, 8, 0.56)"
-            : resolvedTheme === "dark"
-              ? "rgba(14, 21, 20, 0.54)"
-              : resolvedTheme === "warm"
-                ? "rgba(250, 246, 241, 0.52)"
-                : resolvedTheme === "ocean"
-                  ? "rgba(241, 246, 250, 0.52)"
-                  : resolvedTheme === "forest"
-                    ? "rgba(241, 246, 241, 0.52)"
-                    : resolvedTheme === "sunset"
-                      ? "rgba(250, 241, 246, 0.52)"
-                      : "rgba(238, 242, 239, 0.52)";
-          return `color-mix(in srgb, ${viewAccent} 8%, ${baseBg})`;
-        })(),
+        backgroundColor: `color-mix(in srgb, ${theme.bgCardElevated} 96%, transparent)`,
         left: "max(var(--aletheia-safe-area-left, env(safe-area-inset-left, 0px)), 0.5rem)",
         right: "max(var(--aletheia-safe-area-right, env(safe-area-inset-right, 0px)), 0.5rem)",
         width: "auto",
@@ -13919,9 +13932,9 @@ function startFirstRunGuestFlow() {
           <MobileNav active={activeView === "decisions"} icon={FileText} label={ui.decideShort} onClick={() => showView("decisions")} theme={theme} />
           <MobileNav active={activeView === "reflect"} icon={Feather} label={ui.nav.reflect} onClick={() => showView("reflect")} theme={theme} />
           <MobileNav active={activeView === "library"} icon={BookOpen} label={ui.nav.library} onClick={() => showView("library")} theme={theme} />
-          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={() => showView("account")} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
+          <MobileNav active={activeView === "account"} icon={Users} label={ui.nav.account} onClick={openAccountOverview} theme={theme} avatarUrl={user?.avatarUrl} avatarLabel={user?.name ?? user?.email ?? ui.nav.account} />
         </div>
-      </div>
+      </nav>
 
       <WelcomeGateScreen
         open={showWelcomeGate && !user && authStatus !== "signed-in"}
@@ -14506,17 +14519,13 @@ function MobileNav({
     <button
       type="button"
       onClick={handleClick}
-      className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] border px-1 py-1 text-[9px] font-semibold leading-[0.7rem] sm:text-[10px] transition-all duration-300 ease-out ${
+      className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.8rem] border px-1 py-1 text-[10px] leading-tight sm:text-xs transition-colors ${
         active ? "font-bold" : "font-semibold"
       }`}
       style={{
         borderColor: active ? `color-mix(in srgb, ${theme.primary} 28%, ${theme.borderLight})` : "transparent",
         backgroundColor: active ? theme.primary : "transparent",
         color: active ? theme.textOnPrimary : theme.textSecondary,
-        transform: "scale(1)",
-        transitionProperty: "all",
-        transitionDuration: "300ms",
-        transitionTimingFunction: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       }}
       aria-current={active ? "page" : undefined}
     >
@@ -14536,135 +14545,8 @@ function MobileNav({
   );
 }
 
-function ViewIdentityFrame({ identity, theme, children }: { identity: ViewIdentity; theme: ThemeColors; children: React.ReactNode }) {
-  const accent = viewIdentityAccent(identity, theme);
-  const isQuiet = identity === "reflect";
-  const isStructured = identity === "decisions" || identity === "account";
-
-  return (
-    <div
-      className={`relative min-w-0 overflow-hidden rounded-[1.6rem] border p-1.5 shadow-[0_14px_36px_rgba(14,21,20,0.06)] sm:p-2 ${isStructured ? "lg:p-3" : ""}`}
-      style={{
-        borderColor: `color-mix(in srgb, ${accent} 30%, ${theme.borderLight})`,
-        backgroundColor: `color-mix(in srgb, ${theme.bgCard} ${isQuiet ? "86%" : "90%"}, ${accent} ${isQuiet ? "14%" : "10%"})`,
-        backgroundImage: viewIdentityBackground(identity, theme, accent),
-      }}
-      data-view-personality={identity}
-    >
-      <div
-        className="pointer-events-none absolute inset-x-4 top-0 h-px opacity-80"
-        style={{ backgroundColor: `color-mix(in srgb, ${accent} 58%, transparent)` }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute bottom-4 left-0 top-4 hidden w-1 rounded-r-full sm:block"
-        style={{ backgroundColor: `color-mix(in srgb, ${accent} 68%, transparent)` }}
-        aria-hidden="true"
-      />
-      <ViewIdentityMark identity={identity} theme={theme} accent={accent} />
-      <div className="relative z-10 min-w-0">{children}</div>
-    </div>
-  );
-}
-
-function viewIdentityAccent(identity: ViewIdentity, theme: ThemeColors) {
-  switch (identity) {
-    case "ask":
-      return theme.primary;
-    case "decisions":
-      return "#7a6234";
-    case "reflect":
-      return "#7b8c78";
-    case "library":
-      return "#4f7188";
-    case "account":
-      return "#6f6a78";
-    default:
-      return theme.accentGold;
-  }
-}
-
-function viewIdentityBackground(identity: ViewIdentity, theme: ThemeColors, accent: string) {
-  const softAccent = `color-mix(in srgb, ${accent} 18%, transparent)`;
-  const lineAccent = `color-mix(in srgb, ${accent} 13%, transparent)`;
-
-  switch (identity) {
-    case "ask":
-      return `radial-gradient(circle at 6% 8%, ${softAccent}, transparent 34%), linear-gradient(135deg, transparent 0 64%, ${lineAccent} 64% 65%, transparent 65% 100%)`;
-    case "decisions":
-      return `linear-gradient(90deg, ${lineAccent} 0 1px, transparent 1px 100%), linear-gradient(180deg, ${lineAccent} 0 1px, transparent 1px 100%)`;
-    case "reflect":
-      return `radial-gradient(circle at 12% 12%, ${softAccent}, transparent 38%), radial-gradient(circle at 88% 0%, color-mix(in srgb, ${theme.bgInput} 56%, transparent), transparent 30%)`;
-    case "library":
-      return `repeating-linear-gradient(0deg, transparent 0 28px, ${lineAccent} 28px 29px), radial-gradient(circle at 92% 12%, ${softAccent}, transparent 34%)`;
-    case "account":
-      return `linear-gradient(90deg, ${lineAccent} 0 1px, transparent 1px 100%), radial-gradient(circle at 92% 10%, ${softAccent}, transparent 34%)`;
-    default:
-      return `radial-gradient(circle at 9% 6%, ${softAccent}, transparent 36%), linear-gradient(180deg, color-mix(in srgb, ${theme.bgInput} 42%, transparent), transparent 42%)`;
-  }
-}
-
-function ViewIdentityMark({ identity, theme, accent }: { identity: ViewIdentity; theme: ThemeColors; accent: string }) {
-  const commonStyle = {
-    borderColor: `color-mix(in srgb, ${accent} 36%, ${theme.borderLight})`,
-    backgroundColor: `color-mix(in srgb, ${theme.bgInput} 76%, ${accent} 24%)`,
-  };
-
-  if (identity === "ask") {
-    return (
-      <div className="pointer-events-none absolute right-4 top-4 hidden items-end gap-1 opacity-70 sm:flex" aria-hidden="true">
-        <span className="h-7 w-12 rounded-lg border" style={commonStyle} />
-        <span className="h-10 w-10 rounded-full border" style={commonStyle} />
-      </div>
-    );
-  }
-
-  if (identity === "decisions") {
-    return (
-      <div className="pointer-events-none absolute right-5 top-4 hidden h-20 w-20 opacity-70 sm:block" aria-hidden="true">
-        {[0, 1, 2].map((item) => (
-          <span key={item} className="absolute left-1/2 size-3 -translate-x-1/2 rounded-full border" style={{ ...commonStyle, top: `${item * 1.75}rem` }} />
-        ))}
-        <span className="absolute bottom-2 left-1/2 top-1 w-px -translate-x-1/2" style={{ backgroundColor: `color-mix(in srgb, ${accent} 42%, transparent)` }} />
-      </div>
-    );
-  }
-
-  if (identity === "reflect") {
-    return (
-      <div className="pointer-events-none absolute right-4 top-4 hidden size-20 rounded-full border opacity-60 sm:block" style={commonStyle} aria-hidden="true">
-        <span className="absolute inset-4 rounded-full border" style={{ borderColor: `color-mix(in srgb, ${accent} 28%, transparent)` }} />
-      </div>
-    );
-  }
-
-  if (identity === "library") {
-    return (
-      <div className="pointer-events-none absolute right-4 top-4 hidden w-24 space-y-2 opacity-70 sm:block" aria-hidden="true">
-        {[0, 1, 2].map((item) => (
-          <span key={item} className="block h-3 rounded-sm border" style={commonStyle} />
-        ))}
-      </div>
-    );
-  }
-
-  if (identity === "account") {
-    return (
-      <div className="pointer-events-none absolute right-4 top-4 hidden grid-cols-2 gap-1 opacity-70 sm:grid" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => (
-          <span key={item} className="size-5 rounded-sm border" style={commonStyle} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="pointer-events-none absolute right-4 top-4 hidden items-center gap-1 opacity-70 sm:flex" aria-hidden="true">
-      <span className="h-12 w-4 rounded-full border" style={commonStyle} />
-      <span className="h-16 w-4 rounded-full border" style={commonStyle} />
-      <span className="h-9 w-4 rounded-full border" style={commonStyle} />
-    </div>
-  );
+function WorkspaceLayout({ children }: { children: ReactNode }) {
+  return <div className="mx-auto w-full min-w-0 max-w-4xl px-1 py-2 sm:px-2">{children}</div>;
 }
 
 function NavButton({
@@ -14736,7 +14618,7 @@ function ReadingPlayer({
   const safeProgress = Math.min(100, Math.max(0, progress || 0));
   return (
     <section
-      className="app-safe-floating-panel fixed inset-x-3 bottom-[calc(4.6rem+var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px)))] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-5"
+      className="app-safe-floating-panel fixed inset-x-3 bottom-[var(--aletheia-floating-bottom)] z-[55] mx-auto max-w-xl rounded-2xl border px-3 py-2.5 shadow-2xl backdrop-blur-xl md:bottom-[max(1.25rem,var(--aletheia-safe-area-bottom))]"
       style={{
         borderColor: theme.borderStrong,
         backgroundColor: theme.bgCard,
@@ -15027,7 +14909,7 @@ function WorkflowNotice({
 
   return (
     <div
-      className="app-safe-floating-panel pointer-events-none fixed inset-x-3 top-[calc(max(var(--aletheia-safe-area-top,env(safe-area-inset-top,0px)),var(--aletheia-top-reserve,0px))+5.35rem)] z-50 mx-auto max-w-sm md:bottom-auto md:left-auto md:right-4 md:top-24 md:mx-0 md:w-[320px]"
+      className="app-safe-floating-panel pointer-events-none fixed inset-x-3 top-[calc(var(--aletheia-top-nav-space)+0.5rem)] z-50 mx-auto max-w-sm md:left-auto md:right-[max(1rem,var(--aletheia-safe-area-right))] md:mx-0 md:w-[320px]"
       style={{
         paddingTop: readerOpen ? "0.25rem" : "0px",
       }}
@@ -15117,7 +14999,7 @@ function GuidedJourneyNudge({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.24, ease: "easeOut" }}
-        className="app-safe-floating-panel fixed bottom-[calc(var(--aletheia-safe-area-bottom,env(safe-area-inset-bottom,0px))+6.9rem)] inset-x-3 z-[39] mx-auto max-w-md rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-8"
+        className="app-safe-floating-panel fixed bottom-[var(--aletheia-floating-bottom)] inset-x-3 z-[39] mx-auto max-w-md rounded-[1.4rem] border p-4 shadow-[0_20px_55px_rgba(7,10,8,0.22)] backdrop-blur-xl md:bottom-[max(2rem,var(--aletheia-safe-area-bottom))]"
         style={{
           borderColor: theme.borderLight,
           background: `linear-gradient(145deg, color-mix(in srgb, ${theme.bgCardElevated} 94%, transparent), color-mix(in srgb, ${theme.bgCard} 96%, transparent))`,
@@ -15300,42 +15182,13 @@ function HomeWelcomeHeader({
   );
 }
 
-function ScreenPurposeHeader({ eyebrow, title, body, icon: Icon, theme }: { eyebrow?: string; title: string; body: string; icon: typeof Compass; theme: ThemeColors }) {
+function ScreenPurposeHeader({ eyebrow, title, body, theme }: { eyebrow?: string; title: string; body?: string; theme: ThemeColors }) {
   return (
-    <header className="relative min-w-0 px-1 pb-3 pt-1 sm:px-2 sm:pb-4">
-      <div className="max-w-2xl pr-12 sm:pr-16">
-        {eyebrow ? <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentGold }}>{eyebrow}</p> : null}
-        <h1 className={`${eyebrow ? "mt-2" : ""} text-[1.78rem] font-semibold leading-[1.04] tracking-[-0.03em] text-balance sm:text-[2.2rem]`} style={{ color: theme.textPrimary }}>{title}</h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 sm:text-[0.98rem] sm:leading-7" style={{ color: theme.textSecondary }}>{body}</p>
-      </div>
-      <span className="absolute right-1 top-1 grid size-10 place-items-center rounded-full border sm:right-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.accentGold }} aria-hidden="true">
-        <Icon size={18} />
-      </span>
-      <span className="mt-3 block h-px w-full" style={{ backgroundColor: theme.borderLight }} aria-hidden="true" />
+    <header className="min-w-0 max-w-2xl space-y-1">
+      {eyebrow ? <p className="text-xs font-semibold" style={{ color: accessibleAccentText(theme) }}>{eyebrow}</p> : null}
+      <h1 className="text-3xl font-semibold leading-tight tracking-tight [overflow-wrap:anywhere]" style={{ color: theme.textPrimary }}>{title}</h1>
+      {body ? <p className="max-w-xl text-sm leading-6" style={{ color: theme.textSecondary }}>{body}</p> : null}
     </header>
-  );
-}
-
-function SectionVisualBanner({ src, theme, position = "center" }: { src: string; theme: ThemeColors; position?: string }) {
-  return (
-    <div
-      className="relative min-h-28 overflow-hidden rounded-[1.35rem] border shadow-[0_14px_32px_rgba(7,10,8,0.08)] sm:min-h-32"
-      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-      data-testid="section-visual"
-      data-visual-src={src}
-      aria-hidden="true"
-    >
-      <Image
-        src={src}
-        alt=""
-        fill
-        sizes="(max-width: 768px) 100vw, 960px"
-        className="object-cover"
-        style={{ objectPosition: position }}
-        loading="eager"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-white/5" />
-    </div>
   );
 }
 
@@ -15948,18 +15801,20 @@ function ScreenTabs<T extends string>({
   scrollItemMinWidth,
   railRef,
   cuePaddingClassName = "pr-10",
+  panelId,
 }: {
   value: T;
   onChange: (value: T) => void;
-  tabs: Array<{ key: T; label: string }>;
+  tabs: Array<{ key: T; label: string; icon?: typeof Compass }>;
   ariaLabel: string;
   theme: ThemeColors;
   variant?: "surface" | "primary";
-  layout?: "auto" | "fit" | "grid" | "scroll";
+  layout?: "auto" | "fit" | "grid" | "scroll" | "workspace";
   className?: string;
   scrollItemMinWidth?: string;
   railRef?: RefObject<HTMLDivElement | null>;
   cuePaddingClassName?: string;
+  panelId?: string;
 }) {
   const internalRailRef = useRef<HTMLDivElement | null>(null);
   const setRailRef = useCallback((node: HTMLDivElement | null) => {
@@ -15969,13 +15824,15 @@ function ScreenTabs<T extends string>({
     }
   }, [railRef]);
   const fitContentLayout = layout === "fit";
+  const workspace = layout === "workspace";
+  const wrappedWorkspace = workspace && tabs.length === 5;
   const compactTwoTabGrid = layout !== "scroll" && !fitContentLayout && tabs.length === 2;
-  const useGridLayout = layout === "grid" || compactTwoTabGrid;
+  const useGridLayout = layout === "grid" || workspace || compactTwoTabGrid;
   const showSwipeCue = useRailOverflowCue(internalRailRef, tabs.length > 1 && !useGridLayout, [tabs.length, value, layout, scrollItemMinWidth, useGridLayout]);
   const compactRail = useGridLayout;
   return (
     <div
-      className={`relative z-20 rounded-2xl border p-1.5 shadow-sm ${fitContentLayout ? "w-fit max-w-full" : ""} ${className}`.trim()}
+      className={`relative z-20 rounded-2xl border ${workspace ? "p-1" : "p-1.5 shadow-sm"} ${fitContentLayout ? "w-fit max-w-full" : ""} ${className}`.trim()}
       role="tablist"
       aria-orientation="horizontal"
       aria-label={ariaLabel}
@@ -15986,29 +15843,54 @@ function ScreenTabs<T extends string>({
     >
       <div
         ref={setRailRef}
-        className={useGridLayout
+        className={wrappedWorkspace
+          ? "grid min-w-0 grid-cols-6 gap-1 sm:grid-cols-5"
+          : useGridLayout
           ? "grid min-w-0 gap-1 rounded-[0.95rem]"
           : `flex min-w-0 snap-x snap-mandatory gap-1 overflow-x-auto rounded-[0.95rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${fitContentLayout ? "w-fit max-w-full" : ""} ${showSwipeCue ? cuePaddingClassName : ""}`.trim()}
-        style={useGridLayout
+        style={useGridLayout && !wrappedWorkspace
           ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }
           : undefined}
       >
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const active = value === tab.key;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.key}
               type="button"
               role="tab"
+              id={panelId ? `${panelId}-${tab.key}` : undefined}
+              aria-controls={panelId}
               aria-selected={active}
+              tabIndex={workspace && !active ? -1 : undefined}
               title={tab.label}
               onClick={() => onChange(tab.key)}
-              className={`premium-tap-card relative flex min-h-12 shrink-0 items-center justify-center rounded-xl px-4 py-3 text-center font-semibold leading-tight tracking-normal transition ${compactRail ? "w-full min-w-0 max-w-none snap-none text-[0.76rem] sm:text-[0.82rem]" : "min-w-[7.25rem] max-w-[12rem] snap-start text-[0.8rem] sm:min-w-[8rem] sm:max-w-[13rem] sm:text-[0.86rem]"}`}
+              onKeyDown={workspace ? (event) => {
+                let next: number;
+                if (event.key === "Home") next = 0;
+                else if (event.key === "End") next = tabs.length - 1;
+                else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+                  const delta = (event.key === "ArrowRight") === rtl ? -1 : 1;
+                  next = (index + delta + tabs.length) % tabs.length;
+                } else return;
+                event.preventDefault();
+                const button = event.currentTarget.parentElement?.children.item(next);
+                if (button instanceof HTMLButtonElement) button.focus();
+                if (tabs[next].key !== value) onChange(tabs[next].key);
+              } : undefined}
+              className={workspace
+                ? `flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center text-xs font-semibold leading-tight focus-visible:outline-2 focus-visible:-outline-offset-2 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm ${wrappedWorkspace ? (index >= 3 ? "col-span-3 sm:col-span-1" : "col-span-2 sm:col-span-1") : ""}`
+                : `premium-tap-card relative flex min-h-12 shrink-0 items-center justify-center rounded-xl px-4 py-3 text-center font-semibold leading-tight tracking-normal transition ${compactRail ? "w-full min-w-0 max-w-none snap-none text-[0.76rem] sm:text-[0.82rem]" : "min-w-[7.25rem] max-w-[12rem] snap-start text-[0.8rem] sm:min-w-[8rem] sm:max-w-[13rem] sm:text-[0.86rem]"}`}
               style={{
                 minWidth: scrollItemMinWidth ?? undefined,
-                backgroundColor: active ? (variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
-                color: active ? (variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
-                boxShadow: active
+                backgroundColor: active ? (workspace ? theme.bgInput : variant === "primary" ? theme.primary : theme.bgCard) : "transparent",
+                color: active ? (!workspace && variant === "primary" ? theme.textOnPrimary : theme.textPrimary) : theme.textSecondary,
+                outlineColor: workspace ? accessibleAccentText(theme) : undefined,
+                boxShadow: workspace
+                  ? (active ? `inset 0 -2px 0 ${accessibleAccentText(theme)}` : "none")
+                  : active
                   ? (variant === "primary"
                       ? "0 10px 24px rgba(7, 10, 8, 0.12)"
                       : `inset 0 -3px 0 ${theme.primary}, 0 10px 24px rgba(7, 10, 8, 0.12)`)
@@ -16016,7 +15898,8 @@ function ScreenTabs<T extends string>({
                 borderColor: active ? theme.primary : "transparent",
               }}
             >
-              <span className="block min-w-0 break-words whitespace-normal">
+              {workspace && Icon ? <Icon size={16} className="shrink-0" style={{ color: active ? accessibleAccentText(theme) : theme.textSecondary }} aria-hidden="true" /> : null}
+              <span className={workspace ? "block min-w-0 [overflow-wrap:anywhere]" : "block min-w-0 break-words whitespace-normal"}>
                 {tab.label}
               </span>
             </button>
@@ -16778,6 +16661,8 @@ function DisclosureSection({
   );
 }
 
+type AccountSection = "overview" | "profile" | "appearance" | "language" | "voice" | "focus" | "notifications" | "privacy" | "context" | "support" | "system";
+
 function AccountPanel({
   ts,
   requestedSection,
@@ -16857,7 +16742,7 @@ function AccountPanel({
   theme,
 }: {
   ts: (key: string, fallback?: string) => string;
-  requestedSection: "personalization" | "privacy" | "share" | "system";
+  requestedSection: AccountSection;
   user: User | null;
   authMode: AuthMode;
   setAuthMode: (value: AuthMode) => void;
@@ -16885,7 +16770,7 @@ function AccountPanel({
   onUpdateProfileName: (name: string) => Promise<boolean>;
   mode: Mode;
   preferences: UserPreferences;
-  preferencesStatus: string;
+  preferencesStatus: PersonalizationStatus | null;
   ui: UiText;
   manualContext: ManualContextProfile;
   manualContextStatus: string;
@@ -16934,19 +16819,29 @@ function AccountPanel({
   theme: ThemeColors;
 }) {
   const text = { ...englishText, ...ui };
-  const [accountSection, setAccountSection] = useState<"profile" | "personalization" | "notifications" | "system">(
-    requestedSection === "personalization" ? "personalization" : requestedSection === "system" || requestedSection === "privacy" ? "system" : "profile"
-  );
+  const [accountSection, setAccountSection] = useState(requestedSection);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const focusTarget = useRef<AccountSection | "heading" | null>(null);
+  useEffect(() => {
+    const target = focusTarget.current;
+    if (!target) return;
+    focusTarget.current = null;
+    const element = panelRef.current?.querySelector<HTMLElement>(target === "heading" ? "h2" : `[data-account-destination="${target}"]`);
+    if (target === "heading") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      element?.focus({ preventScroll: true });
+    } else {
+      element?.focus();
+    }
+  }, [accountSection]);
+  function openSection(section: AccountSection) {
+    focusTarget.current = section === "overview" ? accountSection : "heading";
+    setAccountSection(section);
+    if (section !== "overview") trackClientEvent("feature_destination_opened", { surface: "account", destination: section });
+  }
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
   const profileName = user?.name || user?.email || ts('auth.guest');
-  const profileFirstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0];
-  const profileGreeting = user
-    ? `${ts('auth.welcomeBack')}, ${profileFirstName}`
-    : ts('labels.accountNextSignInPortable');
-  const profileSummary = user
-    ? user.email
-    : ts('labels.accountGuestSummary');
   const profileStats = [
     {
       icon: Feather,
@@ -16978,9 +16873,6 @@ function AccountPanel({
             : manualSignals.some((signal) => signal.startsWith("Future-state signal"))
               ? ts("labels.accountContextFuture")
               : "";
-  const accountManageSummary = text.accountManageSummary ?? ts(
-    "labels.accountManageSummary"
-  );
   const accountRecommendationLead = challengeRecommendation
     ? accountContextPhrase
       ? ts("labels.accountRecommendationLeadWithContext").replace("{context}", accountContextPhrase)
@@ -16994,40 +16886,82 @@ function AccountPanel({
         .filter(Boolean)
         .join(" ")
     : "";
+  const destinations = {
+    profile: { label: user ? ts('labels.profileTitle') : ts('labels.accountSignInOrGuest'), icon: Users },
+    appearance: { label: ts('labels.appearance'), icon: Sun, value: ts(`theme.${themePreference}`) },
+    language: { label: ts('language'), icon: Languages, value: languages[preferences.language].nativeName, detail: ts('labels.bibleTranslation') },
+    voice: { label: ts('labels.readingVoice'), icon: Volume2, detail: ts('labels.voiceInput') },
+    focus: { label: ts('labels.focusIntentions'), icon: Sparkles },
+    notifications: { label: ts('labels.notifications'), icon: Bell, value: ts(notificationsEnabled ? 'labels.enabled' : 'labels.disabled') },
+    privacy: { label: ts('labels.privacyAndData'), icon: ShieldCheck },
+    context: { label: ts('labels.accountPersonalContext'), icon: FileText },
+    support: { label: ts('labels.helpAndSupport'), icon: HandHeart },
+    system: { label: ts('labels.accountSystemTab'), icon: Monitor },
+  };
+  const groups = [
+    { title: ts('labels.accountPersonalizationTitle'), sections: ["appearance", "language", "voice", "focus"] },
+    { title: ts('labels.accountSettings'), sections: ["notifications", "privacy", "context"] },
+    { title: ts('labels.support'), sections: ["support", "system"] },
+  ] as const;
 
   return (
-    <div className="mx-auto grid min-w-0 max-w-5xl gap-4">
-      <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col items-center gap-3.5 p-3.5 text-center sm:p-4">
-          <div className="grid place-items-center">
-            <div
-              className="grid place-items-center rounded-full border p-[3px]"
-              style={{
-                borderColor: theme.borderMedium,
-                background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgCardElevated} 86%, white 14%), ${theme.bgCard})`,
-                boxShadow: `0 10px 24px color-mix(in srgb, ${theme.bgMain} 72%, transparent), inset 0 1px 0 color-mix(in srgb, white 18%, transparent)`,
-              }}
-            >
-              <AvatarCircle
-                avatarUrl={user?.avatarUrl}
-                seed={user?.id ?? user?.email ?? "guest"}
-                label={profileName}
-                size={64}
-                className="size-16"
-              />
-            </div>
+    <div ref={panelRef} className="mx-auto grid min-w-0 max-w-2xl gap-5 px-1 py-2 sm:gap-6 sm:px-2" data-account-section={accountSection}>
+      <header className="space-y-1">
+        {accountSection !== "overview" ? (
+          <button type="button" onClick={() => openSection("overview")} aria-label={ts('labels.accountBack')} className="inline-flex min-h-11 items-center gap-1 rounded-lg pe-3 text-sm font-semibold focus-visible:outline-2" style={{ color: accessibleAccentText(theme) }}>
+            <ChevronRight className="rotate-180 rtl:rotate-0" size={18} aria-hidden="true" />
+            {ts('labels.accountTitle')}
+          </button>
+        ) : null}
+        <h2 tabIndex={-1} className="scroll-mt-24 text-3xl font-semibold leading-tight tracking-tight focus:outline-none" style={{ color: theme.textPrimary }}>
+          {accountSection === "overview" ? ts('labels.accountTitle') : destinations[accountSection].label}
+        </h2>
+      </header>
+
+      {accountSection === "overview" ? (
+        <>
+          <div className="rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+            <AccountDestinationRow
+              section="profile"
+              label={user ? profileName : destinations.profile.label}
+              detail={user ? user.email : ts('labels.accountGuestSummary')}
+              icon={destinations.profile.icon}
+              leading={<AvatarCircle avatarUrl={user?.avatarUrl} seed={user?.id ?? user?.email ?? "guest"} label="" size={42} />}
+              onOpen={openSection}
+              theme={theme}
+            />
           </div>
-          <div className="min-w-0 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {ts('labels.profileTitle')}
-            </p>
-            <h2 className="mt-1 text-[1.55rem] font-semibold leading-tight text-balance sm:text-3xl" style={{ color: theme.textPrimary }}>
-              {profileGreeting}
-            </h2>
-            <p className="mt-2 text-[0.9rem] leading-6 sm:text-base sm:leading-7" style={{ color: theme.textSecondary }}>
-              {user ? `${ts('labels.accountSignedInWith')} ${profileSummary}` : profileSummary}
-            </p>
-          </div>
+          <nav aria-label={ts('labels.accountSections')} className="grid gap-5 sm:gap-6">
+            {groups.map(({ title, sections }) => (
+              <section key={title} className="min-w-0 space-y-2">
+                <h3 className="px-1 text-sm font-semibold" style={{ color: theme.textSecondary }}>{title}</h3>
+                <ul className="rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+                  {sections.map((section, index) => (
+                    <li key={section} className={index ? "border-t" : undefined} style={{ borderColor: theme.borderLight }}>
+                      <AccountDestinationRow section={section} {...destinations[section]} onOpen={openSection} theme={theme} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </nav>
+        </>
+      ) : null}
+
+      {accountSection === "profile" ? (
+        <>
+          {user ? (
+            <AccountStatusCard
+              theme={theme}
+              user={user}
+              authStatus={authStatus}
+              onLogout={onLogout}
+              onRequestDeleteAccount={onRequestDeleteAccount}
+              deleteAccountBusy={accountActionBusy === "delete"}
+              ts={ts}
+            />
+          ) : null}
+          {user ? <AvatarStudioCard theme={theme} user={user} ts={ts} language={preferences.language} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} /> : null}
           {user && streakData.consecutiveDays > 0 && (
             <button
               type="button"
@@ -17051,50 +16985,6 @@ function AccountPanel({
               <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
             ))}
           </div>
-        </div>
-      </section>
-
-      <ScreenTabs
-        value={accountSection}
-        onChange={(section) => {
-          setAccountSection(section);
-          trackClientEvent("feature_destination_opened", { surface: "account", destination: section });
-        }}
-        ariaLabel={ts('labels.accountSections')}
-        theme={theme}
-        layout="scroll"
-        scrollItemMinWidth="6.5rem"
-        tabs={[
-          { key: "profile", label: ts('labels.profileTitle') },
-          { key: "personalization", label: ts('labels.accountPersonalizationTab') },
-          { key: "notifications", label: ts('labels.notifications') },
-          { key: "system", label: ts('labels.accountSystemTab') },
-        ]}
-      />
-
-      <SectionVisualBanner
-        src={accountSection === "personalization"
-          ? "/images/section-visuals/personalization-choice.jpg"
-          : accountSection === "notifications"
-            ? "/images/section-visuals/notifications-gentle-return.jpg"
-            : "/images/section-visuals/account-continuity.jpg"}
-        theme={theme}
-        position={accountSection === "profile" ? "center 58%" : "center"}
-      />
-
-      {accountSection === "profile" ? (
-      <DisclosureSection
-        title={user ? ts('labels.accountControls') : ts('labels.accountSignInOrGuest')}
-        summary={user ? accountManageSummary : profileSummary}
-        eyebrow={ts('labels.accountTitle')}
-        defaultOpen
-        compactCollapsed
-        showDetailsLabel={text.showDetails}
-        hideDetailsLabel={text.hideDetails}
-        className="editorial-surface"
-        theme={theme}
-      >
-          <div className="space-y-4">
             {!user ? (
               <AuthPanel
                 theme={theme}
@@ -17122,36 +17012,12 @@ function AccountPanel({
                 onAppleSignIn={onAppleSignIn}
               />
             ) : null}
-            <AccountStatusCard
-              theme={theme}
-              user={user}
-              authStatus={authStatus}
-              notificationsEnabled={notificationsEnabled}
-              notificationAccountEnabled={notificationAccountEnabled}
-              notificationDeviceSubscribed={notificationDeviceSubscribed}
-              notificationStatus={notificationStatus}
-              onLogout={onLogout}
-              onRequestDeleteAccount={onRequestDeleteAccount}
-              deleteAccountBusy={accountActionBusy === "delete"}
-              onRequestSignIn={() => setAuthMode("login")}
-              ts={ts}
-            />
-          </div>
-      </DisclosureSection>
+        </>
       ) : null}
 
-      {accountSection === "personalization" ? (
-        <div className="flex flex-col gap-4">
-          <DisclosureSection
-            title={ts('labels.personalizeAletheia')}
-            summary={ts('labels.accountPersonalizationSummaryShort')}
-            eyebrow={ts('labels.accountPersonalizationTitle')}
-            compactCollapsed
-            showDetailsLabel={text.showDetails}
-            hideDetailsLabel={text.hideDetails}
-            theme={theme}
-          >
+      {accountSection === "appearance" || accountSection === "language" || accountSection === "voice" || accountSection === "focus" ? (
             <AccountPersonalizationPanel
+              section={accountSection}
               theme={theme}
               ts={ts}
               preferences={preferences}
@@ -17159,22 +17025,17 @@ function AccountPanel({
               themePreference={themePreference}
               availableVoices={availableVoices}
               selectedVoice={selectedVoice}
-              user={user}
               focusIntentions={focusIntentions}
               onPreferenceChange={onPreferenceChange}
               onThemePreferenceChange={onThemePreferenceChange}
               onVoiceChange={onVoiceChange}
               onPreviewVoice={onPreviewVoice}
               onFocusIntentionsChange={onFocusIntentionsChange}
-              onUpdateProfileAvatar={onUpdateProfileAvatar}
-              onUpdateProfileName={onUpdateProfileName}
             />
-          </DisclosureSection>
-
-        </div>
       ) : null}
 
       {accountSection === "notifications" ? (
+        <>
         <NotificationPanel
           theme={theme}
           ts={ts}
@@ -17196,16 +17057,12 @@ function AccountPanel({
           onSendTest={onSendTestNotification}
           onRequestSignIn={onRequestSignInForNotifications}
         />
+        {notificationStatus ? <p role="status" className="text-sm" style={{ color: theme.textSecondary }}>{notificationStatus}</p> : null}
+        </>
       ) : null}
 
-      {accountSection === "system" ? (
+      {accountSection === "privacy" ? (
         <div className="space-y-4">
-          <AccountFlatSection
-            theme={theme}
-            eyebrow={ts('aiConsent.eyebrow')}
-            summary={ts('aiConsent.settingBody')}
-            icon={ShieldCheck}
-          >
             <AccountToggleRow
               icon={ShieldCheck}
               label={ts('aiConsent.settingTitle')}
@@ -17215,27 +17072,8 @@ function AccountPanel({
               onLabel={ts('labels.enabled')}
               offLabel={ts('labels.disabled')}
               theme={theme}
-              variant="flat"
             />
-          </AccountFlatSection>
 
-          <ManualContextPanel
-            theme={theme}
-            ts={ts}
-            user={user}
-            preferences={preferences}
-            context={manualContext}
-            status={manualContextStatus}
-            onPreferenceChange={onPreferenceChange}
-            onChange={onManualContextChange}
-          />
-
-          <AccountFlatSection
-            theme={theme}
-            eyebrow={ts('labels.trustCenterTitle')}
-            summary={ts('labels.accountTrustPostureSummary')}
-            icon={ShieldCheck}
-          >
             <TrustCenterCard
               theme={theme}
               ts={ts}
@@ -17250,38 +17088,31 @@ function AccountPanel({
               onRequestDeleteAccount={onRequestDeleteAccount}
               accountActionBusy={accountActionBusy}
             />
-          </AccountFlatSection>
         </div>
       ) : null}
 
-      {accountSection === "system" ? (
+      {accountSection === "context" ? (
+        <ManualContextPanel
+          theme={theme} ts={ts} user={user} preferences={preferences}
+          context={manualContext} status={manualContextStatus}
+          onPreferenceChange={onPreferenceChange} onChange={onManualContextChange}
+        />
+      ) : null}
+
+      {accountSection === "support" ? (
         <div className="space-y-4">
-          <AccountFlatSection
-            theme={theme}
-            eyebrow={ts('share.accountShareEyebrow')}
-            summary={ts('share.accountShareSummary')}
-            icon={Share2}
-          >
+          <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
             <AccountShareCard
               theme={theme}
               ts={ts}
-              compact
               onShare={(channel) => onShare(channel, "account")}
             />
-          </AccountFlatSection>
 
-          <AccountFlatSection
-            theme={theme}
-            eyebrow={ts('supportMission.eyebrow')}
-            summary={ts('supportMission.summary')}
-            icon={HandHeart}
-          >
             {Capacitor.getPlatform() === "ios" ? (
               <NativeSupportCard theme={theme} ts={ts} />
             ) : (
-              <SupportMissionCard theme={theme} ts={ts} compact />
+              <SupportMissionCard theme={theme} ts={ts} />
             )}
-          </AccountFlatSection>
         </div>
       ) : null}
 
@@ -17294,14 +17125,12 @@ function AccountPanel({
             mode={mode}
             preferences={preferences}
             ui={text}
-            accountManageSummary={accountManageSummary}
           />
 
-          <SupportReportCard theme={theme} ts={ts} onReportIssue={onReportIssue} />
         </div>
       ) : null}
 
-      {challengeRecommendation ? (
+      {accountSection === "profile" && challengeRecommendation ? (
         <DisclosureSection
           title={ts(challengeRecommendation.titleKey, challengeRecommendation.title)}
           summary={accountRecommendationBody}
@@ -17550,92 +17379,43 @@ function AccountHeaderStat({
   );
 }
 
-function AccountSettingRow({
+function AccountDestinationRow({
+  section,
   icon: Icon,
   label,
-  body,
-  currentValue,
-  control,
+  detail,
+  value,
+  leading,
+  onOpen,
   theme,
-  variant = "card",
 }: {
+  section: Exclude<AccountSection, "overview">;
   icon: typeof Globe2;
   label: string;
-  body: string;
-  currentValue: string;
-  control: ReactNode;
+  detail?: string;
+  value?: string;
+  leading?: ReactNode;
+  onOpen: (section: AccountSection) => void;
   theme: ThemeColors;
-  variant?: "card" | "flat";
 }) {
-  const [open, setOpen] = useState(false);
-
-  if (variant === "flat") {
-    return (
-      <div className="border-t px-4 py-3 first:border-t-0 sm:px-5">
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-start gap-3 text-left transition"
-          aria-expanded={open}
-        >
-          <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-            <Icon size={14} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
-              {label}
-            </span>
-            <span className="mt-0.5 block text-[11px] leading-5 sm:text-xs" style={{ color: theme.textSecondary }}>
-              {body}
-            </span>
-          </span>
-          <span className="min-w-[3.5rem] shrink-0 text-right sm:min-w-[5.75rem]">
-            <span className="block max-w-[5rem] text-[10px] font-semibold leading-4 sm:max-w-40 sm:text-xs" style={{ color: theme.accentGold }}>
-              {currentValue}
-            </span>
-            <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-              <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
-            </span>
-          </span>
-        </button>
-        {open ? (
-          <div className="pl-[2.375rem] pt-3 sm:pl-[2.75rem]">
-            {control}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2 text-left sm:gap-2.5"
-        aria-expanded={open}
-      >
-        <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-          <Icon size={14} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 text-[12.5px] font-semibold leading-5 sm:text-sm" style={{ color: theme.textPrimary }}>
-            <span>{label}</span>
-          </span>
-        </span>
-        <span className="min-w-[3.5rem] shrink text-right sm:min-w-[5.75rem]">
-          <span className="block max-w-[5rem] text-[10px] font-semibold leading-4 sm:max-w-40 sm:text-xs" style={{ color: theme.accentGold }}>{currentValue}</span>
-          <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-            <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
-          </span>
-        </span>
-      </button>
-      {open ? (
-        <div className="mt-3 border-t pt-3" style={{ borderColor: theme.borderLight }}>
-          {control}
-        </div>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      data-account-destination={section}
+      onClick={() => onOpen(section)}
+      className="flex min-h-14 w-full scroll-mt-24 items-center gap-3 rounded-xl px-3 py-2.5 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 sm:px-4"
+      style={{ color: theme.textPrimary, outlineColor: accessibleAccentText(theme) }}
+    >
+      <span className="grid shrink-0 place-items-center" aria-hidden="true">
+        {leading ?? <span className="grid size-8 place-items-center rounded-lg" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}><Icon size={17} /></span>}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold leading-5 [overflow-wrap:anywhere] sm:text-base">{label}</span>
+        {detail ? <span className="block text-xs leading-5 [overflow-wrap:anywhere]" style={{ color: theme.textSecondary }}>{detail}</span> : null}
+      </span>
+      {value ? <span className="max-w-[32%] text-end text-xs leading-5 [overflow-wrap:anywhere] sm:text-sm" style={{ color: theme.textSecondary }}>{value}</span> : null}
+      <ChevronRight size={17} className="shrink-0 rtl:rotate-180" style={{ color: theme.textSecondary }} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -17719,50 +17499,11 @@ function AccountSelect({
       aria-label={ariaLabel}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 w-full rounded-full border px-3 text-sm outline-none"
+      className="min-h-11 w-full rounded-xl border px-3 text-sm focus-visible:outline-2"
       style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
     >
       {children}
     </select>
-  );
-}
-
-function accountLabel(value: string) {
-  return value ? `${value.charAt(0).toLocaleUpperCase()}${value.slice(1)}` : value;
-}
-
-function AccountFlatSection({
-  theme,
-  eyebrow,
-  summary,
-  icon: Icon,
-  children,
-}: {
-  theme: ThemeColors;
-  eyebrow: string;
-  summary: string;
-  icon: typeof Share2;
-  children: ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-[1.25rem] border shadow-[0_6px_16px_rgba(7,10,8,0.04)]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex items-start gap-3 p-4 sm:p-5">
-        <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-          <Icon size={16} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-            {eyebrow}
-          </p>
-          <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-            {summary}
-          </p>
-        </div>
-      </div>
-      <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight }}>
-        {children}
-      </div>
-    </section>
   );
 }
 
@@ -21040,6 +20781,7 @@ const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel(
 ));
 
 function AccountPersonalizationPanel({
+  section,
   theme,
   ts,
   preferences,
@@ -21047,53 +20789,37 @@ function AccountPersonalizationPanel({
   themePreference,
   availableVoices,
   selectedVoice,
-  user,
   focusIntentions,
   onPreferenceChange,
   onThemePreferenceChange,
   onVoiceChange,
   onPreviewVoice,
   onFocusIntentionsChange,
-  onUpdateProfileAvatar,
-  onUpdateProfileName,
 }: {
+  section: "appearance" | "language" | "voice" | "focus";
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   preferences: UserPreferences;
-  preferencesStatus: string;
+  preferencesStatus: PersonalizationStatus | null;
   themePreference: ThemePreference;
   availableVoices: ManagedVoiceOption[];
   selectedVoice: string | null;
-  user: User | null;
   focusIntentions: string[];
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onThemePreferenceChange: (value: ThemePreference) => void;
   onVoiceChange: (voiceURI: string | null) => void;
   onPreviewVoice: (voiceId: string) => Promise<void>;
   onFocusIntentionsChange: (intentions: string[]) => void;
-  onUpdateProfileAvatar: (avatarUrl: string) => Promise<boolean>;
-  onUpdateProfileName: (name: string) => Promise<boolean>;
 }) {
   const bibleOptions = bibleTranslationOptionsForLanguage(preferences.language);
-  const selectedVoiceObject = availableVoices.find((voice) => voice.id === selectedVoice);
-  const selectedVoiceLabel = selectedVoiceObject ? selectedVoiceObject.label : managedVoiceLabel(selectedVoice);
 
   return (
-    <section className="space-y-3">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div
-          className="overflow-hidden rounded-[1.25rem] border shadow-[0_6px_16px_rgba(7,10,8,0.04)]"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-        >
-          <div>
-          <AccountSettingRow
-            icon={Languages}
-            label={accountLabel(ts('labels.language'))}
-            body={ts('labels.accountLanguageBody')}
-            currentValue={languages[preferences.language]?.nativeName ?? preferences.language}
-            theme={theme}
-            variant="flat"
-            control={(
+    <div className="space-y-4">
+      {section === "language" ? (
+        <div className="rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="space-y-2 p-4">
+              <h3 className="font-semibold" style={{ color: theme.textPrimary }}>{ts('language')}</h3>
+              <p className="text-sm" style={{ color: theme.textSecondary }}>{ts('labels.accountLanguageBody')}</p>
               <AccountSelect
                 ariaLabel={ts('languageSelect')}
                 value={preferences.language}
@@ -21104,16 +20830,10 @@ function AccountPersonalizationPanel({
                   <option key={code} value={code}>{language.nativeName}</option>
                 ))}
               </AccountSelect>
-            )}
-          />
-          <AccountSettingRow
-            icon={BookOpen}
-            label={ts('labels.bibleTranslation')}
-            body={ts('labels.accountBibleBody')}
-            currentValue={bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation}
-            theme={theme}
-            variant="flat"
-            control={(
+          </div>
+          <div className="space-y-2 border-t p-4" style={{ borderColor: theme.borderLight }}>
+              <h3 className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.bibleTranslation')}</h3>
+              <p className="text-sm" style={{ color: theme.textSecondary }}>{ts('labels.accountBibleBody')}</p>
               <AccountSelect
                 ariaLabel={ts('bibleSelect')}
                 value={preferences.bibleTranslation}
@@ -21129,24 +20849,17 @@ function AccountPersonalizationPanel({
                   );
                 })}
               </AccountSelect>
-            )}
-          />
-          <AccountSettingRow
-            icon={Sun}
-            label={accountLabel(ts('labels.theme'))}
-            body={ts('labels.accountThemeBody')}
-            currentValue={ts(`theme.${themePreference}`, themePreference)}
-            theme={theme}
-            variant="flat"
-            control={(
-              <ThemeSwatchGrid
-                theme={theme}
-                ts={ts}
-                value={themePreference}
-                onChange={onThemePreferenceChange}
-              />
-            )}
-          />
+          </div>
+        </div>
+      ) : null}
+      {section === "appearance" ? (
+        <>
+          <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.accountThemeBody')}</p>
+          <ThemeSwatchGrid theme={theme} ts={ts} value={themePreference} onChange={onThemePreferenceChange} />
+        </>
+      ) : null}
+      {section === "voice" ? (
+        <>
           <AccountToggleRow
             icon={Mic}
             label={ts('labels.voiceInput')}
@@ -21156,17 +20869,8 @@ function AccountPersonalizationPanel({
             onLabel={ts('labels.enabled')}
             offLabel={ts('labels.disabled')}
             theme={theme}
-            variant="flat"
           />
           {preferences.voiceEnabled ? (
-            <AccountSettingRow
-              icon={Volume2}
-              label={ts('labels.readingVoice')}
-              body={ts('labels.accountVoiceBody')}
-              currentValue={selectedVoiceLabel}
-              theme={theme}
-              variant="flat"
-              control={(
                 <VoicePreferenceSelector
                   theme={theme}
                   ts={ts}
@@ -21175,38 +20879,24 @@ function AccountPersonalizationPanel({
                   onVoiceChange={onVoiceChange}
                   onPreviewVoice={onPreviewVoice}
                 />
-              )}
-            />
           ) : null}
-        </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-start gap-2.5">
-              <div className="grid size-9 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-                <Sparkles size={16} />
-              </div>
-              <p className="min-w-0 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                {ts('labels.focusIntentions')}
-              </p>
-            </div>
-            <FocusIntentionsCard
+        </>
+      ) : null}
+      {section === "focus" ? (
+            <FocusIntentionsList
               theme={theme}
               ts={ts}
               selected={focusIntentions}
               onChange={onFocusIntentionsChange}
-              compact
             />
-          </div>
-          <AvatarStudioCard theme={theme} user={user} ts={ts} language={preferences.language} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} />
-        </div>
-      </div>
+      ) : null}
 
-      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-        {preferencesStatus || ts('notifications.preferencesReady')}
-      </p>
-    </section>
+      {preferencesStatus?.section === section ? (
+        <p role="status" className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {preferencesStatus.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -21233,7 +20923,7 @@ function ThemeSwatchGrid({
   ];
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid gap-2 sm:grid-cols-2">
       {options.map((option) => {
         const active = value === option.key;
         const Icon = option.icon;
@@ -21242,7 +20932,7 @@ function ThemeSwatchGrid({
             key={option.key}
             type="button"
             onClick={() => onChange(option.key)}
-                className="flex min-h-10 items-center justify-between gap-2.5 rounded-full border px-2.5 py-2 text-left text-sm font-semibold transition"
+            className="flex min-h-12 items-center justify-between gap-2.5 rounded-xl border px-3 py-2 text-start text-sm font-semibold transition"
             style={{
               borderColor: active ? theme.accentGold : theme.borderMedium,
               backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -21255,7 +20945,7 @@ function ThemeSwatchGrid({
               <span className="grid size-7 shrink-0 place-items-center rounded-md" style={{ backgroundColor: theme.bgCardElevated, color: active ? theme.accentGold : theme.textSecondary }}>
                 <Icon size={14} />
               </span>
-              <span className="min-w-0 leading-5">{ts(`theme.${option.key}`, option.key)}</span>
+              <span className="min-w-0 leading-5">{ts(`theme.${option.key}`)}</span>
             </span>
             <span className="flex shrink-0 gap-1" aria-hidden="true">
               {option.colors.map((color) => (
@@ -21306,7 +20996,7 @@ function VoicePreferenceSelector({
       <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
         {ts('labels.voicePreferenceBody')}
       </p>
-      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
         {[
           {
             key: "device-default",
@@ -21326,7 +21016,7 @@ function VoicePreferenceSelector({
           return (
             <div
               key={voice.key}
-              className="w-[17rem] shrink-0 snap-start rounded-xl border p-3 shadow-sm"
+              className="min-w-0 rounded-xl border p-3"
               style={{
                 borderColor: active ? theme.accentGold : theme.borderMedium,
                 backgroundColor: active ? theme.activeBg : theme.bgInput,
@@ -21349,7 +21039,7 @@ function VoicePreferenceSelector({
                 <button
                   type="button"
                   onClick={() => chooseVoice(voice.voiceURI)}
-                  className="h-10 rounded-full border px-3 text-xs font-semibold"
+                  className="min-h-11 rounded-full border px-3 text-xs font-semibold"
                   style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
                   aria-pressed={active}
                 >
@@ -21395,18 +21085,16 @@ function VoicePreferenceSelector({
   );
 }
 
-function FocusIntentionsCard({
+function FocusIntentionsList({
   theme,
   ts,
   selected,
   onChange,
-  compact = false,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
   selected: string[];
   onChange: (intentions: string[]) => void;
-  compact?: boolean;
 }) {
   const options = localizedFocusIntentions(ts);
   const selectedSet = new Set(selected);
@@ -21419,27 +21107,35 @@ function FocusIntentionsCard({
   }
 
   return (
-    <section className={`space-y-3 ${compact ? "" : ""}`}>
-      <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-        {compact ? ts('labels.focusIntentionsSummary') : ts('labels.focusIntentionsHint')}
+    <section className="space-y-3">
+      <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+        {ts('labels.focusIntentionsSummary')}
       </p>
-      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+      <ul className="min-w-0 rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {options.map((option) => {
           const active = selectedSet.has(option.key);
           return (
-            <ChoiceCardButton
-              key={option.key}
-              icon={Sparkles}
-              title={option.label}
-              body={option.body}
-              active={active}
-              onClick={() => toggle(option.key)}
-              theme={theme}
-              className={`${compact ? "p-2.5" : ""} w-[16.75rem] shrink-0 snap-start`}
-            />
+            <li key={option.key} className="border-b last:border-b-0" style={{ borderColor: theme.borderLight }}>
+              <button
+                type="button"
+                onClick={() => toggle(option.key)}
+                aria-pressed={active}
+                disabled={!active && selectedSet.size >= 3}
+                className="flex min-h-12 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-4 py-3 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 disabled:cursor-not-allowed"
+                style={{ color: theme.textPrimary, outlineColor: accessibleAccentText(theme) }}
+              >
+                <span className="min-w-0 break-words">
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span className="mt-0.5 block text-sm leading-5" style={{ color: theme.textSecondary }}>{option.body}</span>
+                </span>
+                <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full border" style={{ borderColor: active ? theme.primary : theme.borderMedium, backgroundColor: active ? theme.primary : theme.bgInput, color: theme.textOnPrimary }}>
+                  {active ? <Check size={15} /> : null}
+                </span>
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </section>
   );
 }
@@ -21451,7 +21147,6 @@ function SystemStatusCard({
   mode,
   preferences,
   ui,
-  accountManageSummary,
 }: {
   theme: ThemeColors;
   ts: (key: string, fallback?: string) => string;
@@ -21459,79 +21154,69 @@ function SystemStatusCard({
   mode: Mode;
   preferences: UserPreferences;
   ui: UiText;
-  accountManageSummary: string;
 }) {
   const statusLabel = user ? ts('labels.accountSyncActive') : ts('auth.guestMode');
   const statusBody = user ? ts('labels.whatSyncsSignedIn') : ts('labels.whatSyncsGuest');
   const modeProfile = localizedModeProfile(mode, preferences.language);
-  const topics: SystemReferenceTopic[] = [
+  const topics: Array<Pick<SystemReferenceTopic, "id" | "title" | "body" | "points">> = [
     {
       id: "sync-status",
-      eyebrow: ts('labels.accountSystemEyebrow'),
       title: ts('labels.accountSystemTitle'),
-      teaser: statusBody,
       body: statusBody,
       points: [
         ts('labels.accountHistorySummary'),
         ts('labels.accountFormationSummary'),
         user ? ts('labels.accountNextActiveBody') : ts('labels.accountNextGuestBody'),
       ],
-      icon: WifiOff,
     },
     {
       id: "mode-guidance",
-      eyebrow: ui.modeGuidance,
       title: localizedModeLabel(modeProfile.label, preferences.language),
-      teaser: modeProfile.intent,
       body: `${modeProfile.intent} ${modeProfile.useWhen}`,
       points: [
         `${modeProfile.focus}.`,
         modeProfile.prompts[0] ?? ui.modeGuidancePreview,
         modeProfile.prompts[1] ?? modeProfile.prompts[0] ?? ui.modeGuidancePreview,
       ].filter((point): point is string => Boolean(point)),
-      icon: Compass,
     },
     {
       id: "trust-layer",
-      eyebrow: ui.trustLayer,
       title: ts('labels.accountTrustPostureTitle'),
-      teaser: ts('labels.accountTrustPostureSummary'),
       body: ts('labels.accountTrustPostureSummary'),
       points: [
         ts('labels.trustNeverDoBody'),
-        // ts('trustScriptureBody'),
         ts('labels.trustDataSavedBody'),
         ts('labels.trustDeleteExportBody'),
       ],
-      icon: ShieldCheck,
     },
     {
       id: "personalization",
-      eyebrow: ts('labels.accountPersonalizationTitle'),
       title: ts('labels.personalizeAletheia'),
-      teaser: ts('labels.accountPersonalizationSummaryShort'),
       body: ts('labels.accountPersonalizationSummary'),
       points: [
         ts('labels.customizeExperienceSummary'),
         ts('labels.focusIntentionsHint'),
         ts('labels.accountSuggestedReviewAvatarStudio'),
       ],
-      icon: Sparkles,
     },
   ];
 
   return (
-    <ReferenceRailSection
-      eyebrow={ts('labels.sync')}
-      title={statusLabel}
-      summary={`${accountManageSummary} ${statusBody}`}
-      icon={WifiOff}
-      topics={topics}
-      theme={theme}
-      ts={ts}
-      cardClassName="w-[12.75rem] sm:w-[13.25rem]"
-      railLabel={ts('labels.system')}
-    />
+    <section className="rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="space-y-1 p-4">
+        <h3 className="font-semibold" style={{ color: theme.textPrimary }}>{statusLabel}</h3>
+        <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{statusBody}</p>
+      </div>
+      {topics.map(({ id, title, body, points }) => (
+        <details key={id} className="border-t px-4" style={{ borderColor: theme.borderLight }}>
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold" style={{ color: theme.textPrimary }}>{title}</summary>
+          <div className="space-y-2 pb-4 text-sm leading-6" style={{ color: theme.textSecondary }}>
+            {body !== statusBody ? <p>{body}</p> : null}
+            {points?.length ? <ul className="list-disc space-y-1 ps-5">{points.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul> : null}
+          </div>
+        </details>
+      ))}
+    </section>
   );
 }
 
@@ -21545,31 +21230,17 @@ function SupportReportCard({
   onReportIssue: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex items-start gap-2.5">
-          <div className="grid size-10 shrink-0 place-items-center rounded-full border" style={{ backgroundColor: theme.bgInput, borderColor: theme.borderLight, color: accessibleAccentText(theme) }}>
-            <MessageCircle size={17} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.support')}</p>
-            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle')}</h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts('labels.reportIssueBody')}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="p-3.5 sm:p-4">
-        <button
-          type="button"
-          className="h-11 w-full rounded-full border px-4 text-sm font-semibold sm:w-auto"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-          onClick={onReportIssue}
-        >
-          {ts('labels.openReportIssue')}
-        </button>
-      </div>
+    <section className="space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <h3 className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.reportIssueTitle')}</h3>
+      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts('labels.reportIssueBody')}</p>
+      <button
+        type="button"
+        className="min-h-11 w-full rounded-full border px-4 py-2 text-sm font-semibold sm:w-auto"
+        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+        onClick={onReportIssue}
+      >
+        {ts('labels.openReportIssue')}
+      </button>
     </section>
   );
 }
@@ -21641,20 +21312,8 @@ function TrustCenterCard({
   ];
 
   return (
-    <section className="overflow-hidden rounded-[1.35rem] border shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <ReferenceRailSection
-        eyebrow={ts('labels.trustCenterTitle')}
-        title={ts('labels.accountTrustPostureTitle')}
-        summary={ts('labels.accountTrustPostureSummary')}
-        icon={ShieldCheck}
-        topics={topics}
-        theme={theme}
-        ts={ts}
-        cardClassName="w-[12.75rem] sm:w-[13.25rem]"
-        railLabel={ts('labels.trustCenterTitle')}
-      />
-
-      <div className="border-t p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+    <div className="space-y-4">
+      <section className="rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {biometricLock.available ? (
           <div className="mb-3 flex items-center justify-between gap-3 rounded-[0.85rem] border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
             <div className="min-w-0">
@@ -21673,7 +21332,7 @@ function TrustCenterCard({
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"
-            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
+            className="min-h-11 rounded-[0.85rem] border px-3.5 py-2 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={onClearLocalPersonalization}
           >
@@ -21682,7 +21341,7 @@ function TrustCenterCard({
           {!user ? (
             <button
               type="button"
-              className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
+              className="min-h-11 rounded-[0.85rem] border px-3.5 py-2 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: hasLocalWorkspaceData ? theme.textPrimary : theme.textSecondary, opacity: hasLocalWorkspaceData ? 1 : 0.65 }}
               disabled={!hasLocalWorkspaceData}
               onClick={onClearGuestWorkspace}
@@ -21692,7 +21351,7 @@ function TrustCenterCard({
           ) : null}
           <button
             type="button"
-            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
+            className="min-h-11 rounded-[0.85rem] border px-3.5 py-2 text-sm font-semibold"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
             disabled={!user || accountActionBusy === "export"}
             onClick={onExportData}
@@ -21701,7 +21360,7 @@ function TrustCenterCard({
           </button>
           <button
             type="button"
-            className="h-10 rounded-[0.85rem] border px-3.5 text-sm font-semibold"
+            className="min-h-11 rounded-[0.85rem] border px-3.5 py-2 text-sm font-semibold"
             style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: user ? theme.textPrimary : theme.textSecondary, opacity: user ? 1 : 0.65 }}
             disabled={!user || accountActionBusy === "delete"}
             onClick={onRequestDeleteAccount}
@@ -21714,8 +21373,19 @@ function TrustCenterCard({
             {ts('labels.signInToExportDelete')}
           </p>
         ) : null}
-      </div>
-    </section>
+      </section>
+      <ReferenceRailSection
+        eyebrow={ts('labels.trustCenterTitle')}
+        title={ts('labels.accountTrustPostureTitle')}
+        summary={ts('labels.accountTrustPostureSummary')}
+        icon={ShieldCheck}
+        topics={topics}
+        theme={theme}
+        ts={ts}
+        cardClassName="w-[12.75rem] sm:w-[13.25rem]"
+        railLabel={ts('labels.trustCenterTitle')}
+      />
+    </div>
   );
 }
 
@@ -21738,154 +21408,31 @@ function ManualContextPanel({
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
   onChange: (patch: Partial<ManualContextProfile>) => void | Promise<void>;
 }) {
-  const accentText = accessibleAccentText(theme);
-  const [draft, setDraft] = useState(context);
-  const [contextTab, setContextTab] = useState<"current" | "future">("current");
-  const [currentContextFocus, setCurrentContextFocus] = useState<"money" | "work" | "health" | "relationships" | "values" | "counsel">("money");
-  const [futureContextFocus, setFutureContextFocus] = useState<"money" | "rhythm" | "posture">("money");
+  const currentTopics = {
+    money: ts('manualContext.moneyPicture'),
+    work: ts('manualContext.workRhythm'),
+    health: ts('manualContext.healthCard'),
+    relationships: ts('manualContext.relationshipsCard'),
+    values: ts('manualContext.valuesRiskPosture'),
+    counsel: ts('manualContext.counselPreferences'),
+  };
+  const futureTopics = {
+    money: ts('manualContext.futureMoneyCardTitle'),
+    rhythm: ts('manualContext.futureRhythmCardTitle'),
+    posture: ts('manualContext.futurePostureCardTitle'),
+  };
+  const [topic, setTopic] = useState<{ group: "current"; key: keyof typeof currentTopics } | { group: "future"; key: keyof typeof futureTopics }>({ group: "current", key: "money" });
+  const [edits, setEdits] = useState<Partial<ManualContextProfile>>({});
   const [quickDetailType, setQuickDetailType] = useState<"financeContext" | "workContext" | "healthContext" | "obligations" | "boundaries" | "enoughDefinition">("financeContext");
   const [quickDetail, setQuickDetail] = useState("");
-  const [manualContextFeedback, setManualContextFeedback] = useState("");
-  const [manualContextSaving, setManualContextSaving] = useState(false);
-  const [contextEditorOpen, setContextEditorOpen] = useState(false);
-  const [advancedVaultOpen, setAdvancedVaultOpen] = useState(false);
-  const [privacyPostureOpen, setPrivacyPostureOpen] = useState(false);
-  const manualCopy = {
-    title: ts('labels.manualContextTitle'),
-    intro: ts('manualContext.intro'),
-    active: ts('manualContext.active'),
-    paused: ts('manualContext.paused'),
-    areaSingular: ts('manualContext.areaSingular'),
-    areaPlural: ts('manualContext.areaPlural'),
-    added: ts('manualContext.added'),
-    areaSummary: ts('manualContext.areaSummary'),
-    quickTitle: ts('manualContext.quickTitle'),
-    quickBody: ts('manualContext.quickBody'),
-    addDetail: ts('manualContext.addDetail'),
-    allowContextPrompt: ts('labels.allowContextPrompt'),
-    allowContextBody: ts('manualContext.allowContextBody'),
-    useMoney: ts('labels.useMoneyContext'),
-    useWork: ts('labels.useWorkContext'),
-    useHealth: ts('labels.useHealthContext'),
-    useRelationships: ts('labels.useRelationshipsContext'),
-    useValues: ts('manualContext.useValuesContext'),
-    currentState: ts('manualContext.currentState'),
-    futureState: ts('manualContext.futureState'),
-    activeArea: ts('manualContext.activeArea'),
-    activeAreas: ts('manualContext.activeAreas'),
-    directionAdded: ts('manualContext.directionAdded'),
-    notAddedYet: ts('manualContext.notAddedYet'),
-    moneyPicture: ts('manualContext.moneyPicture'),
-    workRhythm: ts('manualContext.workRhythm'),
-    valuesRiskPosture: ts('manualContext.valuesRiskPosture'),
-    counselPreferences: ts('manualContext.counselPreferences'),
-    healthRelationships: ts('manualContext.healthRelationships'),
-    desiredFutureState: ts('manualContext.desiredFutureState'),
-    desiredFutureBody: ts('manualContext.desiredFutureBody'),
-    privacyPosture: ts('labels.privacyPosture'),
-    privacyBody: ts('manualContext.privacyBody'),
-    signedInSync: ts('manualContext.signedInSync'),
-    guestSync: ts('manualContext.guestSync'),
-    clearFields: ts('manualContext.clearFields'),
-    nothingAdded: ts('manualContext.nothingAdded'),
-    saveManualContext: ts('manualContext.saveManualContext'),
-    savingManualContext: ts('manualContext.savingManualContext'),
-    manualContextSaved: ts('manualContext.manualContextSaved'),
-    detailSaved: ts('manualContext.detailSaved'),
-    incomeAdded: ts('manualContext.incomeAdded'),
-    incomeNotAdded: ts('manualContext.incomeNotAdded'),
-    savingsAdded: ts('manualContext.savingsAdded'),
-    savingsNotAdded: ts('manualContext.savingsNotAdded'),
-    debtAdded: ts('manualContext.debtAdded'),
-    debtNotAdded: ts('manualContext.debtNotAdded'),
-    contextAdded: ts('manualContext.contextAdded'),
-    contextNotAdded: ts('manualContext.contextNotAdded'),
-    notAdded: ts('manualContext.notAdded'),
-    enoughDefined: ts('manualContext.enoughDefined'),
-    enoughNotDefined: ts('manualContext.enoughNotDefined'),
-    riskAdded: ts('manualContext.riskAdded'),
-    riskNotAdded: ts('manualContext.riskNotAdded'),
-    waitingAdded: ts('manualContext.waitingAdded'),
-    waitingNotAdded: ts('manualContext.waitingNotAdded'),
-    counselAdded: ts('manualContext.counselAdded'),
-    counselNotAdded: ts('manualContext.counselNotAdded'),
+  const [saving, setSaving] = useState(false);
+  const [saveLocation, setSaveLocation] = useState<"privacy" | "quick" | "editor" | null>(null);
+  const draft = { ...context, ...edits };
+  const hasEdits = Object.keys(edits).length > 0;
+  const updateDraft = (patch: Partial<ManualContextProfile>) => {
+    setSaveLocation(null);
+    setEdits((current) => ({ ...current, ...patch }));
   };
-  useEffect(() => {
-    window.setTimeout(() => setDraft(context), 0);
-  }, [context]);
-  const hasContent = manualContextHasContent(draft);
-  const hasFutureMoney = draft.targetSavingsBufferMonths !== null || (draft.futureFinanceContext ?? "").trim().length > 0;
-  const hasFutureRhythm = [
-    draft.targetWorkHoursPerWeek,
-    draft.targetSleepHours,
-    draft.targetExerciseSessionsPerWeek,
-    draft.targetTimeWithLovedOnesHoursPerWeek,
-    draft.targetTimeWithCommunityHoursPerWeek,
-    draft.futureWorkContext,
-    draft.futureHealthContext,
-    draft.futureRelationshipsContext,
-  ].some((value) => value !== null && String(value).trim().length > 0);
-  const hasFuturePosture = [
-    draft.targetStressLevel,
-    draft.targetUrgencyLevel,
-    draft.targetSupportLevel,
-    draft.futureValuesContext,
-    draft.futureGoals,
-    draft.futureBoundaries,
-  ].some((value) => value !== null && String(value).trim().length > 0);
-  const hasFutureState = hasFutureMoney || hasFutureRhythm || hasFuturePosture;
-  const sectionSummary = {
-    money: `${draft.monthlyIncome !== null ? manualCopy.incomeAdded : manualCopy.incomeNotAdded}; ${draft.savingsBufferMonths !== null ? manualCopy.savingsAdded : manualCopy.savingsNotAdded}; ${draft.debtPayments !== null ? manualCopy.debtAdded : manualCopy.debtNotAdded}`,
-    work: `${manualCopy.workRhythm} ${draft.workHoursPerWeek !== null ? `${draft.workHoursPerWeek}h/week` : manualCopy.notAdded}; ${draft.workContext ? manualCopy.contextAdded : manualCopy.contextNotAdded}`,
-    health: `${ts('manualContext.sleepSummary')} ${draft.sleepHours !== null ? `${draft.sleepHours}h` : manualCopy.notAdded}; ${ts('manualContext.exerciseSummary')} ${draft.exerciseSessionsPerWeek !== null ? `${draft.exerciseSessionsPerWeek}/week` : manualCopy.notAdded}`,
-    relationships: `${ts('manualContext.lovedOnesSummary')} ${draft.timeWithLovedOnesHoursPerWeek !== null ? `${draft.timeWithLovedOnesHoursPerWeek}h/week` : manualCopy.notAdded}; ${ts('manualContext.obligationsSummary')} ${draft.obligations ? manualCopy.added : manualCopy.notAdded}`,
-    values: `${ts('manualContext.stressSummary')} ${draft.stressLevel !== null ? draft.stressLevel : manualCopy.notAdded}; ${ts('manualContext.urgencySummary')} ${draft.urgencyLevel !== null ? draft.urgencyLevel : manualCopy.notAdded}; ${draft.enoughDefinition ? manualCopy.enoughDefined : manualCopy.enoughNotDefined}`,
-    counsel: `${draft.riskTolerance ? manualCopy.riskAdded : manualCopy.riskNotAdded}; ${draft.waitingPreference ? manualCopy.waitingAdded : manualCopy.waitingNotAdded}; ${draft.counselCadence ? manualCopy.counselAdded : manualCopy.counselNotAdded}`,
-  };
-  const currentContextCards: Array<{
-    key: "money" | "work" | "health" | "relationships" | "values" | "counsel";
-    label: string;
-    summary: string;
-    icon: typeof PiggyBank;
-    active: boolean;
-  }> = [
-    { key: "money", label: manualCopy.moneyPicture, summary: sectionSummary.money, icon: PiggyBank, active: Boolean(draft.monthlyIncome !== null || draft.fixedExpenses !== null || draft.debtPayments !== null || draft.savingsBufferMonths !== null || draft.givingTargetPercent !== null || draft.financialDependents !== null || draft.financeContext.trim() || draft.incomeType.trim() || draft.whatHasntWorkedMoney.trim() || draft.lastUpdatedMoney) },
-    { key: "work", label: manualCopy.workRhythm, summary: sectionSummary.work, icon: BriefcaseBusiness, active: Boolean(draft.workContext || draft.workHoursPerWeek !== null || draft.commuteHoursPerWeek !== null || draft.whatHasntWorkedWork.trim() || draft.lastUpdatedWork) },
-    { key: "health", label: ts('manualContext.healthCard'), summary: sectionSummary.health, icon: Sprout, active: Boolean(draft.healthContext || draft.sleepHours !== null || draft.exerciseSessionsPerWeek !== null || draft.whatHasntWorkedHealth.trim() || draft.lastUpdatedHealth) },
-    { key: "relationships", label: ts('manualContext.relationshipsCard'), summary: sectionSummary.relationships, icon: Users, active: Boolean(draft.obligations || draft.timeWithLovedOnesHoursPerWeek !== null || draft.timeWithCommunityHoursPerWeek !== null || draft.whatHasntWorkedRelationships.trim() || draft.lastUpdatedRelationships) },
-    { key: "values", label: manualCopy.valuesRiskPosture, summary: sectionSummary.values, icon: ShieldCheck, active: Boolean(draft.stressLevel !== null || draft.energyDrainLevel !== null || draft.urgencyLevel !== null || draft.supportLevel !== null || draft.enoughDefinition || draft.mustNotSacrifice || draft.boundaries || draft.whatHasntWorkedValues.trim() || draft.lastUpdatedValues) },
-    { key: "counsel", label: manualCopy.counselPreferences, summary: sectionSummary.counsel, icon: Compass, active: Boolean(draft.goals.trim() || draft.riskTolerance.trim() || draft.waitingPreference.trim() || draft.counselCadence.trim() || draft.successDefinition.trim() || draft.inProfessionalCounseling || draft.hasFinancialAdvisor || draft.hasSpiritualDirector || draft.decisionMakingTendency.trim()) },
-  ];
-  const futureContextCards: Array<{
-    key: "money" | "rhythm" | "posture";
-    label: string;
-    summary: string;
-    icon: typeof PiggyBank;
-    active: boolean;
-  }> = [
-    {
-      key: "money",
-      label: ts('manualContext.futureMoneyCardTitle'),
-      summary: hasFutureMoney ? `${draft.targetSavingsBufferMonths !== null ? `${ts('manualContext.targetSavingsBufferMonths')}: ${draft.targetSavingsBufferMonths}` : manualCopy.notAddedYet}; ${draft.futureFinanceContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
-      icon: PiggyBank,
-      active: hasFutureMoney,
-    },
-    {
-      key: "rhythm",
-      label: ts('manualContext.futureRhythmCardTitle'),
-      summary: hasFutureRhythm ? `${draft.targetWorkHoursPerWeek !== null ? `${ts('manualContext.targetWorkHoursPerWeek')}: ${draft.targetWorkHoursPerWeek}` : manualCopy.notAddedYet}; ${draft.futureWorkContext.trim() || draft.futureHealthContext.trim() || draft.futureRelationshipsContext.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
-      icon: Clock3,
-      active: hasFutureRhythm,
-    },
-    {
-      key: "posture",
-      label: ts('manualContext.futurePostureCardTitle'),
-      summary: hasFuturePosture ? `${draft.targetStressLevel !== null ? `${ts('manualContext.targetStressLevel')}: ${draft.targetStressLevel}` : manualCopy.notAddedYet}; ${draft.futureValuesContext.trim() || draft.futureGoals.trim() || draft.futureBoundaries.trim() ? manualCopy.directionAdded : manualCopy.notAddedYet}` : manualCopy.notAddedYet,
-      icon: Sparkles,
-      active: hasFuturePosture,
-    },
-  ];
-  const activeContextSections = currentContextCards.filter((card) => card.active).length;
   const renderNumberFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; step?: number; min: number; max: number }>) => (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {fields.map((field) => (
@@ -21906,7 +21453,7 @@ function ManualContextPanel({
   const renderTextFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
-        <label key={String(field.key)} className="rounded-[1rem] border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <label key={String(field.key)} className="min-w-0 text-sm font-semibold" style={{ color: theme.textPrimary }}>
           {field.label}
           <textarea
             value={String(draft[field.key] ?? "")}
@@ -21922,7 +21469,7 @@ function ManualContextPanel({
   const renderInputFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; placeholder: string }>) => (
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
-        <label key={String(field.key)} className="rounded-[1rem] border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <label key={String(field.key)} className="min-w-0 text-sm font-semibold" style={{ color: theme.textPrimary }}>
           {field.label}
           <input
             value={String(draft[field.key] ?? "")}
@@ -21938,7 +21485,7 @@ function ManualContextPanel({
   const renderSelectFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string; options: Array<{ value: string; label: string }> }>) => (
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
-        <label key={String(field.key)} className="rounded-[1rem] border p-3 text-xs font-semibold uppercase tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+        <label key={String(field.key)} className="min-w-0 text-sm font-semibold" style={{ color: theme.textPrimary }}>
           {field.label}
           <select
             value={String(draft[field.key] ?? "")}
@@ -21958,7 +21505,7 @@ function ManualContextPanel({
   const renderCheckboxFieldGrid = (fields: Array<{ key: keyof ManualContextProfile; label: string }>) => (
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
-        <label key={String(field.key)} className="flex cursor-pointer items-center gap-3 rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+        <label key={String(field.key)} className="flex min-h-11 cursor-pointer items-center gap-3">
           <input
             type="checkbox"
             checked={draft[field.key] === true}
@@ -21966,7 +21513,7 @@ function ManualContextPanel({
             className="h-4 w-4 rounded border"
             style={{ borderColor: theme.borderMedium, accentColor: theme.accentGold }}
           />
-          <span className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+          <span className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
             {field.label}
           </span>
         </label>
@@ -21989,9 +21536,9 @@ function ManualContextPanel({
     }
   };
   const renderTimestampDisplay = (label: string, isoTimestamp: string | null, onRefresh?: () => void) => (
-    <div className="rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
+    <div className="border-t pt-3" style={{ borderColor: theme.borderLight }}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+        <span className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
           {label}
         </span>
         {isoTimestamp && (
@@ -22002,8 +21549,9 @@ function ManualContextPanel({
       </div>
       {onRefresh && isoTimestamp && (
         <button
+          type="button"
           onClick={onRefresh}
-          className="mt-2 w-full rounded-full border px-2 py-1 text-xs font-semibold"
+          className="mt-2 min-h-11 rounded-xl border px-3 text-sm font-semibold"
           style={{ borderColor: theme.borderMedium, color: theme.accentGold }}
         >
           {ts('manualContext.stillAccurate')}
@@ -22011,36 +21559,8 @@ function ManualContextPanel({
       )}
     </div>
   );
-  const renderCardRail = <T extends string,>(
-    cards: Array<{
-      key: T;
-      label: string;
-      summary: string;
-      icon: typeof PiggyBank;
-      active: boolean;
-    }>,
-    activeKey: T,
-    onSelect: (key: T) => void
-  ) => (
-    <div className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-      {cards.map((card) => {
-        return (
-          <ChoiceCardButton
-            key={card.key}
-            icon={card.icon}
-            title={card.label}
-            body={card.summary}
-            active={card.key === activeKey}
-            onClick={() => onSelect(card.key)}
-            theme={theme}
-            className="w-[17rem] shrink-0 snap-start"
-          />
-        );
-      })}
-    </div>
-  );
-  const renderCurrentContextEditor = () => {
-    switch (currentContextFocus) {
+  const renderCurrentContextEditor = (focus: keyof typeof currentTopics) => {
+    switch (focus) {
       case "money":
         return (
           <div className="space-y-4">
@@ -22191,8 +21711,8 @@ function ManualContextPanel({
         return null;
     }
   };
-  const renderFutureContextEditor = () => {
-    switch (futureContextFocus) {
+  const renderFutureContextEditor = (focus: keyof typeof futureTopics) => {
+    switch (focus) {
       case "money":
         return (
           <div className="space-y-4">
@@ -22240,411 +21760,151 @@ function ManualContextPanel({
         return null;
     }
   };
-  const activeCurrentContextCard = currentContextCards.find((card) => card.key === currentContextFocus) ?? currentContextCards[0];
-  const activeFutureContextCard = futureContextCards.find((card) => card.key === futureContextFocus) ?? futureContextCards[0];
-  const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string; icon: typeof PiggyBank }> = [
-    { key: "financeContext", label: manualCopy.moneyPicture, prompt: ts('manualContext.moneyPicturePrompt'), icon: PiggyBank },
-    { key: "workContext", label: manualCopy.workRhythm, prompt: ts('manualContext.workRhythmPrompt'), icon: BriefcaseBusiness },
-    { key: "healthContext", label: ts('manualContext.stressSleep'), prompt: ts('manualContext.stressSleepPrompt'), icon: Sprout },
-    { key: "obligations", label: ts('manualContext.familyObligations'), prompt: ts('manualContext.familyObligationsPrompt'), icon: Users },
-    { key: "boundaries", label: ts('manualContext.boundariesChip'), prompt: ts('manualContext.boundariesPrompt'), icon: ShieldCheck },
-    { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel'), prompt: ts('manualContext.enoughDefinitionPrompt'), icon: Compass },
+  const quickDetailOptions: Array<{ key: typeof quickDetailType; label: string; prompt: string }> = [
+    { key: "financeContext", label: currentTopics.money, prompt: ts('manualContext.moneyPicturePrompt') },
+    { key: "workContext", label: currentTopics.work, prompt: ts('manualContext.workRhythmPrompt') },
+    { key: "healthContext", label: ts('manualContext.stressSleep'), prompt: ts('manualContext.stressSleepPrompt') },
+    { key: "obligations", label: ts('manualContext.familyObligations'), prompt: ts('manualContext.familyObligationsPrompt') },
+    { key: "boundaries", label: ts('manualContext.boundariesChip'), prompt: ts('manualContext.boundariesPrompt') },
+    { key: "enoughDefinition", label: ts('manualContext.enoughDefinitionLabel'), prompt: ts('manualContext.enoughDefinitionPrompt') },
   ];
-  const quickDetailOption = quickDetailOptions.find((option) => option.key === quickDetailType) ?? quickDetailOptions[0];
-  const vaultStateLabel = draft.useInAnswers ? manualCopy.active : manualCopy.paused;
-  const syncSummary = user ? manualCopy.signedInSync : manualCopy.guestSync;
-  const saveManualContextDraft = async (nextDraft: ManualContextProfile, feedback: string) => {
-    setManualContextSaving(true);
-    setManualContextFeedback(manualCopy.savingManualContext);
+  const quickOption = quickDetailOptions.find(({ key }) => key === quickDetailType) ?? quickDetailOptions[0];
+  const answerAreas = [
+    { key: "useMoneyInAnswers", label: ts('labels.useMoneyContext') },
+    { key: "useWorkInAnswers", label: ts('labels.useWorkContext') },
+    { key: "useHealthInAnswers", label: ts('labels.useHealthContext') },
+    { key: "useRelationshipsInAnswers", label: ts('labels.useRelationshipsContext') },
+    { key: "useValuesInAnswers", label: ts('manualContext.useValuesContext') },
+  ] as const;
+  const save = async (patch: Partial<ManualContextProfile>, location: "privacy" | "quick" | "editor") => {
+    setSaveLocation(location);
+    setSaving(true);
     try {
-      await Promise.resolve(onChange(nextDraft));
-      setManualContextFeedback(feedback);
-    } catch {
-      setManualContextFeedback(status);
+      await onChange(patch);
     } finally {
-      setManualContextSaving(false);
+      setSaving(false);
     }
   };
-  const applyQuickDetail = async () => {
+  const addDetail = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const value = quickDetail.trim();
-    if (!value) {
-      return;
-    }
-    const nextDraft = normalizeManualContext({
-      ...draft,
-      [quickDetailType]: draft[quickDetailType] ? `${draft[quickDetailType]}\n${value}` : value,
-    });
-    setDraft(nextDraft);
+    if (!value || saving) return;
+    const key = quickDetailType;
+    const append = (previous: string) => previous ? `${previous}\n${value}` : value;
+    await save({ [key]: append(context[key]) }, "quick");
+    setEdits((current) => current[key] === undefined ? current : { ...current, [key]: append(current[key]) });
     setQuickDetail("");
-    setContextTab("current");
-    await saveManualContextDraft(nextDraft, manualCopy.detailSaved);
   };
-
-  const handleManualContextSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextDraft = normalizeManualContext(draft);
-    setDraft(nextDraft);
-    await saveManualContextDraft(nextDraft, manualCopy.manualContextSaved);
+    if (!hasEdits || saving) return;
+    await save(edits, "editor");
+    setEdits({});
   };
-
-  const updateQuickDetailFromEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter" || event.shiftKey) {
-      return;
-    }
-    event.preventDefault();
-    void applyQuickDetail();
-  };
-
-  const updateDraft = (patch: Partial<ManualContextProfile>) => {
-    setDraft((current) => ({
-      ...current,
-      ...patch,
-    }));
-    setManualContextFeedback("");
-  };
+  const titleStyle = { color: theme.textPrimary };
+  const bodyStyle = { color: theme.textSecondary };
+  const fieldStyle = { color: theme.textPrimary, borderColor: theme.borderMedium, backgroundColor: theme.bgInput };
+  const actionStyle = { backgroundColor: theme.primary, color: theme.textOnPrimary };
+  const sectionStyle = { borderColor: theme.borderLight };
+  const saveStatus = (location: "privacy" | "quick" | "editor") => (
+    <p role="status" className="text-sm leading-5 empty:absolute" style={bodyStyle}>
+      {saveLocation === location ? (saving ? ts('manualContext.savingManualContext') : status) : ""}
+    </p>
+  );
 
   return (
-    <section className="overflow-hidden rounded-[1.4rem] border shadow-[0_6px_16px_rgba(7,10,8,0.05)]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="p-4 sm:p-5">
-          <div className="flex flex-col gap-3">
-            <div className="min-w-0 max-w-3xl">
-            <div className="flex items-start gap-3">
-                <div className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accentText }}>
-                  <ShieldCheck size={18} />
-                </div>
-                <div className="relative min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{manualCopy.privacyPosture}</p>
-                  <h3 className="mt-2 text-2xl font-semibold sm:text-[2rem]" style={{ color: theme.textPrimary }}>
-                    <span className="inline-flex items-center gap-2 pr-6 sm:pr-8 md:pr-9">
-                      <span>{manualCopy.title}</span>
-                    </span>
-                  </h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.intro}</p>
-                </div>
-              </div>
-            </div>
-            <p className="flex flex-wrap items-center gap-x-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-              <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: draft.useInAnswers ? theme.accentGold : theme.textSecondary }}>
-                {draft.useInAnswers ? <Check size={13} /> : null}
-                {vaultStateLabel}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                {activeContextSections} {activeContextSections === 1 ? manualCopy.areaSingular : manualCopy.areaPlural} {manualCopy.added}
-              </span>
-            </p>
-          </div>
-
-          <div className="mt-4 grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.quickTitle')}</p>
-                  <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.quickAddHeadline')}</p>
-                </div>
-              </div>
-              <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                {quickDetailOptions.map((option) => {
-                  const Icon = option.icon;
-                  const active = quickDetailType === option.key;
-                  return (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setQuickDetailType(option.key)}
-                      className="premium-tap-card inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98]"
-                      style={{ borderColor: active ? theme.accentGold : theme.borderLight, backgroundColor: active ? theme.activeBg : theme.bgInput, color: active ? theme.textPrimary : theme.textSecondary }}
-                      aria-pressed={active}
-                    >
-                      <Icon size={16} />
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <label className="mt-4 block rounded-[1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{quickDetailOption.label}</span>
-                <input
-                  value={quickDetail}
-                  onChange={(event) => setQuickDetail(event.target.value)}
-                  onKeyDown={updateQuickDetailFromEnter}
-                  className="mt-3 h-11 w-full rounded-full border px-3 text-sm outline-none"
-                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-                  placeholder={quickDetailOption.prompt}
-                />
-              </label>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {manualContextFeedback || status}
-                </p>
-                <button
-                  type="button"
-                  className="h-11 rounded-full px-4 text-sm font-semibold"
-                  style={{ backgroundColor: quickDetail.trim() && !manualContextSaving ? theme.primary : theme.bgInput, color: quickDetail.trim() && !manualContextSaving ? theme.textOnPrimary : theme.textSecondary, border: `1px solid ${quickDetail.trim() && !manualContextSaving ? theme.primary : theme.borderLight}` }}
-                  disabled={!quickDetail.trim() || manualContextSaving}
-                  onClick={() => void applyQuickDetail()}
-                >
-                  {manualCopy.addDetail}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-        <button
-          type="button"
-          onClick={() => setAdvancedVaultOpen((open) => !open)}
-          className="premium-tap-card flex w-full items-center justify-between gap-3 rounded-xl px-1 py-2 text-left"
-          aria-expanded={advancedVaultOpen}
-        >
-          <span>
-            <span className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</span>
-            <span className="mt-1 block text-base font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle')}</span>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: accentText }}>
-            {advancedVaultOpen ? ts('hideDetails') : ts('showDetails')}
-            <ChevronDown size={16} className={`transition-transform ${advancedVaultOpen ? "rotate-180" : ""}`} />
-          </span>
-        </button>
-        {advancedVaultOpen ? (
-          <form
-            className="mt-4 space-y-4"
-            onSubmit={handleManualContextSubmit}
-          >
-            <div className="grid gap-3 2xl:grid-cols-[0.88fr_1.12fr]">
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.vaultControlsEyebrow')}</p>
-                      <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.vaultControlsTitle')}</p>
-                    </div>
-                    <label className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold" style={{ borderColor: draft.useInAnswers ? theme.accentGold : theme.borderLight, backgroundColor: draft.useInAnswers ? theme.activeBg : theme.bgInput, color: theme.textPrimary }}>
-                      <input
-                        type="checkbox"
-                        checked={draft.useInAnswers}
-                        onChange={(event) => updateDraft({ useInAnswers: event.target.checked })}
-                        className="size-4 rounded"
-                        style={{ borderColor: theme.borderMedium }}
-                      />
-                      {manualCopy.allowContextPrompt}
-                    </label>
-                  </div>
-                  <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-                    <label className="block rounded-xl border p-3 text-xs font-semibold uppercase tracking-[0.08em] sm:tracking-[0.12em]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                      {ts('labels.guidanceRegion')}
-                      <select
-                        value={preferences.region}
-                        onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
-                        className="mt-2 h-10 w-full rounded-full border px-3 text-sm normal-case tracking-normal outline-none"
-                        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-                      >
-                        {Object.entries(regions).map(([code]) => (
-                          <option key={code} value={code}>{localizedRegionLabel(code as RegionCode, preferences.language)}</option>
-                        ))}
-                      </select>
-                      <span className="mt-2 block text-xs font-normal normal-case leading-5 tracking-normal" style={{ color: theme.textSecondary }}>
-                        {ts('manualContext.guidanceRegionHint')}
-                      </span>
-                    </label>
-                    <div className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.14em]" style={{ color: theme.accentGold }}>{ts('manualContext.syncAndDelete')}</p>
-                      <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {syncSummary} {hasContent ? manualCopy.clearFields : ""}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('manualContext.answerUseEyebrow')}</p>
-                    <p className="mt-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>{ts('manualContext.answerUseTitle')}</p>
-                  </div>
-                  <div className="mt-4 flex min-w-0 snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                    <ContextUseToggle
-                      icon={PiggyBank}
-                      label={manualCopy.useMoney}
-                      body={sectionSummary.money}
-                      checked={draft.useMoneyInAnswers}
-                      theme={theme}
-                      onChange={(checked) => updateDraft({ useMoneyInAnswers: checked })}
-                    />
-                    <ContextUseToggle
-                      icon={BriefcaseBusiness}
-                      label={manualCopy.useWork}
-                      body={sectionSummary.work}
-                      checked={draft.useWorkInAnswers}
-                      theme={theme}
-                      onChange={(checked) => updateDraft({ useWorkInAnswers: checked })}
-                    />
-                    <ContextUseToggle
-                      icon={Sprout}
-                      label={manualCopy.useHealth}
-                      body={sectionSummary.health}
-                      checked={draft.useHealthInAnswers}
-                      theme={theme}
-                      onChange={(checked) => updateDraft({ useHealthInAnswers: checked })}
-                    />
-                    <ContextUseToggle
-                      icon={Users}
-                      label={manualCopy.useRelationships}
-                      body={sectionSummary.relationships}
-                      checked={draft.useRelationshipsInAnswers}
-                      theme={theme}
-                      onChange={(checked) => updateDraft({ useRelationshipsInAnswers: checked })}
-                    />
-                    <ContextUseToggle
-                      icon={ShieldCheck}
-                      label={manualCopy.useValues}
-                      body={sectionSummary.values}
-                      checked={draft.useValuesInAnswers}
-                      theme={theme}
-                      onChange={(checked) => updateDraft({ useValuesInAnswers: checked })}
-                      wide
-                    />
-                  </div>
-                </div>
-
-                <DisclosureSection
-                  title={ts('manualContext.privateByDefaultTitle')}
-                  summary={ts('manualContext.privacyBody')}
-                  eyebrow={ts('labels.privateByDefaultEyebrow')}
-                  compactCollapsed
-                  isOpen={privacyPostureOpen}
-                  onOpenChange={setPrivacyPostureOpen}
-                  showDetailsLabel={ts('showDetails')}
-                  hideDetailsLabel={ts('hideDetails')}
-                  theme={theme}
-                >
-                  <div className="space-y-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    <p>{manualCopy.privacyBody}</p>
-                    <p>{syncSummary} {hasContent ? manualCopy.clearFields : ""}</p>
-                  </div>
-                </DisclosureSection>
-              </div>
-
-              <div className="space-y-3">
-                <ScreenTabs
-                  value={contextTab}
-                  onChange={setContextTab}
-                  ariaLabel={ts('manualContext.editContextTitle')}
-                  theme={theme}
-                  cuePaddingClassName=""
-                  tabs={[
-                    { key: "current", label: manualCopy.currentState },
-                    { key: "future", label: manualCopy.futureState },
-                  ]}
-                />
-                <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                  {contextTab === "current"
-                    ? `${activeContextSections} ${activeContextSections === 1 ? manualCopy.activeArea : manualCopy.activeAreas}`
-                    : (hasFutureState ? manualCopy.directionAdded : manualCopy.notAddedYet)}
-                </p>
-
-                <DisclosureSection
-                  title={ts('manualContext.editContextTitle')}
-                  summary={contextEditorOpen
-                    ? ts('manualContext.editContextOpenSummary')
-                    : ts('manualContext.editContextClosedSummary')}
-                  eyebrow={ts('manualContext.editContextEyebrow')}
-                  isOpen={contextEditorOpen}
-                  onOpenChange={setContextEditorOpen}
-                  compactCollapsed
-                  showDetailsLabel={ts('showDetails')}
-                  hideDetailsLabel={ts('hideDetails')}
-                  theme={theme}
-                >
-                  {contextTab === "current" ? (
-                    <div className="space-y-4">
-                      {renderCardRail(currentContextCards, currentContextFocus, setCurrentContextFocus)}
-                      <div className="space-y-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeCurrentContextCard.label}</h3>
-                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{activeCurrentContextCard.summary}</p>
-                          </div>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]" style={{ borderColor: activeCurrentContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeCurrentContextCard.active ? theme.activeBg : theme.bgInput, color: activeCurrentContextCard.active ? theme.accentGold : theme.textSecondary }}>
-                            {activeCurrentContextCard.active ? <Check size={12} /> : null}
-                            {activeCurrentContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
-                          </span>
-                        </div>
-                        {renderCurrentContextEditor()}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {renderCardRail(futureContextCards, futureContextFocus, setFutureContextFocus)}
-                      <div className="space-y-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <h3 className="mt-1 text-lg font-semibold" style={{ color: theme.textPrimary }}>{activeFutureContextCard.label}</h3>
-                            <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{manualCopy.desiredFutureBody}</p>
-                          </div>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] sm:px-2 sm:tracking-[0.08em]" style={{ borderColor: activeFutureContextCard.active ? theme.accentGold : theme.borderLight, backgroundColor: activeFutureContextCard.active ? theme.activeBg : theme.bgInput, color: activeFutureContextCard.active ? theme.accentGold : theme.textSecondary }}>
-                            {activeFutureContextCard.active ? <Check size={12} /> : null}
-                            {activeFutureContextCard.active ? manualCopy.added : manualCopy.notAddedYet}
-                          </span>
-                        </div>
-                        {renderFutureContextEditor()}
-                      </div>
-                    </div>
-                  )}
-                </DisclosureSection>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                {manualContextFeedback || status}
-              </p>
-              <button
-                type="submit"
-                disabled={manualContextSaving}
-                className="h-11 rounded-xl px-4 text-sm font-semibold shadow-sm"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, opacity: manualContextSaving ? 0.68 : 1 }}
-              >
-                {manualContextSaving ? manualCopy.savingManualContext : manualCopy.saveManualContext}
-              </button>
-            </div>
-          </form>
-        ) : null}
+    <div className="min-w-0 space-y-6">
+      <div className="space-y-1 text-sm leading-6" style={bodyStyle}>
+        <p>{ts('manualContext.intro')} {ts('manualContext.privacyBody')}</p>
+        <p>{ts(user ? 'manualContext.signedInSync' : 'manualContext.guestSync')}</p>
       </div>
-    </section>
+
+      <section className="space-y-3 border-t pt-5" style={sectionStyle}>
+        <h3 className="text-lg font-semibold" style={titleStyle}>{ts('manualContext.vaultControlsTitle')}</h3>
+        <fieldset disabled={saving} className="min-w-0 space-y-3">
+          <label className="flex min-h-11 items-center gap-3 text-sm font-semibold" style={titleStyle}>
+            <input type="checkbox" className="size-5 shrink-0" checked={context.useInAnswers} onChange={(event) => void save({ useInAnswers: event.target.checked }, "privacy")} />
+            {ts('labels.allowContextPrompt')}
+          </label>
+          <p className="text-sm leading-5" style={bodyStyle}>{ts('manualContext.allowContextBody')}</p>
+          <fieldset disabled={!context.useInAnswers} className="min-w-0">
+            <legend className="pb-1 text-sm font-semibold" style={bodyStyle}>{ts('manualContext.answerUseTitle')}</legend>
+            {answerAreas.map(({ key, label }) => (
+              <label key={key} className="flex min-h-11 items-center gap-3 border-b py-2 text-sm last:border-b-0" style={{ ...sectionStyle, color: context.useInAnswers ? theme.textPrimary : theme.textSecondary }}>
+                <input type="checkbox" className="size-5 shrink-0" checked={context[key]} onChange={(event) => void save({ [key]: event.target.checked }, "privacy")} />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+          <label className="block space-y-2 text-sm font-semibold" style={titleStyle}>
+            <span>{ts('labels.guidanceRegion')}</span>
+            <select value={preferences.region} onChange={(event) => onPreferenceChange({ region: event.target.value as RegionCode })}
+              className="min-h-11 w-full rounded-xl border px-3 text-sm" style={fieldStyle}>
+              {Object.entries(regions).map(([code]) => (
+                <option key={code} value={code}>{localizedRegionLabel(code as RegionCode, preferences.language)}</option>
+              ))}
+            </select>
+            <span className="block font-normal leading-5" style={bodyStyle}>{ts('manualContext.guidanceRegionHint')}</span>
+          </label>
+        </fieldset>
+        {saveStatus("privacy")}
+      </section>
+
+      <form onSubmit={addDetail} className="space-y-3 border-t pt-5" style={sectionStyle}>
+        <h3 className="text-lg font-semibold" style={titleStyle}>{ts('manualContext.quickTitle')}</h3>
+        <p className="text-sm leading-5" style={bodyStyle}>{ts('manualContext.quickBody')}</p>
+        <fieldset disabled={saving} className="min-w-0 space-y-3">
+          <AccountSelect ariaLabel={ts('manualContext.quickTitle')} value={quickDetailType} onChange={(value) => {
+            const option = quickDetailOptions.find(({ key }) => key === value);
+            if (option) setQuickDetailType(option.key);
+          }} theme={theme}>
+            {quickDetailOptions.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+          </AccountSelect>
+          <input aria-label={quickOption.label} value={quickDetail} onChange={(event) => {
+            setSaveLocation(null);
+            setQuickDetail(event.target.value);
+          }} className="min-h-11 w-full rounded-xl border px-3 text-sm" style={fieldStyle} placeholder={quickOption.prompt} />
+          <button type="submit" disabled={!quickDetail.trim()} className="min-h-11 rounded-xl px-4 text-sm font-semibold disabled:opacity-60" style={actionStyle}>
+            {ts('manualContext.addDetail')}
+          </button>
+        </fieldset>
+        {saveStatus("quick")}
+      </form>
+
+      <form onSubmit={submit} className="space-y-6">
+        <fieldset disabled={saving} className="min-w-0">
+          <section className="space-y-4 border-t pt-5" style={sectionStyle}>
+            <h3 className="text-lg font-semibold" style={titleStyle}>{ts('manualContext.editContextTitle')}</h3>
+            <AccountSelect ariaLabel={ts('manualContext.editContextTitle')} value={`${topic.group}:${topic.key}`} onChange={(value) => {
+              for (const key of Object.keys(currentTopics) as Array<keyof typeof currentTopics>) {
+                if (value === `current:${key}`) return setTopic({ group: "current", key });
+              }
+              for (const key of Object.keys(futureTopics) as Array<keyof typeof futureTopics>) {
+                if (value === `future:${key}`) return setTopic({ group: "future", key });
+              }
+            }} theme={theme}>
+              <optgroup label={ts('manualContext.currentState')}>
+                {Object.entries(currentTopics).map(([key, label]) => <option key={key} value={`current:${key}`}>{label}</option>)}
+              </optgroup>
+              <optgroup label={ts('manualContext.futureState')}>
+                {Object.entries(futureTopics).map(([key, label]) => <option key={key} value={`future:${key}`}>{label}</option>)}
+              </optgroup>
+            </AccountSelect>
+            {topic.group === "future" ? <p className="text-sm leading-5" style={bodyStyle}>{ts('manualContext.desiredFutureBody')}</p> : null}
+            {topic.group === "current" ? renderCurrentContextEditor(topic.key) : renderFutureContextEditor(topic.key)}
+            {manualContextHasContent(draft) ? <p className="text-sm leading-5" style={bodyStyle}>{ts('manualContext.clearFields')}</p> : null}
+          </section>
+        </fieldset>
+        <div className="space-y-2 border-t pt-4" style={sectionStyle}>
+          <button type="submit" disabled={saving || !hasEdits} className="min-h-11 rounded-xl px-4 text-sm font-semibold disabled:opacity-60" style={actionStyle}>
+            {ts('manualContext.saveManualContext')}
+          </button>
+          {saveStatus("editor")}
+        </div>
+      </form>
+    </div>
   );
 }
-
-function ContextUseToggle({
-  icon: Icon,
-  label,
-  body,
-  checked,
-  theme,
-  onChange,
-  wide = false,
-}: {
-  icon: typeof ShieldCheck;
-  label: string;
-  body: string;
-  checked: boolean;
-  theme: ThemeColors;
-  onChange: (checked: boolean) => void;
-  wide?: boolean;
-}) {
-  return (
-    <SelectionRailCard
-      icon={Icon}
-      title={label}
-      body={body}
-      active={checked}
-      onClick={() => onChange(!checked)}
-      theme={theme}
-      className={wide ? "w-[18.5rem] shrink-0 snap-start" : "w-[16.75rem] shrink-0 snap-start"}
-    />
-  );
-}
-
 
 function WelcomeGateScreen({
   open,
@@ -23333,58 +22593,31 @@ function AccountStatusCard({
   theme,
   user,
   authStatus,
-  notificationsEnabled,
-  notificationAccountEnabled,
-  notificationDeviceSubscribed,
-  notificationStatus,
   onLogout,
   onRequestDeleteAccount,
   deleteAccountBusy,
-  onRequestSignIn,
   ts,
 }: {
   theme: ThemeColors;
-  user: User | null;
+  user: User;
   authStatus: AuthStatus;
-  notificationsEnabled: boolean;
-  notificationAccountEnabled: boolean;
-  notificationDeviceSubscribed: boolean;
-  notificationStatus: string;
   onLogout: () => void;
   onRequestDeleteAccount: () => void;
   deleteAccountBusy: boolean;
-  onRequestSignIn: (mode?: AuthMode) => void;
   ts: (key: string, fallback?: string) => string;
 }) {
-  const signedIn = Boolean(user);
-  const notificationHealth = notificationsEnabled
-    ? ts('notifications.deviceSubscribed')
-    : notificationAccountEnabled && !notificationDeviceSubscribed
-      ? ts('notifications.accountEnabledDeviceOff')
-      : notificationStatus;
-
   return (
-      <section className="overflow-hidden rounded-[1.35rem] border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated }}>
-      <div className="border-b px-3.5 py-3.5 sm:px-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-        <div className="flex flex-col gap-3.5 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]" style={{ color: theme.accentGold }}>{ts('labels.accountDetails')}</p>
-            <h3 className="mt-2 text-lg font-semibold sm:text-xl" style={{ color: theme.textPrimary }}>
-              {signedIn ? ts('auth.signedIn') : ts('auth.guestMode')}
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {signedIn
-                ? `${user?.email}. ${ts('auth.syncActiveFull')}`
-                : ts('auth.signInSyncHistory')}
-            </p>
-          </div>
-          {signedIn ? (
-            <div className="flex flex-wrap gap-2">
+    <section className="space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <h3 className="font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.accountControls')}</h3>
+      <p className="text-sm leading-6 [overflow-wrap:anywhere]" style={{ color: theme.textSecondary }}>
+        {user.email} · {ts('auth.syncActiveFull')}
+      </p>
+      <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={onRequestDeleteAccount}
                 disabled={deleteAccountBusy || authStatus === "signing-out"}
-                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {deleteAccountBusy ? ts('labels.deleting') : ts('labels.deleteAccount')}
@@ -23393,57 +22626,11 @@ function AccountStatusCard({
                 type="button"
                 onClick={onLogout}
                 disabled={authStatus === "signing-out" || deleteAccountBusy}
-                className="inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
               >
                 {authStatus === "signing-out" ? ts('auth.signingOut') : ts('auth.signOut')}
               </button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div className="p-3.5 sm:p-4">
-        {!signedIn ? (
-          <div className="mb-3.5 rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput }}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.accountNextEyebrow')}
-            </p>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <h4 className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                  {ts('labels.accountNextSignInPortable')}
-                </h4>
-                <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  {ts('labels.accountNextGuestBody')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onRequestSignIn()}
-                className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
-                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
-              >
-                {ts('auth.signInForSync')}
-              </button>
-            </div>
-          </div>
-        ) : null}
-        <div className="overflow-hidden rounded-[1rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          {[
-            { label: ts('labels.sync'), value: signedIn ? ts('labels.active') : ts('auth.guestOnly'), active: signedIn },
-            { label: ts('labels.lastSynced'), value: signedIn ? ts('labels.thisSession') : ts('labels.notSynced'), active: signedIn },
-            { label: ts('labels.notifications'), value: notificationHealth, active: notificationsEnabled },
-          ].map((item, index) => (
-            <div
-              key={`${index}-${item.label}`}
-              className="flex items-center justify-between gap-3 px-3 py-2"
-              style={{ borderTop: index === 0 ? "none" : `1px solid ${theme.borderLight}` }}
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] sm:tracking-[0.12em]" style={{ color: theme.textSecondary }}>{item.label}</p>
-              <p className="text-sm font-semibold text-right" style={{ color: item.active ? theme.textPrimary : theme.textSecondary }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -24275,13 +23462,10 @@ function NotificationPanel({
     : [];
 
   return (
-    <section className="mb-5 rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="space-y-4">
       {!signedIn ? (
-        <div className="rounded-[1rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-            {ts('labels.guestSetupReady')}
-          </p>
-          <h3 className="mt-1.5 text-sm font-semibold" style={{ color: theme.textPrimary }}>
+        <section className="rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
             {ts('labels.accountSuggestedEnableNotifications')}
           </h3>
           <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
@@ -24289,21 +23473,18 @@ function NotificationPanel({
           </p>
           <button
             onClick={() => onRequestSignIn()}
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
+            className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
           >
             {ts('auth.signInForSync')}
           </button>
-        </div>
+        </section>
       ) : (
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <section className="flex items-center justify-between gap-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-              {ts('labels.notifications')}
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
+            <h3 className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
               {notificationsSummary.title}
-            </p>
+            </h3>
             {notificationsSummary.body ? (
               <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
                 {notificationsSummary.body}
@@ -24317,12 +23498,12 @@ function NotificationPanel({
             theme={theme}
             onToggle={enabled ? onDisable : onEnable}
           />
-        </div>
+        </section>
       )}
 
-      <div className="mt-3 space-y-4">
+      <section className="space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {signedIn && enabled && deviceSubscribed ? (
-          <div className="flex items-center justify-between gap-3 rounded-[1rem] border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: theme.borderLight }}>
             <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
               {ts("notifications.testNotificationBody")}
             </p>
@@ -24330,7 +23511,7 @@ function NotificationPanel({
               type="button"
               onClick={onSendTest}
               disabled={busy}
-              className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex min-h-11 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
             >
               {ts("notifications.sendTestNotification")}
@@ -24427,9 +23608,9 @@ function NotificationPanel({
             </label>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="border-t pt-4" style={{ borderColor: theme.borderLight }}>
+      <section className="rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -24467,9 +23648,9 @@ function NotificationPanel({
         <p className="mt-3 text-xs leading-5" style={{ color: theme.textSecondary }}>
           {ts('notifications.counselCardDeepLinkNote')}
         </p>
-      </div>
+      </section>
 
-      <div className="border-t pt-4" style={{ borderColor: theme.borderLight }}>
+      <section className="rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
@@ -24482,7 +23663,7 @@ function NotificationPanel({
           <button
             type="button"
             onClick={() => setSupportModalOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center rounded-full border px-3.5 text-xs font-semibold transition"
+            className="inline-flex min-h-11 items-center rounded-full border px-3.5 text-xs font-semibold transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
           >
             {ts("support")}
@@ -24500,8 +23681,8 @@ function NotificationPanel({
           diagnostics={diagnostics}
           onClose={() => setSupportModalOpen(false)}
         />
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -28437,14 +27618,12 @@ function ScriptureChips({
     scriptureTextMatches(answerText, uniqueSources.map((source) => source.scripture), preferences.language)
       .map((match) => match.scripture)
   );
-  const visibleSources = (
-    referencedScriptures.size
-      ? uniqueSources.filter((source) => referencedScriptures.has(canonicalScriptureReference(source.scripture)))
-      : uniqueSources.slice(0, 2)
-  ).slice(0, 3);
+  const visibleSources = answerText
+    ? uniqueSources.filter((source) => referencedScriptures.has(canonicalScriptureReference(source.scripture)))
+    : uniqueSources;
   const railHasOverflow = useRailOverflowCue(railRef, expanded && visibleSources.length > 0, [expanded, visibleSources.length]);
 
-  if (!uniqueSources.length) {
+  if (!visibleSources.length) {
     return null;
   }
 
@@ -28461,7 +27640,7 @@ function ScriptureChips({
           <BookOpen size={14} style={{ color: theme.accentGold }} aria-hidden="true" />
           <span>{ts('labels.scripture')} · {visibleSources.length}</span>
           <span className="hidden truncate font-normal sm:inline" style={{ color: theme.textMuted }}>
-            {scriptureDisplayLabel(uniqueSources[0].scripture, preferences)}
+            {scriptureDisplayLabel(visibleSources[0].scripture, preferences)}
           </span>
         </span>
         <DisclosureIndicator
@@ -28519,14 +27698,6 @@ function ScriptureChips({
   );
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function normalizeScriptureMatchText(text: string) {
-  return text.replace(/[–—]/g, "-");
-}
-
 type ParsedScriptureSelection = {
   book: string;
   chapter: number;
@@ -28568,31 +27739,6 @@ function parseScriptureSelection(scripture: string): ParsedScriptureSelection | 
   };
 }
 
-function scriptureTextMatches(text: string, allowedScriptures: string[] = curatedScriptureReferences, language: LanguageCode = "en") {
-  const referencesByLabel = new Map<string, string>();
-  for (const allowed of allowedScriptures) {
-    const reference = canonicalScriptureReference(allowed);
-    if (!reference) continue;
-    for (const label of [reference, localizedScriptureReference(reference, language)]) {
-      referencesByLabel.set(normalizeScriptureMatchText(label).toLowerCase(), reference);
-    }
-  }
-  if (!referencesByLabel.size) {
-    return [];
-  }
-
-  const alternatives = [...referencesByLabel.keys()]
-    .sort((a, b) => b.length - a.length)
-    .map(escapeRegExp)
-    .join("|");
-  const pattern = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}])(?:${alternatives})(?![\\p{L}\\p{M}\\p{N}]|-\\d)`, "giu");
-
-  return Array.from(normalizeScriptureMatchText(text).matchAll(pattern)).flatMap((match) => {
-    const scripture = referencesByLabel.get(match[0].toLowerCase());
-    return scripture === undefined ? [] : [{ label: match[0], scripture, index: match.index }];
-  });
-}
-
 function ScriptureLinkedText({
   theme,
   text,
@@ -28607,7 +27753,7 @@ function ScriptureLinkedText({
   onScriptureOpen: (scripture: string) => void;
 }) {
   const cleaned = cleanDisplayText(text);
-  const matches = scriptureTextMatches(cleaned, allowedScriptures, language);
+  const matches = scriptureTextMatches(cleaned, allowedScriptures ?? curatedScriptureReferences, language);
 
   if (!matches.length) {
     return <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{cleaned}</p>;
@@ -29507,55 +28653,52 @@ function RangeField({
   ts: (key: string, fallback?: string) => string;
   theme: ThemeColors;
 }) {
-  const shown = value === null ? min : value;
+  const fieldId = useId();
 
   return (
-    <label className="rounded-xl border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-      <span className="flex items-center justify-between gap-3">
-        <span className="min-w-0 break-words text-xs font-semibold uppercase leading-4 tracking-[0.1em]">{label}</span>
-        <span className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.08em]" style={{ backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}>
-          {value === null ? ts('placeholders.notSet') : String(value)}
-        </span>
-      </span>
-      <div className="mt-3 rounded-lg border px-3 py-3" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
+    <div className="min-w-0 space-y-2 border-b pb-3" style={{ borderColor: theme.borderLight }}>
+      <label id={`${fieldId}-label`} htmlFor={fieldId} className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{label}</label>
+      <div className="flex min-w-0 items-center gap-2">
         <input
-          type="range"
+          id={fieldId}
+          inputMode="decimal"
+          type="number"
           min={min}
           max={max}
           step={step}
-          value={shown}
-          onChange={(event) => onChange(Number(event.target.value))}
-          className="w-full accent-[var(--slider-accent)]"
-          style={{ ["--slider-accent" as string]: theme.primary }}
+          value={value ?? ""}
+          placeholder={ts('placeholders.notSet')}
+          onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
+          className="min-h-11 w-full min-w-0 rounded-xl border px-3 text-sm focus-visible:outline-2"
+          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
         />
-      </div>
-      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-        <span>{min}</span>
         <button
           type="button"
-          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}
+          className="min-h-11 shrink-0 px-2 text-sm font-semibold disabled:opacity-60"
+          style={{ color: theme.textSecondary }}
+          aria-labelledby={`${fieldId}-clear ${fieldId}-label`}
+          disabled={value === null}
           onClick={() => onChange(null)}
         >
-          {ts('labels.clear')}
+          <span id={`${fieldId}-clear`}>{ts('labels.clear')}</span>
         </button>
+      </div>
+      <div className="flex items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
+        <span>{min}</span>
+        <input
+          type="range"
+          aria-labelledby={`${fieldId}-label`}
+          min={min}
+          max={max}
+          step={step}
+          value={value ?? min}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="min-h-8 min-w-0 flex-1"
+          style={{ accentColor: theme.primary }}
+        />
         <span>{max}</span>
       </div>
-      <input
-        inputMode="decimal"
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value ?? ""}
-        placeholder={ts('placeholders.notSet')}
-        onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
-        className="mt-3 min-h-10 w-full rounded-md border px-3 py-2 text-sm normal-case tracking-normal outline-none"
-        style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-        onFocus={(e) => e.currentTarget.style.borderColor = theme.primary}
-        onBlur={(e) => e.currentTarget.style.borderColor = theme.borderMedium}
-      />
-    </label>
+    </div>
   );
 }
 
@@ -30834,25 +29977,7 @@ function DecisionCompanionPanel({
         summary={events.length ? insight.gentleObservation : decisionTimelineObservation(language, [], 0)}
         onClose={() => setWisdomTimelineOpen(false)}
       />
-      <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} icon={Compass} theme={theme} />
-      {latestCounselExchange?.question ? (
-        <button
-          type="button"
-          onClick={() => onOpenLatestCounsel(latestCounselExchange)}
-          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[1.1rem] border px-4 py-3 text-left transition active:scale-[0.99]"
-          style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-        >
-          <span className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-              {ts('labels.continueFromThis')}
-            </span>
-            <span className="mt-1 block text-sm font-semibold leading-5">
-              {latestCounselContinuation?.direction ?? cleanDisplayText(latestCounselExchange.question.text)}
-            </span>
-          </span>
-          <ChevronRight size={17} className="shrink-0" aria-hidden="true" />
-        </button>
-      ) : null}
+      <ScreenPurposeHeader eyebrow={runtime.nextInDecisions} title={decisionNextTitle} body={decisionNextBodyWithFocus} theme={theme} />
       <ScreenTabs
         value={decisionSection}
         onChange={(section) => {
@@ -30861,24 +29986,33 @@ function DecisionCompanionPanel({
         }}
         ariaLabel={ts('labels.decisionSections')}
         theme={theme}
-        layout="grid"
+        layout="workspace"
+        panelId="decision-workspace-panel"
         tabs={[
-          { key: "decisions", label: ts('nav.decisions') },
-          { key: "counsel", label: ts('labels.counselCircle') },
-          { key: "rhythm", label: ts('labels.rhythm') },
+          { key: "decisions", label: ts('nav.decisions'), icon: FileText },
+          { key: "counsel", label: ts('labels.counselCircle'), icon: Users },
+          { key: "rhythm", label: ts('labels.rhythm'), icon: Sprout },
         ]}
       />
-      <SectionVisualBanner
-        src={decisionSection === "counsel"
-          ? "/images/today-premium/counsel-table.jpg"
-          : decisionSection === "rhythm"
-            ? "/images/section-visuals/rhythm-steady-practice.jpg"
-            : "/images/section-visuals/decisions-discernment.jpg"}
-        theme={theme}
-        position={decisionSection === "decisions" ? "center 62%" : "center"}
-      />
-
-      <section className="space-y-4">
+      <section id="decision-workspace-panel" role="tabpanel" aria-labelledby={`decision-workspace-panel-${decisionSection}`} className="min-w-0 space-y-4">
+      {decisionSection === "decisions" && latestCounselExchange?.question ? (
+        <button
+          type="button"
+          onClick={() => onOpenLatestCounsel(latestCounselExchange)}
+          className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-start transition active:scale-[0.99] sm:px-4"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textPrimary }}
+        >
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold" style={{ color: theme.textSecondary }}>
+              {ts('labels.continueFromThis')}
+            </span>
+            <span className="mt-1 block text-sm font-semibold leading-5">
+              {latestCounselContinuation?.direction ?? cleanDisplayText(latestCounselExchange.question.text)}
+            </span>
+          </span>
+          <ChevronRight size={17} className="shrink-0 rtl:rotate-180" aria-hidden="true" />
+        </button>
+      ) : null}
         {decisionSection === "decisions" ? (
           <>
             <section id="decision-companion-card" ref={decisionCompanionCardRef} className="rounded-[1.35rem] border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)] sm:p-4" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard }}>
@@ -30915,7 +30049,7 @@ function DecisionCompanionPanel({
                   ref={decisionTitleInputRef}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                  className="min-h-[44px] rounded-xl border px-3 py-2 text-sm focus-visible:outline-2 md:px-4 md:text-base"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   placeholder={ts('placeholders.decisionTitle')}
                 />
@@ -30924,7 +30058,7 @@ function DecisionCompanionPanel({
                   ref={decisionPressureInputRef}
                   value={pressure}
                   onChange={(event) => setPressure(event.target.value)}
-                  className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                  className="min-h-[44px] rounded-xl border px-3 py-2 text-sm focus-visible:outline-2 md:px-4 md:text-base"
                   style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                   placeholder={ts('placeholders.decisionPressure')}
                 />
@@ -30932,7 +30066,7 @@ function DecisionCompanionPanel({
                   <select
                     value={emotion}
                     onChange={(event) => setEmotion(event.target.value)}
-                    className="min-h-10 rounded-lg border px-3 py-2 text-sm outline-none md:min-h-11 md:px-4 md:text-base"
+                    className="min-h-[44px] rounded-xl border px-3 py-2 text-sm focus-visible:outline-2 md:px-4 md:text-base"
                     style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                     aria-label={ts('labels.initialEmotion')}
                   >
@@ -30942,7 +30076,7 @@ function DecisionCompanionPanel({
                     <option value="pressured">{ts('emotion.pressured')}</option>
                     <option value="peaceful">{ts('emotion.peaceful')}</option>
                   </select>
-                  <button className="h-10 rounded-lg px-4 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  <button className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                     {ts('labels.startDecisionMemory')}
                   </button>
                 </div>
@@ -31793,7 +30927,6 @@ function ReflectPanel({
       <ScreenPurposeHeader
         title={ts('nav.reflect')}
         body={ts('labels.reflectIntroShort')}
-        icon={Feather}
         theme={theme}
       />
       <ScreenTabs
@@ -31801,19 +30934,18 @@ function ReflectPanel({
         onChange={openReflectSection}
         ariaLabel={ts('nav.reflect')}
         theme={theme}
-        layout="grid"
+        layout="workspace"
+        panelId="reflect-workspace-panel"
         tabs={[
-          { key: "gratitude", label: ts('labels.gratitudeLens') },
-          { key: "journal", label: ts('labels.reflectionJournal') },
-          { key: "formation", label: ts('challenges.eyebrow') },
+          { key: "gratitude", label: ts('labels.gratitudeLens'), icon: HandHeart },
+          { key: "journal", label: ts('labels.reflectionJournal'), icon: Feather },
+          { key: "formation", label: ts('challenges.eyebrow'), icon: Sprout },
         ]}
       />
+      <div id="reflect-workspace-panel" role="tabpanel" aria-labelledby={`reflect-workspace-panel-${reflectSection}`} className="min-w-0">
       {reflectSection === "gratitude" ? (
         <section id="reflect-gratitude" tabIndex={-1} className="scroll-mt-24 outline-none">
           <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.gratitudeLens')}</h2>
-          <div className="mb-4">
-            <SectionVisualBanner src="/images/section-visuals/gratitude-noticing.jpg" theme={theme} />
-          </div>
           <GratitudeLensPanel
             entries={gratitudeEntries}
             syncStatus={gratitudeSyncStatus}
@@ -31833,9 +30965,6 @@ function ReflectPanel({
       ) : reflectSection === "journal" ? (
         <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
           <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
-          <div className="mb-4">
-            <SectionVisualBanner src="/images/section-visuals/reflect-stillness.jpg" theme={theme} position="center 60%" />
-          </div>
           <JournalPanel
             entries={entries}
             title={title}
@@ -31856,6 +30985,7 @@ function ReflectPanel({
       ) : (
         <FormationReflectionHistory signedIn={signedIn} language={language} ts={ts} theme={theme} />
       )}
+      </div>
     </div>
   );
 }
@@ -32917,7 +32047,7 @@ function LibraryPanel({
   const [savedPassage, setSavedPassage] = useState<SavedScripture | null>(null);
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
   const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
-  const libraryNextTitle = search.trim()
+  const libraryNextTitle = search.trim() || entries.length === 0
     ? (entries.length === 1
         ? ts('labels.libraryMatchingWisdomAnchorSingular')
         : ts('labels.libraryMatchingWisdomAnchorPlural')).replace('{count}', String(entries.length))
@@ -32934,23 +32064,6 @@ function LibraryPanel({
         THEME_KEYS.PROVISION_AND_ANXIETY,
         THEME_KEYS.DILIGENCE,
       ].map((item) => localizedWisdomThemeLabel(item, preferences.language).toLowerCase()).join(', ')}.`;
-  const libraryPurpose = librarySection === "formation"
-    ? {
-        eyebrow: ts("challenges.eyebrow"),
-        title: ts("challenges.sectionTitle"),
-        body: ts("challenges.sectionSummary"),
-      }
-    : librarySection === "listen"
-    ? {
-        eyebrow: ts('listen.eyebrow'),
-        title: ts('listen.compactTitle'),
-        body: ts('listen.compactBody'),
-      }
-    : {
-        eyebrow: runtime.nextInLibrary,
-        title: libraryNextTitle,
-        body: libraryNextBody,
-      };
   const railEntries = entries;
 
   useEffect(() => {
@@ -32976,36 +32089,27 @@ function LibraryPanel({
 
   return (
     <div className="min-w-0 space-y-4">
-      <ScreenPurposeHeader eyebrow={libraryPurpose.eyebrow} title={libraryPurpose.title} body={libraryPurpose.body} icon={librarySection === "listen" ? Mic : BookOpen} theme={theme} />
+      <ScreenPurposeHeader title={ts('nav.library')} theme={theme} />
       <ScreenTabs
           value={librarySection}
           onChange={(section) => {
-            setLibrarySection(section as typeof librarySection);
+            setLibrarySection(section);
             trackClientEvent("feature_destination_opened", { surface: "library", destination: section });
           }}
           ariaLabel={ts('labels.librarySections')}
           theme={theme}
-          layout="fit"
-          cuePaddingClassName=""
+          layout="workspace"
+          panelId="library-workspace-panel"
           tabs={[
-            { key: "formation", label: ts('challenges.eyebrow') },
-            { key: "explore", label: ts('labels.libraryExplore') },
-            { key: "bible", label: ts('labels.bibleLibrary') },
-            { key: "listen", label: ts('labels.listening') },
-            { key: "saved", label: ts('labels.savedScriptures') },
+            { key: "explore", label: ts('labels.libraryExplore'), icon: Compass },
+            { key: "bible", label: ts('labels.bibleLibrary'), icon: BookOpen },
+            { key: "saved", label: ts('labels.savedScriptures'), icon: Bookmark },
+            { key: "listen", label: ts('labels.listening'), icon: Mic },
+            { key: "formation", label: ts('challenges.eyebrow'), icon: Sprout },
           ]}
-          scrollItemMinWidth="5rem"
         />
 
-      {librarySection !== "explore" && librarySection !== "formation" && !(librarySection === "saved" && !savedScriptures.length && !scriptureMemory) ? (
-        <SectionVisualBanner
-          src={librarySection === "listen"
-            ? "/images/section-visuals/listening-scripture.jpg"
-            : "/images/library/saved-scripture-first-use.jpg"}
-          theme={theme}
-          position={librarySection === "listen" ? "center" : "center 58%"}
-        />
-      ) : null}
+      <div id="library-workspace-panel" role="tabpanel" aria-labelledby={`library-workspace-panel-${librarySection}`} className="min-w-0 space-y-4">
 
       {librarySection === "formation" ? (
         <section id="library-formation" tabIndex={-1} className="scroll-mt-24 outline-none">
@@ -33082,28 +32186,27 @@ function LibraryPanel({
       ) : null}
 
       {librarySection === "bible" ? (
-        <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <section className="min-w-0">
           <BibleReader key={savedPassage ? `${savedPassage.book}-${savedPassage.chapter}` : "bible-reader"} preferences={preferences} theme={theme} initialBook={savedPassage?.book} initialChapter={savedPassage?.chapter} onSaveStudyAction={onSaveStudyActionAsRule} savedScriptures={savedScriptures} scriptureHighlights={scriptureHighlights} onSaveScripture={onSaveScripture} onRemoveSavedScripture={onRemoveSavedScripture} onSetScriptureHighlight={onSetScriptureHighlight} onCopyScripture={onCopyScripture} onShareScripture={onShareScripture} />
         </section>
       ) : null}
 
       {librarySection === "saved" && savedScriptures.length ? (
-        <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-          <div className="space-y-3">
+        <section className="min-w-0 rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <h2 className="px-4 pt-4 font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.savedScriptures')}</h2>
             {savedScriptures.map((saved) => (
-              <article key={saved.id} className="rounded-xl border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: saved.highlight ? `color-mix(in srgb, ${{ gold: "#F6D365", rose: "#F5B7B1", sky: "#AED6F1", mint: "#A9DFBF" }[saved.highlight]} 30%, ${theme.bgCardElevated})` : theme.bgCardElevated }}>
+              <article key={saved.id} className="border-b p-4 last:border-b-0" style={{ borderColor: theme.borderLight }}>
                 <div className="flex items-start justify-between gap-3">
-                  <button type="button" className="text-left text-sm font-semibold underline underline-offset-4" style={{ color: theme.textPrimary }} onClick={() => { setSavedPassage(saved); setLibrarySection("bible"); }}>
+                  <button type="button" className="min-h-[44px] text-start text-sm font-semibold underline underline-offset-4" style={{ color: theme.textPrimary }} onClick={() => { setSavedPassage(saved); setLibrarySection("bible"); }}>
                     {localizedBibleBookName(saved.book, preferences.language)} {saved.chapter}:{saved.verse}
                   </button>
-                  <button type="button" className="shrink-0 text-xs font-semibold" style={{ color: theme.textSecondary }} onClick={() => { onRemoveSavedScripture(saved.id); if (savedScriptures.length === 1) setLibrarySection("bible"); }}>
+                  <button type="button" className="min-h-[44px] min-w-[44px] shrink-0 text-xs font-semibold" style={{ color: theme.textSecondary }} onClick={() => { onRemoveSavedScripture(saved.id); if (savedScriptures.length === 1) setLibrarySection("bible"); }}>
                     {ts('labels.remove')}
                   </button>
                 </div>
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{saved.text}</p>
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary, backgroundColor: saved.highlight ? `color-mix(in srgb, ${{ gold: "#F6D365", rose: "#F5B7B1", sky: "#AED6F1", mint: "#A9DFBF" }[saved.highlight]} 20%, ${theme.bgCardElevated})` : undefined }}>{saved.text}</p>
               </article>
             ))}
-          </div>
         </section>
       ) : null}
 
@@ -33142,30 +32245,16 @@ function LibraryPanel({
         <section className="min-w-0 rounded-xl border p-3.5 sm:p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-start gap-2 text-lg font-semibold" style={{ color: theme.textPrimary }}>
-                <span
-                  className="grid size-9 shrink-0 place-items-center rounded-full border shadow-sm"
-                  style={{
-                    borderColor: theme.borderMedium,
-                    backgroundColor: theme.bgInput,
-                    color: accessibleAccentText(theme),
-                  }}
-                  aria-hidden="true"
-                >
-                  <BookOpen size={18} />
-                </span>
-                {ts('labels.wisdomLibrary')}
-              </div>
-              <div className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>
-                <span>{runtime.libraryDescription}</span>
-              </div>
+              <h2 className="text-lg font-semibold" style={{ color: theme.textPrimary }} aria-live="polite">{libraryNextTitle}</h2>
+              <p className="mt-1.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{libraryNextBody}</p>
             </div>
             <label className="relative w-full md:max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textMuted }} />
+              <Search className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2" size={17} style={{ color: theme.textSecondary }} aria-hidden="true" />
               <input
                 value={search}
+                aria-label={ts('labels.search')}
                 onChange={(event) => setSearch(event.target.value)}
-                className="h-10 w-full rounded-lg border px-3 pl-10 pr-3 text-sm outline-none"
+                className="min-h-[44px] w-full rounded-xl border pe-3 ps-10 text-sm focus-visible:outline-2"
                 placeholder={`${ts('labels.search')} ${localizedModeSearchLabel} ${ts('labels.wisdom')}...`}
                 style={{
                   borderColor: theme.borderMedium,
@@ -33178,17 +32267,11 @@ function LibraryPanel({
             </label>
           </div>
           {railEntries.length ? (
-            <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: railText.railMuted }}>
-              <span>{ts('labels.wisdomLibrary')}</span>
-            </div>
-          ) : null}
-
-          {railEntries.length ? (
             <div className="relative mt-2.5">
               <section
                 ref={libraryRailRef}
                 aria-label={ts('labels.wisdomLibrary')}
-                className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 [-webkit-overflow-scrolling:touch]"
+                className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {railEntries.map((entry, index) => {
                   const localizedEntry = localizedWisdomLibraryEntry(entry, preferences);
@@ -33273,11 +32356,7 @@ function LibraryPanel({
               </section>
               {libraryRailHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
             </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-              No wisdom entries yet.
-            </div>
-          )}
+          ) : null}
         </section>
       ) : null}
 
@@ -33304,6 +32383,7 @@ function LibraryPanel({
           onShare={onShareFromListen}
         />
       ) : null}
+      </div>
     </div>
   );
 }

@@ -19,40 +19,38 @@ test("Library combines Scripture memory and saved passages", () => {
   assert.match(library, /librarySection === "saved" && !savedScriptures\.length && !scriptureMemory/);
 });
 
-test("Account routes privacy and system workflows into Settings", () => {
+test("Account puts privacy, personal context, and support in separate direct destinations", () => {
   const account = app.slice(app.indexOf("function AccountPanel"), app.indexOf("function ChallengeRecommendationCard"));
-  assert.doesNotMatch(account, /key: "privacy"/);
-  assert.doesNotMatch(account, /key: "share"/);
-  assert.match(account, /key: "system"/);
-  assert.match(account, /requestedSection === "personalization" \? "personalization" : requestedSection === "system" \|\| requestedSection === "privacy" \? "system" : "profile"/);
-  assert.match(account, /aiConsent\.settingTitle/);
-  assert.match(account, /<AccountShareCard/);
+  assert.match(account, /sections: \["notifications", "privacy", "context"\]/);
+  assert.match(account, /accountSection === "privacy"[\s\S]*?aiConsent\.settingTitle/);
+  assert.match(account, /accountSection === "context"[\s\S]*?<ManualContextPanel/);
+  assert.match(account, /accountSection === "support"[\s\S]*?<SupportReportCard[\s\S]*?<AccountShareCard/);
+  assert.match(app, /const openManualContextFlow[\s\S]*?section: "context"[\s\S]*?showView\("account"\)/);
 });
 
-test("compact Account and Library tab sets remain readable without truncation", () => {
+test("Library shows every workspace destination without scrolling and Account destination labels can wrap", () => {
   const tabs = app.slice(app.indexOf("function ScreenTabs"), app.indexOf("function ContextualNextAction"));
-  assert.match(tabs, /layout\?: "auto" \| "fit" \| "grid" \| "scroll"/);
-  assert.match(tabs, /fitContentLayout \? "w-fit max-w-full"/);
-  assert.match(tabs, /break-words whitespace-normal/);
-  assert.doesNotMatch(tabs, /truncate whitespace-nowrap/);
+  assert.match(tabs, /wrappedWorkspace[\s\S]*?grid-cols-6 gap-1 sm:grid-cols-5/);
+  assert.match(tabs, /overflow-wrap:anywhere/);
 
-  const account = app.slice(app.indexOf("function AccountPanel"), app.indexOf("function ChallengeRecommendationCard"));
-  assert.match(account, /ariaLabel=\{ts\('labels\.accountSections'\)\}[\s\S]*?layout="scroll"[\s\S]*?scrollItemMinWidth="6\.5rem"/);
+  const row = app.slice(app.indexOf("function AccountDestinationRow"), app.indexOf("function AccountToggleRow"));
+  assert.match(row, /overflow-wrap:anywhere/);
+  assert.doesNotMatch(row, /truncate/);
 
   const library = app.slice(app.indexOf("function LibraryPanel"), app.indexOf("function JournalPanel"));
-  assert.match(library, /ariaLabel=\{ts\('labels\.librarySections'\)\}[\s\S]*?layout="fit"/);
+  assert.match(library, /ariaLabel=\{ts\('labels\.librarySections'\)\}[\s\S]*?layout="workspace"/);
 });
 
 test("primary navigation restores orientation without truncating the narrow brand", () => {
   assert.match(app, /pendingWorkspaceFocusRef\.current = true/);
   assert.match(app, /workspaceRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
   assert.match(app, /ref=\{workspaceRef\}[\s\S]*?tabIndex=\{-1\}[\s\S]*?aria-label=/);
-  assert.match(app, /hidden whitespace-nowrap text-\[11px\] leading-4 min-\[430px\]:block/);
+  assert.match(app, /hidden break-words text-\[11px\] leading-4 min-\[430px\]:block/);
   assert.doesNotMatch(app, /className="truncate text-\[11px\] leading-4"/);
 });
 
 test("navigation and counsel selection controls keep their full context visible", () => {
-  const mobileNav = app.slice(app.indexOf("function MobileNav"), app.indexOf("function ViewIdentityFrame"));
+  const mobileNav = app.slice(app.indexOf("function MobileNav"), app.indexOf("function WorkspaceLayout"));
   assert.match(mobileNav, /break-words text-center/);
   assert.doesNotMatch(mobileNav, /truncate/);
 

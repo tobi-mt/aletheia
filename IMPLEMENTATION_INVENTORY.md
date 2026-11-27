@@ -159,6 +159,8 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 
 - ✅ **Visual Hierarchy**
   - Top-level Today / Ask Aletheia switch
+  - Counsel uses only approved passages that address the question, without padding to reach a count; each visible citation can open the Scripture reader and Dive Deep
+  - The app supplies localized safety guidance in model and offline counsel. Detected emergencies bypass generation. Provider attempts share an 18-second budget; a timed-out model is not retried under the same model ID.
   - Primary next action prominent
   - Soft premium surfaces
 
@@ -898,7 +900,19 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 12. ✅ Manual Context Vault
 13. ✅ Preferences & Personalization (11 languages, 7 themes)
 14. ✅ Notifications (daily + decision reminders)
-15. ✅ Account & Settings (profile, data export, delete)
+15. ✅ Account & Settings: grouped overview with direct pages for profile, appearance, language and Bible translation, voice, focus, notifications, privacy and data, personal context, support, and system status.
+
+Home, Decide, Reflect, and Library share a flatter workspace layout and visible, keyboard-navigable section tabs. The existing forms, readers, journals, and formation workflows open directly beneath the tabs. The Ask question box keeps its 144 px mobile minimum on touch screens.
+
+The mobile shell uses 44 px header shortcuts and a calmer, high-opacity navigation surface. Shared dialog close controls stay above editorial decoration. Bible reading uses a continuous chapter surface with larger verse text while keeping verse actions and the Read/Study switch.
+
+Floating notices and reading controls use the measured navigation clearance and safe-area insets. On mobile, bottom navigation stays out of the way until a pointer gesture that leaves a text field is complete.
+
+Account's Focus intentions uses a vertical checklist with automatic saving and a three-selection maximum.
+
+Appearance, Language, and Reading voice show feedback only for changes to their own settings.
+
+Personal context is one Account page with visible privacy and answer-use controls, Quick Add, and one topic picker for current details and future goals. Answer-use changes save immediately. Quick Add saves only the note being added; other draft edits remain pending until saved.
 16. ✅ Analytics (privacy-conscious, 50+ events)
 17. ✅ Audio & Voice (TTS + voice input)
 18. ✅ Mobile (Capacitor, iOS/Android)

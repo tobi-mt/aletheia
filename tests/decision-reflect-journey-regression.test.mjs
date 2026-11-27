@@ -70,9 +70,9 @@ test("eligible answers promote one contextual continuation before secondary acti
 });
 
 test("answer scripture evidence shows localized quotations and opens deeper reading", () => {
-  const scriptureSources = app.slice(app.indexOf("function ScriptureChips"), app.indexOf("function escapeRegExp"));
+  const scriptureSources = app.slice(app.indexOf("function ScriptureChips"), app.indexOf("type ParsedScriptureSelection"));
   assert.match(scriptureSources, /aria-expanded=\{expanded\}/);
-  assert.match(scriptureSources, /uniqueSources\.length/);
+  assert.match(scriptureSources, /visibleSources\.length/);
   assert.match(scriptureSources, /overflow-x-auto/);
   assert.match(scriptureSources, /scriptureTextMatches\(answerText/);
   assert.match(scriptureSources, /localizedScriptureRead\(source\.scripture/);

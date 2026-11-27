@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import OpenAI from "openai";
 import { rankWisdomEvidence } from "../src/lib/wisdom.ts";
 import { assembleCompanionDraft, requiredBiblicalEvidenceCount, resolveUnifiedRecommendedMode, validateWisdomIntelligence } from "../src/lib/wisdom-intelligence.ts";
 import { defaultPreferences, normalizePreferences } from "../src/lib/localization.ts";
 import { readFileSync } from "node:fs";
+import { scriptureTextMatches } from "../src/lib/scripture-text-matches.ts";
 
 const intelligenceSource = readFileSync(new URL("../src/lib/wisdom-intelligence.ts", import.meta.url), "utf8");
 const modeFitRouteSource = readFileSync(new URL("../src/app/api/chat/mode-fit/route.ts", import.meta.url), "utf8");
@@ -19,6 +21,139 @@ test("evidence ranking combines mode, emotional, question, and scripture-diversi
   assert.equal(ranked.length, 3);
   assert.equal(new Set(ranked.map((source) => source.scripture.replace(/\s+\d.*$/, ""))).size, 2);
   assert.ok(ranked.some((source) => source.scripture === "Luke 14:28"));
+});
+
+test("model counsel retries an ungrounded citation and accepts four grounded, linkable citations", async (t) => {
+  const available = [...sources, { scripture: "James 1:5", theme: "Wisdom" }];
+  const questionDetail = "take on a new project";
+  const connections = [
+    "The proverb values diligent planning, so sketch how you would use your time before you take on a new project.",
+    "Before you take on a new project, this proverb suggests that trusted counsel can uncover assumptions you missed.",
+    "Jesus uses counting the cost to teach about discipleship; name the sacrifices before you take on a new project.",
+    "James encourages asking God for wisdom rather than rushing to take on a new project.",
+  ];
+  const draft = {
+    responseLanguage: "en", recommendedMode: "Work",
+    probabilities: { Money: 0.05, Work: 0.75, Purpose: 0.1, Generosity: 0.05, Life: 0.05 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "This is about how to evaluate a work commitment." },
+    safeTopic: "general", opening: "You want to commit to a useful project without overlooking what it will cost.",
+    reasoningPlan: { tension: "The work matters, but your time is finite.", diagnosticQuestion: "", blindSpot: "An appealing idea can crowd out existing duties.", maturitySignal: "Be clear about the time you can offer.", nextStep: "Write down which existing responsibility would need to move." },
+    biblicalEvidence: available.map(({ scripture }, i) => ({ reference: scripture, questionDetail, connection: connections[i] })),
+  };
+  const requests = [];
+  t.mock.method(OpenAI.prototype, "post", (_path, options) => {
+    requests.push(options.body);
+    const invalidDraft = { ...draft, biblicalEvidence: [...draft.biblicalEvidence.slice(0, -1), {
+      ...draft.biblicalEvidence.at(-1), connection: "James encourages those who lack wisdom to ask God for it.",
+    }] };
+    const response = { output_text: JSON.stringify(requests.length === 1 ? invalidDraft : draft), output: [] };
+    return { _thenUnwrap: (unwrap) => Promise.resolve(unwrap(response)) };
+  });
+
+  const env = { ...process.env, OPENAI_API_KEY: "test-key", OPENAI_BASE_URL: "http://127.0.0.1:1/v1" };
+  const originalEnv = process.env;
+  let generateWisdomIntelligence;
+  try {
+    process.env = env;
+    ({ generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?scripture-count-test"));
+  } finally {
+    process.env = originalEnv;
+  }
+  const result = await generateWisdomIntelligence({
+    question: "How should I decide whether I have time to take on a new project at work?",
+    selectedMode: "Work", sources: available, preferences: defaultPreferences,
+  });
+  assert.equal(result.routing.route, "secondary");
+  assert.equal(requests.length, 2);
+  assert.match(requests[1].input[0].content, /failed checks: questionGrounding/);
+  assert.equal(requests[0].text.format.schema.properties.biblicalEvidence.maxItems, undefined);
+  assert.deepEqual(scriptureTextMatches(result.counsel, available.map(({ scripture }) => scripture), "en").map(({ scripture }) => scripture),
+    available.map(({ scripture }) => scripture));
+});
+
+test("localized medical counsel passes on primary; incidental English words cannot stand in for the boundary", async (t) => {
+  const preferences = normalizePreferences({ language: "es" });
+  const question = "¿Cómo puedo hablar de mis síntomas si me cuesta pedir ayuda?";
+  const draft = {
+    responseLanguage: "es", recommendedMode: "Life",
+    probabilities: { Life: 0.8, Work: 0.05, Money: 0.05, Purpose: 0.05, Generosity: 0.05 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "Le cuesta pedir ayuda para sus síntomas." },
+    safeTopic: "medical", opening: "Quieres hablar de lo que te pasa, pero pedir ayuda te cuesta.",
+    reasoningPlan: { tension: "Quieres explicar lo que te pasa.", diagnosticQuestion: "", blindSpot: "No tienes que encontrar las palabras perfectas.", maturitySignal: "Puedes pedir apoyo sin tener todas las respuestas.", nextStep: "Anota cuándo empezaron los síntomas y qué quieres preguntar." },
+    biblicalEvidence: [{
+      reference: "Proverbs 15:22", questionDetail: "mis síntomas",
+      connection: "El proverbio valora pedir consejo. Puedes decir «me cuesta hablar de mis síntomas» al comienzo de la conversación.",
+    }],
+  };
+  const post = t.mock.method(OpenAI.prototype, "post", () => ({
+    _thenUnwrap: (unwrap) => Promise.resolve(unwrap({ output_text: JSON.stringify(draft), output: [] })),
+  }));
+  const env = process.env;
+  process.env = { ...env, OPENAI_API_KEY: "test-key" };
+  t.after(() => { process.env = env; });
+  const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?localized-safety");
+  const result = await generateWisdomIntelligence({ question, selectedMode: "Life", sources, preferences });
+  assert.equal(post.mock.callCount(), 1);
+  assert.equal(result.routing.route, "primary");
+  assert.equal(result.quality.passed, true);
+  const boundary = result.counsel.split("\n\n")[2];
+  assert.match(boundary, /consulta a un profesional sanitario cualificado/);
+  const withoutBoundary = { ...result, counsel: result.counsel.replace(boundary, "A trusted friend is available.") };
+  assert.equal(validateWisdomIntelligence(withoutBoundary, sources, preferences, 1).checks.safetyBoundary, false);
+  const unsafeCertainty = { ...result, counsel: `${result.counsel}\n\nGod promises you this will be cured.` };
+  assert.equal(validateWisdomIntelligence(unsafeCertainty, sources, preferences, 1).passed, false);
+});
+
+test("an exhausted secondary deadline falls back without resetting the shared provider budget", async (t) => {
+  const env = process.env;
+  process.env = { ...env, OPENAI_API_KEY: "test-key", OPENAI_WISDOM_MODEL: "primary-test", OPENAI_WISDOM_FALLBACK_MODEL: "secondary-test" };
+  t.after(() => { process.env = env; });
+  let clock = 0;
+  t.mock.method(performance, "now", () => clock);
+  let controller;
+  const timers = t.mock.method(AbortSignal, "timeout", () => {
+    controller = new AbortController();
+    return controller.signal;
+  });
+  const warnings = t.mock.method(console, "warn", () => {});
+  const post = t.mock.method(OpenAI.prototype, "post", (_path, options) => ({
+    _thenUnwrap: () => {
+      if (options.body.model === "primary-test") {
+        clock = 9000;
+        return Promise.resolve({ output_text: "{}", output: [] });
+      }
+      controller.abort(new DOMException("Timed out", "TimeoutError"));
+      return Promise.reject(options.signal.reason);
+    },
+  }));
+  const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?shared-deadline");
+  const params = { question: "Should I change this work plan?", selectedMode: "Work", sources, preferences: defaultPreferences };
+  const result = await generateWisdomIntelligence(params);
+  assert.equal(result.routing.route, "deterministic");
+  assert.equal(result.routing.attempts, 2);
+  assert.deepEqual(timers.mock.calls.map(({ arguments: args }) => args[0]), [11000, 9000]);
+  assert.equal(warnings.mock.calls.at(-1).arguments[1].reason, "timeout");
+  process.env.OPENAI_WISDOM_MODEL = "secondary-test";
+  assert.equal((await generateWisdomIntelligence(params)).routing.attempts, 1);
+  assert.equal(post.mock.callCount(), 3);
+  const crisis = await generateWisdomIntelligence({ ...params, question: "I am in immediate danger." });
+  assert.equal(crisis.routing.attempts, 0);
+  assert.match(crisis.counsel.split("\n\n")[0], /contact local emergency services now/);
+  assert.equal(post.mock.callCount(), 3);
+});
+
+test("offline counsel keeps directly requested approved passages without padding", async () => {
+  const { composeCompanionCounsel } = await import("../src/lib/companion-counsel.ts");
+  const unrelated = { ...sources[0], scripture: "Mark 6:31" };
+  const result = composeCompanionCounsel("How does Proverbs 15:22 help me decide?", [unrelated, ...sources]);
+  assert.deepEqual(result.sources.map(({ scripture }) => scripture), ["Proverbs 15:22"]);
+});
+
+test("offline counsel skips broad keyword matches when a specific passage fits", async () => {
+  const { composeCompanionCounsel } = await import("../src/lib/companion-counsel.ts");
+  const cost = { ...sources[2], keywords: ["childcare"] };
+  const result = composeCompanionCounsel("Can I take on more work without losing time for childcare?", [sources[1], cost]);
+  assert.deepEqual(result.sources.map(({ scripture }) => scripture), ["Luke 14:28"]);
 });
 
 test("a dominant primary lens switches even when secondary context makes the question mixed", () => {

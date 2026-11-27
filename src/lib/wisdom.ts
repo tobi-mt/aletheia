@@ -4,6 +4,8 @@ import { hasCapacityPressure, isCapacityEvidence, preferredCounselReferences } f
 import type { Mode } from "@/lib/mode-keys";
 import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
 import type { WisdomEntryData } from "@/lib/wisdom-data";
+import { canonicalScriptureReference, type LanguageCode } from "@/lib/localization";
+import { scriptureTextMatches } from "@/lib/scripture-text-matches";
 
 export type WisdomSource = WisdomEntryData & { id?: string };
 
@@ -208,6 +210,9 @@ export function rankWisdomEvidence(entries: WisdomSource[], query: string, mode:
   return selected;
 }
 
-export async function retrieveWisdomEvidence(query: string, mode: Mode, limit = 8) {
-  return rankWisdomEvidence(await getWisdomEntries(), query, mode, limit);
+export async function retrieveWisdomEvidence(query: string, mode: Mode, limit = 8, language: LanguageCode = "en") {
+  const entries = await getWisdomEntries();
+  const requested = new Set(scriptureTextMatches(query, entries.map(({ scripture }) => scripture), language).map(({ scripture }) => scripture));
+  const candidates = [...entries.filter(({ scripture }) => requested.has(canonicalScriptureReference(scripture))), ...rankWisdomEvidence(entries, query, mode, limit)];
+  return [...new Map(candidates.map((entry) => [entry.scripture, entry])).values()];
 }
