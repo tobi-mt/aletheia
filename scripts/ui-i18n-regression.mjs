@@ -25,7 +25,7 @@ const REQUESTED_SCHEMES = (process.env.UI_I18N_SCHEMES || '')
   .filter(Boolean);
 let runtimeBaseUrl = REQUESTED_BASE_URL || LOCAL_BASE_URL;
 
-const untranslatedPattern = /\b(?:labels|notifications|manualContext|supportMission|share|avatar|theme|auth|status|nav)\.[A-Za-z0-9_]+\b/g;
+const untranslatedPattern = /\b(?:labels|notifications|manualContext|modeSuggestion|supportMission|share|avatar|theme|auth|status|nav)\.[A-Za-z0-9_]+\b/g;
 
 const baseViewports = [
   { name: 'iPhone 14 Pro', width: 393, height: 852, mobile: true, touch: true },
@@ -547,6 +547,21 @@ async function run() {
           if (!clicked) {
             tabFailures.push(`Could not find/click tab: ${label}`);
             continue;
+          }
+          if (label === locale.nav?.companion) {
+            const toggle = page.locator('#companion-ask').getByRole('button', { name: locale.modeSuggestion.autoFitLabel, exact: true });
+            try {
+              await page.locator('#home-workspace-panel-ask').click({ timeout: 3000 });
+              await toggle.waitFor({ state: 'visible', timeout: 3000 });
+              const pressed = await toggle.getAttribute('aria-pressed');
+              await toggle.click();
+              await toggle.and(page.locator(`[aria-pressed="${pressed === 'true' ? 'false' : 'true'}"]`)).waitFor({ timeout: 3000 });
+              await toggle.click();
+              await toggle.and(page.locator(`[aria-pressed="${pressed}"]`)).waitFor({ timeout: 3000 });
+              await page.locator('#home-workspace-panel-today').click({ timeout: 3000 });
+            } catch {
+              tabFailures.push(`Auto-Fit label or toggle state is incorrect in ${language}`);
+            }
           }
           const leaksAfterTab = await getUntranslatedTokenLeaks(page);
           if (leaksAfterTab.length) {

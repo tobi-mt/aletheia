@@ -14,6 +14,7 @@ type NativePushRegistrationBody = {
   appVersion?: string;
   buildVersion?: string;
   pushEnvironment?: string;
+  deviceId?: string;
 };
 
 type NativePushDeviceRow = {
@@ -39,13 +40,15 @@ function normalizePlatform(value: unknown): NativePushPlatform | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   const configStatus = getNativePushConfigStatus();
+  const deviceId = new URL(request.url).searchParams.get("deviceId");
   if (!user) {
     return NextResponse.json({
       ...configStatus,
       devices: 0,
+      deviceSubscribed: false,
       platforms: [],
     });
   }
@@ -62,6 +65,7 @@ export async function GET() {
   return NextResponse.json({
     ...configStatus,
     devices: devices.length,
+    deviceSubscribed: Boolean(deviceId && devices.some((device) => device.id === deviceId && device.enabled)),
     platforms: [...new Set(devices.map((device) => device.platform))],
     latestDevice: devices[0]
       ? {
@@ -93,7 +97,7 @@ export async function POST(request: Request) {
     return parsedBody.response;
   }
 
-  const token = parsedBody.data.token?.trim();
+  const token = typeof parsedBody.data.token === "string" ? parsedBody.data.token.trim() : "";
   const platform = normalizePlatform(parsedBody.data.platform);
   if (!token || !platform) {
     return apiError(400, "invalid_subscription", "A native push token and platform are required.");
@@ -114,6 +118,7 @@ export async function POST(request: Request) {
       appVersion: parsedBody.data.appVersion ?? null,
       buildVersion: parsedBody.data.buildVersion ?? null,
       pushEnvironment: parsedBody.data.pushEnvironment ?? null,
+      previousDeviceId: typeof parsedBody.data.deviceId === "string" ? parsedBody.data.deviceId : null,
     });
     return NextResponse.json(registration);
   } catch (error) {
@@ -128,7 +133,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const user = await requireUser();
-  const parsedBody = await readJsonBody<Pick<NativePushRegistrationBody, "token">>(request, {
+  const parsedBody = await readJsonBody<Pick<NativePushRegistrationBody, "token" | "deviceId">>(request, {
     maxBytes: 2_000,
     emptyBody: {},
   });
@@ -136,8 +141,14 @@ export async function DELETE(request: Request) {
     return parsedBody.response;
   }
 
-  const token = parsedBody.data.token?.trim() || undefined;
-  const result = await unregisterNativePushDevice(user.id, token);
+  const { deviceId, token } = parsedBody.data;
+  if (deviceId !== undefined && (typeof deviceId !== "string" || !deviceId.trim())) {
+    return apiError(400, "invalid_subscription", "A valid device ID is required.");
+  }
+  if (token !== undefined && (typeof token !== "string" || !token.trim())) {
+    return apiError(400, "invalid_subscription", "A valid push token is required.");
+  }
+  const result = await unregisterNativePushDevice(user.id, token, deviceId);
   return NextResponse.json(result);
 }
 

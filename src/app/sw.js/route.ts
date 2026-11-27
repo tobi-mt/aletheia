@@ -299,6 +299,10 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+function pushExpired(data) {
+  return typeof data?.expiresAt === "string" && Date.parse(data.expiresAt) <= Date.now();
+}
+
 self.addEventListener("push", (event) => {
   const fallback = {
     title: "Aletheia",
@@ -311,6 +315,8 @@ self.addEventListener("push", (event) => {
   } catch {
     data = fallback;
   }
+  if (pushExpired(data)) return;
+  data = data || fallback;
   const title = data.title || fallback.title;
   const options = {
     body: data.body || fallback.body,
@@ -327,6 +333,7 @@ self.addEventListener("push", (event) => {
       notificationKind: data.notificationKind || null,
       wisdomTheme: data.wisdomTheme || null,
       notificationId: data.notificationId || null,
+      expiresAt: data.expiresAt || null,
       sharedDecisionId: data.sharedDecisionId || null,
       contactId: data.contactId || null,
       circleId: data.circleId || null,
@@ -342,6 +349,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  if (pushExpired(event.notification.data)) return;
   const url = event.notification.data?.url || "/";
   const resolveTargetUrl = (rawUrl) => {
     const preferredBase = appBaseUrl || self.location.origin || "/";

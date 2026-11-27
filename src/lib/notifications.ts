@@ -12,6 +12,7 @@ import { loadTranslationsSync, getTranslation } from "@/lib/translations";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
 import { getPendingNotifications, markNotificationSent } from "@/lib/notification-sequencing";
 import { buildNotificationUrl, type NotificationSurface } from "@/lib/notification-routing";
+import { pushTtlSeconds } from "@/lib/push-policy";
 import {
   loadNativePushTargets,
   loadEnabledNativePushTargets,
@@ -968,7 +969,8 @@ export async function sendCounselShareNotifications(input: CounselDecisionShareP
 export async function sendCounselCommentNotifications(input: CounselCommentPushInput) {
   const uniqueTargetIds = [...new Set(input.targetUserIds.map((id) => id.trim()).filter(Boolean))];
   const now = new Date().toISOString();
-  const configured = isPushConfigured();
+  const webConfigured = isPushConfigured();
+  const configured = webConfigured || isNativePushConfigured();
 
   if (uniqueTargetIds.length === 0) {
     await upsertCounselCommentDelivery({
@@ -1029,10 +1031,14 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
   }
 
   try {
-    configureWebPush();
-    const pushRows = await pushSubscriptionsForUsers(uniqueTargetIds);
+    const pushRows = webConfigured ? await pushSubscriptionsForUsers(uniqueTargetIds) : [];
     const { enabledRows, missingActiveRecipientCount, disabledRecipientCount } = splitPushSubscriptionRows(pushRows, uniqueTargetIds);
     const eligibleRows = enabledRows.filter((row) => counselNotificationsEnabled(row));
+    const nativeResult = await sendNativePushFanOut(
+      uniqueTargetIds,
+      (row) => counselNotificationsEnabled(row),
+      (row) => counselCommentNotificationPayload(row, input)
+    );
     const eligibleRecipientCount = new Set(eligibleRows.map((row) => row.user_id)).size;
     const attemptedAt = new Date().toISOString();
     let deliveredCount = 0;
@@ -1041,13 +1047,14 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
     let reason: CounselCommentDeliverySummary["reason"] = null;
 
     if (eligibleRows.length > 0) {
+      configureWebPush();
       const result = await sendPushRows(
         eligibleRows,
         (row) => JSON.stringify(counselCommentNotificationPayload(row, input)),
         { lastSentColumn: null }
       );
-      deliveredCount = result.sent;
-      failedCount = result.failed;
+      deliveredCount = result.sent + nativeResult.sent;
+      failedCount = result.failed + nativeResult.failed;
 
       const failureReasons = result.failureSamples.map((sample) => {
         const normalized = sample.reason.toLowerCase();
@@ -1108,15 +1115,9 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
         updatedAt: attemptedAt,
       });
 
-      await sendNativePushFanOut(
-        uniqueTargetIds,
-        (row) => counselNotificationsEnabled(row),
-        (row) => counselCommentNotificationPayload(row, input)
-      );
-
       return {
         configured: true,
-        attempted: eligibleRows.length,
+        attempted: eligibleRows.length + nativeResult.attempted,
         sent: deliveredCount,
         failed: failedCount,
         failureSamples: result.failureSamples,
@@ -1125,6 +1126,10 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
 
     reason = enabledRows.length > 0 ? "muted_by_preferences" : missingActiveRecipientCount > 0 ? "no_active_subscription" : null;
     status = reason ? "no_push_subscription" : "sent_to_push_service";
+    if (nativeResult.attempted > 0) {
+      status = nativeResult.sent === 0 ? "failed" : nativeResult.failed > 0 ? "partial" : "sent_to_push_service";
+      reason = nativeResult.failed > 0 ? "push_failed" : null;
+    }
 
     await upsertCounselCommentDelivery({
       id: crypto.randomUUID(),
@@ -1137,28 +1142,16 @@ export async function sendCounselCommentNotifications(input: CounselCommentPushI
       reason,
       acceptedRecipientCount: uniqueTargetIds.length,
       pushSubscriptionCount: eligibleRecipientCount,
-      deliveredCount: 0,
-      failedCount: 0,
+      deliveredCount: nativeResult.sent,
+      failedCount: nativeResult.failed,
       openedCount: 0,
-      attemptedAt: null,
-      deliveredAt: null,
+      attemptedAt: nativeResult.attempted > 0 ? attemptedAt : null,
+      deliveredAt: nativeResult.sent > 0 ? attemptedAt : null,
       createdAt: now,
       updatedAt: now,
     });
 
-    await sendNativePushFanOut(
-      uniqueTargetIds,
-      (row) => counselNotificationsEnabled(row),
-      (row) => counselCommentNotificationPayload(row, input)
-    );
-
-    return {
-      configured: true,
-      attempted: 0,
-      sent: 0,
-      failed: 0,
-      failureSamples: [],
-    };
+    return nativeResult;
   } catch {
     await upsertCounselCommentDelivery({
       id: crypto.randomUUID(),
@@ -1339,14 +1332,11 @@ function isRetryablePushError(error: unknown) {
   );
 }
 
-async function sendNotificationWithTimeout(subscription: PushSubscription, payload: string) {
+async function sendNotificationWithTimeout(subscription: PushSubscription, payload: string, ttl: number) {
   return new Promise<unknown>((resolve, reject) => {
     const timeoutId = setTimeout(() => reject(new Error(`Push notification timeout after ${PUSH_DELIVERY_TIMEOUT_MS}ms`)), PUSH_DELIVERY_TIMEOUT_MS);
     webpush
-      // Prevent push services from releasing an old alert after a long offline
-      // period. Forty-eight hours still covers human replies while keeping
-      // daily wisdom and reminders from becoming stale backlog.
-      .sendNotification(subscription, payload, { TTL: 48 * 60 * 60, urgency: "normal" })
+      .sendNotification(subscription, payload, { TTL: ttl, urgency: "normal" })
       .then(resolve)
       .catch(reject)
       .finally(() => clearTimeout(timeoutId));
@@ -1354,11 +1344,15 @@ async function sendNotificationWithTimeout(subscription: PushSubscription, paylo
 }
 
 export async function sendNotificationWithRetry(subscription: PushSubscription, payload: string) {
+  const message = JSON.parse(payload) as { notificationKind?: string };
+  const ttl = pushTtlSeconds(message.notificationKind);
+  const expiresAt = Date.now() + ttl * 1000;
+  const expiringPayload = JSON.stringify({ ...message, expiresAt: new Date(expiresAt).toISOString() });
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= PUSH_DELIVERY_MAX_ATTEMPTS; attempt += 1) {
     try {
-      return await sendNotificationWithTimeout(subscription, payload);
+      return await sendNotificationWithTimeout(subscription, expiringPayload, Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
     } catch (error) {
       lastError = error;
       if (!isRetryablePushError(error) || attempt === PUSH_DELIVERY_MAX_ATTEMPTS) {
@@ -3451,14 +3445,14 @@ export async function sendDailyWisdomNotifications(now = new Date()) {
   const wisdomEntries = await getWisdomEntries();
   const nativeRows = isNativePushConfigured() ? await loadEnabledNativePushTargets() : [];
 
-  const rows = await many<PushRow>(
+  const rows = isPushConfigured() ? await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE enabled = TRUE`,
-  );
+  ) : [];
   if (rows.length > 0) {
     configureWebPush();
   }
@@ -3590,9 +3584,10 @@ export async function sendPendingDecisionNotifications(now = new Date()): Promis
   let failed = 0;
   let processed = 0;
   const failureSamples: PushFailureSample[] = [];
+  const webConfigured = isPushConfigured();
 
   for (const [userId, rowsForUser] of pendingByUser.entries()) {
-    const pushRows = await pushSubscriptionsForUsers([userId]);
+    const pushRows = webConfigured ? await pushSubscriptionsForUsers([userId]) : [];
     const { enabledRows } = splitPushSubscriptionRows(pushRows, [userId]);
     if (enabledRows.length > 0) {
       configureWebPush();
@@ -3671,7 +3666,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   // ------------------------------------------------------------------
   type ChallengeRow = PushRow & { last_challenge_notified_at: string | null };
 
-  const allRows = await many<ChallengeRow>(
+  const allRows = isPushConfigured() ? await many<ChallengeRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth,
             preferred_hour, preferred_local_hour, preferred_timezone, delivery_strategy,
             last_sent_at, last_gratitude_sent_at, last_challenge_notified_at,
@@ -3681,7 +3676,7 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
      WHERE push_subscriptions.enabled = TRUE`
-  );
+  ) : [];
   const nativeRows = isNativePushConfigured() ? await loadEnabledNativePushTargets() : [];
   const schedulingRows: ChallengeRow[] = [
     ...allRows,
@@ -4123,15 +4118,16 @@ export async function sendChallengeReminders(now = new Date()): Promise<{
   return { attempted, sent, failed, suggested };
 }
 
-export async function sendTestWisdomNotification(userId: string) {
-  const rows = await many<PushRow>(
+export async function sendTestWisdomNotification(userId: string, target?: { nativeDeviceId: string } | { webEndpoint: string }) {
+  const rows = !isPushConfigured() || (target && "nativeDeviceId" in target) ? [] : await many<PushRow>(
     `SELECT push_subscriptions.id, push_subscriptions.user_id, endpoint, p256dh, auth, preferred_hour, last_sent_at,
             preferred_local_hour, preferred_timezone, delivery_strategy, last_gratitude_sent_at,
             user_preferences.language, user_preferences.region, user_preferences.bible_translation, user_preferences.voice_enabled
      FROM push_subscriptions
      LEFT JOIN user_preferences ON user_preferences.user_id = push_subscriptions.user_id
-     WHERE enabled = TRUE AND push_subscriptions.user_id = ?`,
-    userId
+     WHERE enabled = TRUE AND push_subscriptions.user_id = ?${target ? " AND endpoint = ?" : ""}`,
+    userId,
+    ...(target ? [target.webEndpoint] : [])
   );
   if (rows.length > 0) {
     configureWebPush();
@@ -4142,9 +4138,9 @@ export async function sendTestWisdomNotification(userId: string) {
     (row) => JSON.stringify(testNotificationPayload(row)),
     { lastSentColumn: null }
   );
-  const nativeResult = await sendNativePushFanOut(
+  const nativeResult = target && "webEndpoint" in target ? { attempted: 0, sent: 0, failed: 0, failureSamples: [] } : await sendNativePushFanOut(
     [userId],
-    () => true,
+    (row) => !target || row.id === target.nativeDeviceId,
     (row) => testNotificationPayload(asPushRow(row))
   );
 

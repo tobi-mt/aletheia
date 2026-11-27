@@ -27,13 +27,15 @@ function normalizeTiming(body: {
   return { preferredLocalHour, preferredTimezone, timezoneMode, deliveryStrategy };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
+  const endpoint = request.headers.get("X-Push-Endpoint");
   if (!user) {
     return NextResponse.json({
       configured: isPushConfigured(),
       enabled: false,
       subscriptions: 0,
+      deviceSubscribed: false,
       hasExplicitTiming: false,
       timezoneMode: "auto",
     });
@@ -41,6 +43,7 @@ export async function GET() {
 
   const rows = await many<{
     count: string;
+    device_subscribed: boolean;
     preferred_local_hour: number | null;
     preferred_timezone: string | null;
      timezone_mode: string | null;
@@ -59,11 +62,12 @@ export async function GET() {
        LIMIT 1
      ),
      subscription_count AS (
-       SELECT COUNT(*) as count
+       SELECT COUNT(*) as count, COALESCE(BOOL_OR(endpoint = ?), FALSE) AS device_subscribed
        FROM push_subscriptions
        WHERE user_id = ? AND enabled = TRUE
      )
      SELECT subscription_count.count,
+            subscription_count.device_subscribed,
             latest_subscription.preferred_local_hour,
             latest_subscription.preferred_timezone,
            latest_subscription.timezone_mode,
@@ -77,6 +81,7 @@ export async function GET() {
      LEFT JOIN latest_subscription ON TRUE
      LEFT JOIN user_preferences ON user_preferences.user_id = ?`,
     user.id,
+    endpoint,
     user.id,
     user.id
   );
@@ -99,6 +104,7 @@ export async function GET() {
     configured: isPushConfigured(),
     enabled: Number(row?.count ?? 0) > 0,
     subscriptions: Number(row?.count ?? 0),
+    deviceSubscribed: Boolean(row?.device_subscribed),
     timingConfigured: hasAccountTiming || Number(row?.count ?? 0) > 0,
     hasExplicitTiming: hasAccountTiming,
     preferredLocalHour: preferredLocalHour ?? 8,

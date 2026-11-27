@@ -1,6 +1,7 @@
 import { createPrivateKey, createSign, randomUUID } from "node:crypto";
 import http2 from "node:http2";
-import { many, run } from "@/lib/db";
+import { many, one, run } from "@/lib/db";
+import { isPermanentNativePushFailure, pushTtlSeconds } from "@/lib/push-policy";
 
 export type NativePushPlatform = "ios" | "android";
 
@@ -39,6 +40,7 @@ export type NativePushDeviceRegistrationInput = {
   appVersion?: string | null;
   buildVersion?: string | null;
   pushEnvironment?: string | null;
+  previousDeviceId?: string | null;
 };
 
 export type NativePushMessagePayload = {
@@ -180,8 +182,9 @@ export async function registerNativePushDevice(userId: string, input: NativePush
   const now = new Date().toISOString();
   const deviceId = randomUUID();
 
-  await run(
-    `INSERT INTO native_push_devices (
+  const saved = await one<{ id: string }>(
+    `WITH registered AS (
+     INSERT INTO native_push_devices (
        id, user_id, platform, token, device_name, app_version, build_version, push_environment,
        enabled, last_seen_at, last_registered_at, created_at, updated_at
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?)
@@ -197,7 +200,13 @@ export async function registerNativePushDevice(userId: string, input: NativePush
        badge_count = 0,
        last_seen_at = EXCLUDED.last_seen_at,
        last_registered_at = EXCLUDED.last_registered_at,
-       updated_at = EXCLUDED.updated_at`,
+       updated_at = EXCLUDED.updated_at
+     RETURNING id
+    ), replaced AS (
+      DELETE FROM native_push_devices
+      WHERE id = ? AND user_id = ? AND platform = ? AND id <> (SELECT id FROM registered)
+    )
+    SELECT id FROM registered`,
     deviceId,
     userId,
     input.platform,
@@ -209,18 +218,26 @@ export async function registerNativePushDevice(userId: string, input: NativePush
     now,
     now,
     now,
-    now
+    now,
+    input.previousDeviceId ?? null,
+    userId,
+    input.platform
   );
+  if (!saved) throw new Error("Native push registration did not return a device ID.");
 
   return {
     ok: true,
-    deviceId,
+    deviceId: saved.id,
     registeredAt: now,
   };
 }
 
-export async function unregisterNativePushDevice(userId: string, token?: string | null) {
+export async function unregisterNativePushDevice(userId: string, token?: string | null, deviceId?: string | null) {
   const now = new Date().toISOString();
+  if (deviceId) {
+    await run("DELETE FROM native_push_devices WHERE user_id = ? AND id = ?", userId, deviceId);
+    return { ok: true, removedAll: false, updatedAt: now };
+  }
   if (token?.trim()) {
     await run(
       `DELETE FROM native_push_devices
@@ -366,19 +383,14 @@ function stringifyFcmData(data: NativePushMessagePayload["data"]) {
   return output;
 }
 
-function nativePushTtlSeconds(kind: string) {
-  if (kind === "test") return 5 * 60;
-  if (kind.includes("comment") || kind.includes("counsel") || kind.includes("nudge")) return 48 * 60 * 60;
-  return 12 * 60 * 60;
-}
-
 function nativeCollapseId(message: NativePushMessagePayload) {
   return message.tag.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 60) || "aletheia-update";
 }
 
 function buildNativePayload(message: NativePushMessagePayload, row: NativePushTargetRow) {
-  const sentAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + nativePushTtlSeconds(message.notificationKind) * 1000).toISOString();
+  const now = Date.now();
+  const sentAt = new Date(now).toISOString();
+  const expiresAt = new Date(now + pushTtlSeconds(message.notificationKind) * 1000).toISOString();
   return {
     title: message.title,
     body: message.body,
@@ -390,25 +402,11 @@ function buildNativePayload(message: NativePushMessagePayload, row: NativePushTa
       notificationId: message.notificationId,
       platform: row.platform,
       deviceId: row.id,
+      recipientUserId: row.user_id,
       sentAt,
       expiresAt,
     },
   };
-}
-
-function shouldDeleteBrokenNativeDevice(statusCode: number | null, reason: string) {
-  if (statusCode === 404 || statusCode === 410) {
-    return true;
-  }
-  const normalized = reason.toLowerCase();
-  return (
-    normalized.includes("unregistered") ||
-    normalized.includes("baddevicetoken") ||
-    normalized.includes("device token") ||
-    normalized.includes("not registered") ||
-    normalized.includes("registration-token-not-registered") ||
-    normalized.includes("messaging/registration-token-not-registered")
-  );
 }
 
 function apnsAuthToken(config: ApnsConfig) {
@@ -465,7 +463,7 @@ async function sendApnsNotification(row: NativePushTargetRow, message: NativePus
     "apns-topic": config.bundleId,
     "apns-push-type": "alert",
     "apns-priority": "10",
-    "apns-expiration": String(Math.floor(Date.now() / 1000) + nativePushTtlSeconds(message.notificationKind)),
+    "apns-expiration": String(Math.floor(Date.parse(payload.data.expiresAt) / 1000)),
     "apns-collapse-id": nativeCollapseId(message),
     "content-type": "application/json",
   };
@@ -543,6 +541,7 @@ async function fcmAccessToken(config: FcmConfig) {
 
   const tokenResponse = await fetch(config.tokenUri, {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -578,6 +577,7 @@ async function sendFcmNotification(row: NativePushTargetRow, message: NativePush
   const accessToken = await fcmAccessToken(config);
   const response = await fetch(`https://fcm.googleapis.com/v1/projects/${config.projectId}/messages:send`, {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -592,7 +592,7 @@ async function sendFcmNotification(row: NativePushTargetRow, message: NativePush
         data: stringifyFcmData(buildNativePayload(message, row).data),
         android: {
           priority: "HIGH",
-          ttl: `${nativePushTtlSeconds(message.notificationKind)}s`,
+          ttl: `${pushTtlSeconds(message.notificationKind)}s`,
           collapse_key: nativeCollapseId(message),
           notification: {
             channel_id: "aletheia-default",
@@ -677,7 +677,7 @@ export async function sendNativePushRows(
         const reason = error instanceof Error ? error.message : String(error ?? "Unknown native push error");
         const statusCodeMatch = reason.match(/\((\d{3})\)/);
         const statusCode = statusCodeMatch ? Number(statusCodeMatch[1]) : null;
-        const deleted = shouldDeleteBrokenNativeDevice(statusCode, reason);
+        const deleted = isPermanentNativePushFailure(row.platform, statusCode, reason);
         failureSamples.push(summarizeNativePushFailure(error, row, deleted));
         console.error("Native push delivery failed", {
           deviceId: row.id,
@@ -689,7 +689,10 @@ export async function sendNativePushRows(
           deleted,
         });
         if (deleted) {
-          await run("DELETE FROM native_push_devices WHERE id = ?", row.id).catch(() => undefined);
+          await run(
+            "DELETE FROM native_push_devices WHERE id = ? AND user_id = ? AND token = ? AND last_registered_at IS NOT DISTINCT FROM ?",
+            row.id, row.user_id, row.token, row.last_registered_at
+          ).catch((error) => console.error("Could not remove invalid native push registration", error));
         }
       }
     })

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { run } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return apiError(401, "sign_in_required", "Sign in to manage notifications.");
   try {
-    const user = await requireUser();
     const parsedBody = await readJsonBody<{
       endpoint?: string;
     }>(request, { maxBytes: 4_000, emptyBody: {} });
@@ -30,13 +31,9 @@ export async function POST(request: Request) {
       );
     }
 
-    await run(
-      "DELETE FROM native_push_devices WHERE user_id = ?",
-      user.id
-    );
-
     return NextResponse.json({ ok: true });
-  } catch {
-    return apiError(401, "sign_in_required", "Sign in to manage notifications.");
+  } catch (error) {
+    console.error("Web push unsubscribe failed", error);
+    return apiError(500, "save_failed", "Notifications could not be disabled.");
   }
 }

@@ -44,7 +44,7 @@
     "stay": "Stay with {mode}",
     "autoUsing": "Using the {mode} lens for a better fit",
     "keep": "Keep {mode}",
-    "autoFitActive": "Auto-fit on"
+    "autoFitLabel": "Auto-fit"
   },
   "trustLayer": "Trust layer",
   "preferencesTitle": "Language and region",

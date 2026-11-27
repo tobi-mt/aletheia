@@ -7,6 +7,7 @@ import { manualContextSummary, normalizeManualContext, type ManualContextProfile
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
 import { counselSafetyTopic } from "@/lib/counsel-safety";
 import { retrieveWisdomEvidence } from "@/lib/wisdom";
+import { suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { composeCompanionCounsel } from "@/lib/companion-counsel";
 import { generateWisdomIntelligence } from "@/lib/wisdom-intelligence";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
@@ -274,7 +275,9 @@ export async function POST(request: Request) {
   }
 
   const safeTopic = counselSafetyTopic(message);
-  let sources = await retrieveWisdomEvidence(message, mode, 8, preferences.language);
+  const fittingMode = body.autoFit === false || safeTopic === "crisis"
+    ? mode : suggestModeForQuestion(message, mode)?.mode ?? mode;
+  let sources = await retrieveWisdomEvidence(message, fittingMode, 8, preferences.language);
   if (safeTopic === "crisis") {
     const crisisCandidates = await retrieveWisdomEvidence(
       "Isaiah 41:10 fear help presence suffering anxiety care hope",

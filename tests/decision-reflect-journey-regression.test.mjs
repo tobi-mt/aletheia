@@ -65,7 +65,7 @@ test("eligible answers promote one contextual continuation before secondary acti
   assert.match(currentCounsel, /disabled=\{isWorking\}/);
   const continuationHandler = app.slice(app.indexOf("function continueFromExchange"), app.indexOf("function waitFromExchange"));
   assert.match(continuationHandler, /setAnswerFocusId\("continuation-pending"\)/);
-  assert.match(continuationHandler, /askAletheia\(continuation\.prompt, undefined, continuation\.direction, exchange\.mode\)/);
+  assert.match(continuationHandler, /askAletheia\(continuation\.prompt, undefined, continuation\.direction, exchange\.mode, \{ autoFit: false \}\)/);
   assert.doesNotMatch(continuationHandler, /showView|setHomeSection/);
 });
 

@@ -42,9 +42,9 @@
     "body": "Esta pergunta talvez se encaixe melhor na perspectiva {mode}, com foco em {focus}.",
     "use": "Usar {mode} nesta pergunta",
     "stay": "Continuar com {mode}",
-    "autoUsing": "Usando a perspectiva {mode} para uma melhor adequação",
+    "autoUsing": "A perspectiva «{mode}» é mais adequada para esta pergunta",
     "keep": "Manter {mode}",
-    "autoFitActive": "Ajuste automático ativo"
+    "autoFitLabel": "Seleção automática"
   },
   "trustLayer": "Camada de confiança",
   "preferencesTitle": "Idioma e região",

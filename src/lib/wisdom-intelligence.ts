@@ -2,7 +2,7 @@ import "server-only";
 import OpenAI from "openai";
 import { localizedCrisisSupportCopy, localizedModeProfile, localizedScriptureReference, localizedWisdomEntry, promptPreferenceContext, responseLanguageContract, type LanguageCode, type UserPreferences } from "@/lib/localization";
 import { MODE_KEYS, type Mode } from "@/lib/mode-keys";
-import { suggestModeForQuestion } from "@/lib/mode-suggestion";
+import { hasCompetingModeFitGoals, isModeFitContinuation, modeFitExplicitGoal, suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { calibrateSemanticModeFit, normalizeModeProbabilities, type ModeProbabilities } from "@/lib/semantic-mode-fit";
 import type { WisdomSource } from "@/lib/wisdom";
 import { closedWorkloadNextStep, composeCompanionCounsel, isFixedWorkloadContinuation, preferredCounselReferences } from "@/lib/companion-counsel";
@@ -179,8 +179,8 @@ export function validateWisdomIntelligence(
 }
 
 function deterministic(question: string, selectedMode: Mode, sources: WisdomSource[], preferences: UserPreferences, started: number, attempts: number, forceSelectedMode = false, safeTopic = counselSafetyTopic(question)): WisdomIntelligence {
-  const suggestion = suggestModeForQuestion(question, selectedMode);
-  const recommendedMode = forceSelectedMode ? selectedMode : suggestion?.mode ?? selectedMode;
+  const suggestion = forceSelectedMode || safeTopic === "crisis" ? null : suggestModeForQuestion(question, selectedMode);
+  const recommendedMode = suggestion?.mode ?? selectedMode;
   const profile = localizedModeProfile(recommendedMode, preferences.language);
   const minimumEvidence = requiredBiblicalEvidenceCount(question, sources.length, safeTopic);
   const fallback = composeCompanionCounsel(question, sources, preferences, safeTopic);
@@ -204,6 +204,9 @@ function deterministic(question: string, selectedMode: Mode, sources: WisdomSour
 export async function generateWisdomIntelligence({ question, selectedMode, sources, preferences, memoryContext = "", allowModel = true, forceSelectedMode = false }: { question: string; selectedMode: Mode; sources: WisdomSource[]; preferences: UserPreferences; memoryContext?: string; allowModel?: boolean; forceSelectedMode?: boolean }): Promise<WisdomIntelligence> {
   const started = Date.now();
   const expectedSafeTopic = counselSafetyTopic(question);
+  const explicitGoal = modeFitExplicitGoal(question);
+  const keepSelectedMode = forceSelectedMode || hasCompetingModeFitGoals(question)
+    || (!explicitGoal && isModeFitContinuation(question));
   if (!allowModel || !client || !sources.length || expectedSafeTopic === "crisis"
     || (preferences.language === "en" && isFixedWorkloadContinuation(question)) || Date.now() < circuitOpenUntil) {
     return deterministic(question, selectedMode, sources, preferences, started, 0, forceSelectedMode);
@@ -240,8 +243,8 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
     try {
       attempts += 1;
       const response = await client.responses.create({ model: modelRoute.model, max_output_tokens: 950, input: [
-        { role: "developer", content: `${responseLanguageContract(preferences.language)}\n\nYou are Ask Aletheia. Classify the primary problem the person needs help solving, not merely the nouns. Attend to expressed emotion and motive without diagnosing, pathologizing, or inventing personal history. For example, money given from guilt may be Generosity, and work damaging health or marriage may be Life. Use ambiguity.reason to name the primary need. Probabilities sum to 1. Mark mixed only for genuinely competing lenses. Keep private plan fields brief. Never claim divine certainty or replace qualified care.\n\nWrite only one or two short sentences per visible field, with no headings or lists. Opening: name the actual decision, one concrete fact that changes the advice, and the tension the person expressed. Each connection: explain the passage in context and how it helps here; do not include a citation label or quote verse text, which the app supplies through the linked reader. Next step: one observable action (such as a specific question to ask, a sentence to say, or one fact to write down), not a general instruction to reflect or talk. Do not retry a closed option. Be compassionate without equating guilt or tiredness with wrongdoing. The app supplies localized safety guidance; do not write a separate disclaimer. In every field, do not diagnose, prescribe, suggest medication changes, provide legal or investment instructions, or advise delaying professional or emergency help. Help the person prepare a question or gather information instead. Set safeTopic to crisis if the current question indicates immediate danger or self-harm; the app will replace your draft with immediate human-support guidance.${repair}` },
-        { role: "user", content: `LENSES\n${profiles}\n\nPREFERENCES\n${promptPreferenceContext(preferences)}\n\nCONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE (most relevant first)\n${sourceContext}\n\nAim for ${minimumEvidence} distinct canonical references, but prefer fewer to padding. For each passage, use its provided context and explain how it changes what the person can do or notice about the specific detail you identified. A shared theme or emotion alone is not enough. Add other passages only for distinct, useful insights. Put every citation in biblicalEvidence, not in the other fields. Current lens: ${selectedMode}. ${forceSelectedMode ? `Keep ${selectedMode}.` : "Auto-fit may choose a better lens."}\n\nQUESTION\n${question}` },
+        { role: "developer", content: `${responseLanguageContract(preferences.language)}\n\nYou are Ask Aletheia. First distinguish the outcome requested, the situation causing it, and any tension the person actually expressed. Choose the lens for the requested outcome: negotiating hours is Work; repairing a marriage strained by those hours is Life; covering rent is Money; setting a limit on repeated financial help is Generosity; separating self-worth from achievement is Purpose. Fear or guilt alone does not decide the lens. Ignore topics explicitly ruled out. Use continuity only to resolve references in a follow-up, not to override a new goal. Do not infer diagnoses, hidden motives, or personal history. In ambiguity.reason, explain the concrete need in plain language without assigning a motive the person did not state. Probabilities sum to 1. Mark mixed only for genuinely competing lenses. Keep private plan fields brief. Never claim divine certainty or replace qualified care.\n\nWrite only one or two short sentences per visible field, with no headings or lists. Opening: name the actual decision, one concrete fact that changes the advice, and the tension the person expressed. Each connection: explain the passage in context and how it helps here; do not include a citation label or quote verse text, which the app supplies through the linked reader. Next step: one observable action (such as a specific question to ask, a sentence to say, or one fact to write down), not a general instruction to reflect or talk. Do not retry a closed option. Be compassionate without equating guilt or tiredness with wrongdoing. The app supplies localized safety guidance; do not write a separate disclaimer. In every field, do not diagnose, prescribe, suggest medication changes, provide legal or investment instructions, or advise delaying professional or emergency help. Help the person prepare a question or gather information instead. Set safeTopic to crisis if the current question indicates immediate danger or self-harm; the app will replace your draft with immediate human-support guidance.${repair}` },
+        { role: "user", content: `LENSES\n${profiles}\n\nPREFERENCES\n${promptPreferenceContext(preferences)}\n\nCONTINUITY (use quietly)\n${memoryContext || "None"}\n\nALLOWED EVIDENCE (most relevant first)\n${sourceContext}\n\nAim for ${minimumEvidence} distinct canonical references, but prefer fewer to padding. For each passage, use its provided context and explain how it changes what the person can do or notice about the specific detail you identified. A shared theme or emotion alone is not enough. Add other passages only for distinct, useful insights. Put every citation in biblicalEvidence, not in the other fields. Current lens: ${selectedMode}. ${keepSelectedMode ? `Keep ${selectedMode}.` : explicitGoal ? `Use ${explicitGoal} for the explicit goal and address relevant secondary concerns in the counsel.` : "Auto-fit may choose a better lens when there is a clearly primary goal."}\n\nQUESTION\n${question}` },
       ], text: { format: { type: "json_schema", name: "aletheia_wisdom_intelligence", strict: true, schema: responseSchema(preferences.language, modelSources, evidenceFloor) } } }, { signal });
       providerUnavailable = false;
       if (response.status === "incomplete") throw new Error("incomplete response");
@@ -254,13 +257,16 @@ export async function generateWisdomIntelligence({ question, selectedMode, sourc
       if (!hasQuestionGrounding(raw, question, preferences.language)) throw new Error("quality gate: questionGrounding");
       const probabilities = normalizeModeProbabilities(raw.probabilities);
       if (!probabilities || !modes.includes(raw.recommendedMode)) throw new Error("invalid structured response");
-      const recommendedMode = forceSelectedMode
+      const recommendedMode = keepSelectedMode
         ? selectedMode
-        : raw.ambiguity.uncertain
+        : explicitGoal ?? (raw.ambiguity.uncertain
         ? selectedMode
-        : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed);
+        : resolveUnifiedRecommendedMode(probabilities, selectedMode, raw.ambiguity.mixed));
+      const ambiguity = recommendedMode !== raw.recommendedMode
+        ? { ...raw.ambiguity, reason: "", alternativeMode: null }
+        : raw.ambiguity;
       const candidate = assembleCompanionDraft({
-        ...raw, recommendedMode, probabilities,
+        ...raw, recommendedMode, probabilities, ambiguity,
         safeTopic: expectedSafeTopic === "general" ? raw.safeTopic : expectedSafeTopic,
       }, preferences, question);
       const quality = validateWisdomIntelligence(candidate, modelSources, preferences, evidenceFloor);

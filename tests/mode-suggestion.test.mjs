@@ -119,3 +119,26 @@ test("supports distinctive questions in other app languages", () => {
   assert.equal(suggestModeForQuestion("Soll ich dieses neue Jobangebot annehmen?", "Money")?.mode, "Work");
   assert.equal(suggestModeForQuestion("मुझे अपने परिवार के इस विवाद को कैसे सुलझाना चाहिए?", "Money")?.mode, "Life");
 });
+
+test("prioritizes the requested outcome over the same background and emotion", () => {
+  const background = "My job, boss, project deadlines and promotion are stressing me out and hurting my marriage.";
+  for (const [ask, expected] of [
+    ["How can I rebuild trust with my spouse?", "Life"],
+    ["How can I renegotiate my workload?", "Work"],
+    ["How do I stop tying my worth to my promotion?", "Purpose"],
+  ]) {
+    assert.equal(suggestModeForQuestion(`${background} ${ask}`, "Money")?.mode, expected);
+  }
+  assert.equal(suggestModeForQuestion("I'm worried about rent and my savings. How do I say no when my brother keeps asking for money?", "Money")?.mode, "Generosity");
+  assert.equal(suggestModeForQuestion("My family is upset and I feel guilty. How can I cover rent and bills?", "Generosity")?.mode, "Money");
+  assert.equal(suggestModeForQuestion("Mi empleo y mi ascenso me preocupan. ¿Cómo puedo reconstruir mi matrimonio?", "Work")?.mode, "Life");
+  assert.equal(suggestModeForQuestion("My relationship is on my mind. How can I rebuild my relationship with my manager and renegotiate my workload?", "Money")?.mode, "Work");
+  assert.equal(suggestModeForQuestion("How can I repair my marriage without needing to renegotiate my hours?", "Money")?.mode, "Life");
+});
+
+test("does not switch when two explicit goals compete or a follow-up depends on prior context", () => {
+  assert.equal(suggestModeForQuestion("How can I renegotiate my workload and rebuild trust with my spouse?", "Money"), null);
+  assert.equal(suggestModeForQuestion("What if they keep mentioning my promotion and project deadlines?", "Life"), null);
+  assert.equal(suggestModeForQuestion("What if they keep mentioning my promotion? How can I rebuild trust with my spouse?", "Work")?.mode, "Life");
+  assert.equal(suggestModeForQuestion("The promotion is not what I want to discuss, but how can I repair my relationship?", "Work")?.mode, "Life");
+});

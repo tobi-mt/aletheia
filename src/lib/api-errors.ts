@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | "permission_denied"
   | "save_failed"
   | "invalid_subscription"
+  | "push_delivery_failed"
   | "confirm_delete"
   | "invalid_image"
   | "invalid_credentials"

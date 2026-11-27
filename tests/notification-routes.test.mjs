@@ -10,8 +10,12 @@ import { getNotificationDeliveryReportRoute } from "../src/app/api/analytics/not
 import { getAnalyticsSummaryRoute } from "../src/app/api/analytics/summary/route.ts";
 import { postNotificationSubscription } from "../src/app/api/notifications/subscribe/route.ts";
 import { runDailyNotifications } from "../src/app/api/notifications/daily/route.ts";
+import { postTestNotification } from "../src/app/api/notifications/test/route.ts";
 import { buildNotificationUrl, parseNotificationLaunchUrl } from "../src/lib/notification-routing.ts";
 import { calculatePushRetryDelayMs, sendNotificationWithRetry } from "../src/lib/notifications.ts";
+import { isExpiredPush, isPermanentNativePushFailure } from "../src/lib/push-policy.ts";
+import { GET as getServiceWorker } from "../src/app/sw.js/route.ts";
+import { runInNewContext } from "node:vm";
 
 function createCallLog() {
   return {
@@ -810,7 +814,9 @@ test("push notification retry helper uses exponential backoff and retries transi
     return originalSetTimeout(callback, 0, ...args);
   });
   let deliveryOptions = null;
-  webpush.sendNotification = async (_subscription, _payload, options) => {
+  let deliveredPayload;
+  webpush.sendNotification = async (_subscription, payload, options) => {
+    deliveredPayload = JSON.parse(payload);
     deliveryOptions = options;
     calls += 1;
     if (calls === 1) {
@@ -832,15 +838,66 @@ test("push notification retry helper uses exponential backoff and retries transi
           auth: "auth",
         },
       },
-      "{\"title\":\"Retry test\"}"
+      JSON.stringify({ title: "Retry test", notificationKind: "notification_test" })
     );
 
     assert.equal(calls, 2);
     assert.ok(delays.includes(800));
-    assert.deepEqual(deliveryOptions, { TTL: 48 * 60 * 60, urgency: "normal" });
+    assert.deepEqual(deliveryOptions, { TTL: 5 * 60, urgency: "normal" });
+    assert.equal(isExpiredPush(deliveredPayload.expiresAt), false);
+    assert.equal(isExpiredPush(deliveredPayload.expiresAt, Date.now() + 5 * 60 * 1000), true);
   } finally {
     Math.random = originalRandom;
     globalThis.setTimeout = originalSetTimeout;
     webpush.sendNotification = originalSendNotification;
   }
+});
+
+test("only explicit provider token revocation removes a native registration", () => {
+  assert.equal(isPermanentNativePushFailure("ios", 410, '{"reason":"Unregistered"}'), true);
+  assert.equal(isPermanentNativePushFailure("ios", 400, '{"reason":"BadDeviceToken"}'), false);
+  assert.equal(isPermanentNativePushFailure("android", 404, '{"status":"NOT_FOUND"}'), false);
+  assert.equal(isPermanentNativePushFailure("android", 404, '{"errorCode":"UNREGISTERED"}'), true);
+});
+
+test("test push is scoped to the requested device and requires provider acceptance", async () => {
+  for (const [attempted, sent, status] of [[0, 0, 409], [1, 0, 502], [1, 1, 200]]) {
+    const response = await postTestNotification(new Request("https://aletheia.example/api/notifications/test", {
+      method: "POST",
+      body: JSON.stringify({ nativeDeviceId: "this-phone" }),
+    }), {
+      isPushConfigured: () => false,
+      isNativePushConfigured: () => true,
+      getCurrentUser: async () => ({ id: "signed-in-user" }),
+      sendTestWisdomNotification: async (userId, target) => {
+        assert.equal(userId, "signed-in-user");
+        assert.deepEqual(target, { nativeDeviceId: "this-phone" });
+        return { attempted, sent };
+      },
+    });
+    assert.equal(response.status, status);
+  }
+});
+
+test("the web worker does not show or open an expired push", async () => {
+  const handlers = new Map();
+  const displayed = [];
+  runInNewContext(await (await getServiceWorker()).text(), {
+    self: {
+      addEventListener: (name, listener) => handlers.set(name, listener),
+      registration: { showNotification: (title, options) => displayed.push({ title, options }) },
+    },
+  });
+  const old = { title: "Old reminder", expiresAt: new Date(Date.now() - 1000).toISOString() };
+  handlers.get("push")({ data: { json: () => old }, waitUntil() { throw new Error("Expired push was shown"); } });
+  let closed = false;
+  handlers.get("notificationclick")({
+    notification: { data: old, close: () => { closed = true; } },
+    waitUntil() { throw new Error("Expired push was opened"); },
+  });
+  assert.equal(closed, true);
+  const fresh = { title: "New counsel", expiresAt: new Date(Date.now() + 1000).toISOString() };
+  handlers.get("push")({ data: { json: () => fresh }, waitUntil() {} });
+  assert.equal(displayed[0].title, fresh.title);
+  assert.equal(displayed[0].options.data.expiresAt, fresh.expiresAt);
 });

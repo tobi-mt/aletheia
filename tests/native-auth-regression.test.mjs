@@ -142,7 +142,7 @@ test("signed-in native account UX supports identity editing, push, and progressi
   assert.match(client, /onUpdateProfileName/);
   assert.match(client, /profileDisplayName/);
   assert.match(client, /AvatarStudioCard[\s\S]*onUpdateProfileName/);
-  assert.match(client, /fetch\("\/api\/notifications\/native", \{ cache: "no-store" \}\)/);
+  assert.match(client, /deviceSubscribed\?: boolean/);
   assert.match(client, /nativeServerSetupRequiredBody/);
   assert.match(client, /invalid_input: "notifications\.apiInvalidInput"/);
   assert.match(client, /<ProgressiveOnboardingModal/);
@@ -185,7 +185,7 @@ test("native notification badges cannot survive an iOS reinstall or device re-re
   assert.match(nativePush, /SET badge_count = 0/);
   assert.match(nativeRoute, /export async function PATCH/);
   assert.match(nativeRoute, /cleared: false, reason: "not_signed_in"/);
-  assert.match(client, /removeAllDeliveredNotifications/);
+  assert.match(client, /removeDeliveredNotifications\(\{ notifications: expired \}\)/);
   assert.match(client, /App\.addListener\("appStateChange"/);
   assert.match(client, /if \(!startupPaintReady \|\| !isNativePushShell\(\)/);
   assert.match(client, /pushNotificationReceived/);
@@ -193,7 +193,7 @@ test("native notification badges cannot survive an iOS reinstall or device re-re
   assert.match(client, /registerNativePushSubscription\(\{ silent: true \}\)/);
   assert.match(client, /persistNotificationSubscriptionRefreshAt\(\)/);
   assert.match(appDelegate, /didFinishLaunchingWithOptions[\s\S]*?clearNotificationBadge\(\)/);
-  assert.match(appDelegate, /removeAllDeliveredNotifications\(\)/);
+  assert.doesNotMatch(appDelegate, /removeAllDeliveredNotifications\(\)/);
   assert.match(appDelegate, /setBadgeCount\(0\)/);
 });
 

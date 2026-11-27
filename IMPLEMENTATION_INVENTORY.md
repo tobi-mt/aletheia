@@ -178,6 +178,7 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 **Implemented:**
 - ✅ **Question Input**
   - Text input with mode selector
+  - Auto-Fit prioritizes expressed outcomes over incidental topics and emotions, with explicit goal cues across all 11 supported languages. It keeps the current lens for competing goals and generated continuations, and uses the same cues for offline answers and initial Scripture retrieval. The switch message and controls use app translations rather than model-generated text.
   - Voice input (when supported & enabled in preferences)
   - Suggested prompts for common questions
   - Rate limiting: 20 requests per 10 minutes

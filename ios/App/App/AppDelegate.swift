@@ -29,7 +29,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func clearNotificationBadge() {
         let notificationCenter = UNUserNotificationCenter.current()
-        notificationCenter.removeAllDeliveredNotifications()
+        notificationCenter.getDeliveredNotifications { notifications in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let now = Date()
+            let expired = notifications.compactMap { notification -> String? in
+                guard let value = notification.request.content.userInfo["expiresAt"] as? String,
+                      let expiresAt = formatter.date(from: value), expiresAt <= now else { return nil }
+                return notification.request.identifier
+            }
+            if !expired.isEmpty {
+                notificationCenter.removeDeliveredNotifications(withIdentifiers: expired)
+            }
+        }
         if #available(iOS 16.0, *) {
             notificationCenter.setBadgeCount(0)
         } else {

@@ -44,7 +44,7 @@
     "stay": "Manatili sa {mode}",
     "autoUsing": "Ginagamit ang pananaw na {mode} para sa mas angkop na sagot",
     "keep": "Panatilihin ang {mode}",
-    "autoFitActive": "Naka-on ang awtomatikong pagtugma"
+    "autoFitLabel": "Awtomatikong pagpili"
   },
   "trustLayer": "Antas ng tiwala",
   "preferencesTitle": "Wika at rehiyon",

@@ -44,7 +44,7 @@
     "stay": "{mode} के साथ रहें",
     "autoUsing": "बेहतर मेल के लिए {mode} दृष्टिकोण का उपयोग हो रहा है",
     "keep": "{mode} बनाए रखें",
-    "autoFitActive": "अपने-आप मिलान चालू"
+    "autoFitLabel": "स्वचालित चयन"
   },
   "trustLayer": "विश्वास परत",
   "preferencesTitle": "भाषा और क्षेत्र",

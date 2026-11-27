@@ -1169,7 +1169,7 @@ async function checkThemeContrast(browser) {
         if (ratio < minimum) failures.push(`${preference}/${colorScheme}: ${label} ${ratio.toFixed(2)}:1 < ${minimum}:1`);
       };
       await check('desktop lens caption', page.locator('aside').getByText('Current lens', { exact: true }), 4.5);
-      await check('auto-fit label', page.locator('#companion-ask').getByRole('button', { name: 'Auto-fit on' }), 4.5);
+      await check('auto-fit label', page.locator('#companion-ask').getByRole('button', { name: 'Auto-fit', exact: true }), 4.5);
       await check('current lens icon', page.locator('#companion-ask [aria-label^="Current lens:"] svg'), 3);
       await check('question placeholder', page.getByRole('textbox', { name: 'Your question' }), 4.5, '::placeholder');
       await page.setViewportSize({ width: 900, height: 844 });

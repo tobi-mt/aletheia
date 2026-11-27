@@ -42,9 +42,9 @@
     "body": "Diese Frage passt vielleicht besser zur Perspektive {mode}, mit dem Schwerpunkt {focus}.",
     "use": "Für diese Frage {mode} verwenden",
     "stay": "Bei {mode} bleiben",
-    "autoUsing": "Für eine bessere Passung wird die Perspektive {mode} verwendet",
+    "autoUsing": "Die Perspektive „{mode}“ passt besser zu dieser Frage",
     "keep": "{mode} beibehalten",
-    "autoFitActive": "Auto-Anpassung aktiv"
+    "autoFitLabel": "Automatische Auswahl"
   },
   "trustLayer": "Vertrauensebene",
   "preferencesTitle": "Sprache und Region",

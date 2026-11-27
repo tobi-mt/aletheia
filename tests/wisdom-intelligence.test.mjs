@@ -33,9 +33,9 @@ test("model counsel retries an ungrounded citation and accepts four grounded, li
     "James encourages asking God for wisdom rather than rushing to take on a new project.",
   ];
   const draft = {
-    responseLanguage: "en", recommendedMode: "Work",
-    probabilities: { Money: 0.05, Work: 0.75, Purpose: 0.1, Generosity: 0.05, Life: 0.05 },
-    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "This is about how to evaluate a work commitment." },
+    responseLanguage: "en", recommendedMode: "Purpose",
+    probabilities: { Money: 0.05, Work: 0.1, Purpose: 0.75, Generosity: 0.05, Life: 0.05 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "This is primarily a question of calling and identity." },
     safeTopic: "general", opening: "You want to commit to a useful project without overlooking what it will cost.",
     reasoningPlan: { tension: "The work matters, but your time is finite.", diagnosticQuestion: "", blindSpot: "An appealing idea can crowd out existing duties.", maturitySignal: "Be clear about the time you can offer.", nextStep: "Write down which existing responsibility would need to move." },
     biblicalEvidence: available.map(({ scripture }, i) => ({ reference: scripture, questionDetail, connection: connections[i] })),
@@ -60,11 +60,13 @@ test("model counsel retries an ungrounded citation and accepts four grounded, li
     process.env = originalEnv;
   }
   const result = await generateWisdomIntelligence({
-    question: "How should I decide whether I have time to take on a new project at work?",
-    selectedMode: "Work", sources: available, preferences: defaultPreferences,
+    question: "How should I renegotiate my workload so I have time to take on a new project at work?",
+    selectedMode: "Money", sources: available, preferences: defaultPreferences,
   });
   assert.equal(result.routing.route, "secondary");
   assert.equal(requests.length, 2);
+  assert.equal(result.recommendedMode, "Work");
+  assert.equal(result.ambiguity.reason, "");
   assert.match(requests[1].input[0].content, /failed checks: questionGrounding/);
   assert.equal(requests[0].text.format.schema.properties.biblicalEvidence.maxItems, undefined);
   assert.deepEqual(scriptureTextMatches(result.counsel, available.map(({ scripture }) => scripture), "en").map(({ scripture }) => scripture),
@@ -284,10 +286,10 @@ test("biblical evidence requirements scale with question substance and preserve 
 });
 
 test("auto-fit classifies the underlying need without inventing a diagnosis", () => {
-  assert.match(intelligenceSource, /Classify the primary problem the person needs help solving, not merely the nouns/);
-  assert.match(intelligenceSource, /expressed emotion and motive without diagnosing, pathologizing, or inventing personal history/);
-  assert.match(intelligenceSource, /money given from guilt may be Generosity/);
-  assert.match(intelligenceSource, /work damaging health or marriage may be Life/);
-  assert.match(intelligenceSource, /Use ambiguity\.reason to name the primary need/);
+  assert.match(intelligenceSource, /distinguish the outcome requested, the situation causing it, and any tension the person actually expressed/);
+  assert.match(intelligenceSource, /Do not infer diagnoses, hidden motives, or personal history/);
+  assert.match(intelligenceSource, /setting a limit on repeated financial help is Generosity/);
+  assert.match(intelligenceSource, /repairing a marriage strained by those hours is Life/);
+  assert.match(intelligenceSource, /In ambiguity\.reason, explain the concrete need in plain language/);
   assert.match(modeFitRouteSource, /Consider expressed emotion, motive, pressure, desired change, and relational stakes/);
 });

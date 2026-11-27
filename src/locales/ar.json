@@ -44,7 +44,7 @@
     "stay": "البقاء مع {mode}",
     "autoUsing": "استخدام منظور {mode} لأنه أنسب للسؤال",
     "keep": "الاحتفاظ بـ {mode}",
-    "autoFitActive": "الملاءمة التلقائية مفعّلة"
+    "autoFitLabel": "الاختيار التلقائي"
   },
   "trustLayer": "طبقة الثقة",
   "preferencesTitle": "اللغة والمنطقة",

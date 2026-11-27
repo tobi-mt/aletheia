@@ -150,6 +150,8 @@ import { BUILD_ID, SERVICE_WORKER_URL } from "@/lib/build-version";
 import { NATIVE_WEB_BUNDLE, getPublicAppOrigin, installNativeWebFetchProxy } from "@/lib/native-web";
 import { traceStartup, traceStartupError } from "@/lib/startup-trace";
 import { notificationUrlFromData, parseNotificationLaunchUrl } from "@/lib/notification-routing";
+import { isExpiredPush } from "@/lib/push-policy";
+import { suggestModeForQuestion } from "@/lib/mode-suggestion";
 import { loadTranslationsSync, loadTranslationsWithFallbackSync, getTranslation, type TranslationData } from "@/lib/translations";
 import { ManagedAudio } from "@/lib/native-audio";
 import { NativeAuth, supportsNativeAppleSignIn } from "@/lib/native-auth";
@@ -504,6 +506,8 @@ const THEME_STORAGE_KEY = "aletheia_theme_preference";
 const VOICE_STORAGE_KEY = "aletheia_selected_voice";
 const NOTIFICATION_TIMING_STORAGE_KEY = "aletheia_notification_timing";
 const NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY = "aletheia_notification_subscription_refresh_at";
+const NATIVE_PUSH_DEVICE_STORAGE_KEY = "aletheia_native_push_device";
+const PUSH_OPT_OUT_STORAGE_PREFIX = "aletheia_push_opt_out:";
 const NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const COUNSEL_ACCEPTANCE_TRACKING_KEY = "aletheia_counsel_acceptance_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
@@ -2397,10 +2401,26 @@ function persistNotificationTiming(timing: NotificationTiming) {
   }
 }
 
-function readLastNotificationSubscriptionRefreshAt() {
-  if (typeof window === "undefined") {
+function readPushStorage(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn("Could not read push settings", error);
     return null;
   }
+}
+
+function writePushStorage(key: string, value: string | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn("Could not save push settings", error);
+  }
+}
+
+function readLastNotificationSubscriptionRefreshAt() {
+  if (typeof window === "undefined") return null;
   try {
     const saved = window.localStorage.getItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY)?.trim();
     if (!saved) {
@@ -2483,7 +2503,6 @@ type AutoModeSwitchState = {
   originalMode: Mode;
   suggestedMode: Mode;
   learningTopic: string;
-  reason: string;
   questionMessageId: string;
   answerMessageId: string;
   persistedQuestionMessageId: string;
@@ -5924,6 +5943,12 @@ export function AletheiaApp({
   const biometricBackgroundedAtRef = useRef<number | null>(null);
   const biometricUnlockReasonRef = useRef("");
   const [notificationStatus, setNotificationStatus] = useState("");
+  const [foregroundPush, setForegroundPush] = useState<{
+    userId: string;
+    title: string;
+    body: string;
+    data: Record<string, unknown>;
+  } | null>(null);
   const [notificationAccountEnabled, setNotificationAccountEnabled] = useState(false);
   const [notificationDeviceSubscribed, setNotificationDeviceSubscribed] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -5931,6 +5956,7 @@ export function AletheiaApp({
   const [notificationDiagnostics, setNotificationDiagnostics] = useState<NotificationDiagnostics | null>(null);
   const [isRefreshingForUpdate, setIsRefreshingForUpdate] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [nativePushResumeCount, setNativePushResumeCount] = useState(0);
   const [notificationBusy, setNotificationBusy] = useState(false);
   const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(DEFAULT_NOTIFICATION_TIMING);
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
@@ -6141,18 +6167,15 @@ export function AletheiaApp({
   const keyboardOpenRef = useRef(false);
   const notificationFocusHandledRef = useRef(false);
   const notificationSelfHealInFlightRef = useRef(false);
+  const nativePushRegisteredUserRef = useRef<string | null>(null);
+  const seenForegroundPushIdsRef = useRef(new Set<string>());
   type NotificationLaunchRoute = NonNullable<ReturnType<typeof parseNotificationLaunchUrl>>;
 
-  const applyNotificationRoute = useEffectEvent((notificationRoute: NotificationLaunchRoute) => {
+  function openNotificationRoute(notificationRoute: NotificationLaunchRoute) {
     setShowOnboarding(false);
     if (notificationRoute.focus === "decision" && notificationRoute.decisionId) {
       setActiveView("decisions", "notification_click");
       setStatusMessage(ts('status.decisionReminderReady'));
-      announceWorkflow(
-        ts('notifications.decisionReminderReady'),
-        ts('notifications.decisionReminderReadyBody'),
-        "success"
-      );
 
       if (notificationRoute.notificationKind === "counsel_comment" || notificationRoute.notificationKind === "counsel_decision_shared") {
         setPendingCounselThreadTarget({
@@ -6174,11 +6197,6 @@ export function AletheiaApp({
       setReflectSection("journal");
       setActiveView("reflect", "notification_click");
       setStatusMessage(ts('status.reflectionReminderReady'));
-      announceWorkflow(
-        ts('notifications.reflectionReminderReady'),
-        ts('notifications.reflectionReminderReadyBody'),
-        "success"
-      );
       return;
     }
 
@@ -6186,11 +6204,6 @@ export function AletheiaApp({
       setReflectSection("gratitude");
       setActiveView("reflect", "notification_click");
       setStatusMessage(ts('status.gratitudeReminderReady'));
-      announceWorkflow(
-        ts('notifications.gratitudeReminderReady'),
-        ts('notifications.gratitudeReminderReadyBody'),
-        "success"
-      );
       setPendingGratitudeNotificationFocus(true);
       return;
     }
@@ -6210,20 +6223,15 @@ export function AletheiaApp({
     if (notificationRoute.focus === "library") {
       setActiveView("library", "notification_click");
       setStatusMessage(ts('status.libraryWisdomReady'));
-      announceWorkflow(
-        ts('notifications.libraryWisdomReady'),
-        ts('notifications.libraryWisdomReadyBody'),
-        "success"
-      );
       return;
     }
 
     setActiveView("companion", "notification_click");
     setHomeSection("today", "notification_click");
     setStatusMessage(ts('status.todayWisdomReady'));
-    announceWorkflow(ts('notifications.todayWisdomReady'), ts('notifications.todayWisdomReadyBody'), "success");
     setPendingNotificationFocus(true);
-  });
+  }
+  const applyNotificationRoute = useEffectEvent(openNotificationRoute);
 
   // Hydration-safe restore of client-only persisted state.
   useEffect(() => {
@@ -7421,37 +7429,65 @@ export function AletheiaApp({
     };
   }, [activeView, pendingDecisionNotificationFocus, showOnboarding]);
 
+  function openNativePush(data?: Record<string, unknown> | null) {
+    if (isExpiredPush(data?.expiresAt) || (data?.recipientUserId && user && data.recipientUserId !== user.id)) return;
+
+    const rawUrl = typeof data?.url === "string" ? data.url : notificationUrlFromData(data ?? null);
+    if (!rawUrl) return;
+
+    try {
+      const targetUrl = new URL(rawUrl, window.location.origin);
+      if (targetUrl.origin !== window.location.origin) return;
+      const notificationRoute = parseNotificationLaunchUrl(targetUrl.toString());
+      if (!notificationRoute) return;
+      notificationFocusHandledRef.current = true;
+      openNotificationRoute(notificationRoute);
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch (error) {
+      console.warn("Could not open push notification", error);
+    }
+  }
   const handleNativePushActionPerformed = useEffectEvent(
     (notification: { notification?: { data?: Record<string, unknown> | null } }) => {
-      if (typeof window === "undefined") {
-        return;
-      }
-
-      const data = notification.notification?.data;
-      const rawUrl = typeof data?.url === "string" ? data.url : notificationUrlFromData(data ?? null);
-      if (!rawUrl) {
-        return;
-      }
-
-      try {
-        const targetUrl = new URL(rawUrl, window.location.origin);
-        if (targetUrl.origin !== window.location.origin) {
-          return;
-        }
-
-        const notificationRoute = parseNotificationLaunchUrl(targetUrl.toString());
-        if (!notificationRoute) {
-          return;
-        }
-
-        notificationFocusHandledRef.current = true;
-        applyNotificationRoute(notificationRoute);
-        window.history.replaceState({}, "", window.location.pathname);
-      } catch {
-        // Ignore malformed notification payloads.
-      }
+      openNativePush(notification.notification?.data);
     }
   );
+
+  const handleNativePushReceived = useEffectEvent((notification: { title?: string; body?: string; data?: Record<string, unknown> }) => {
+    const data = notification.data;
+    if (!data || !user || readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id) || (data.recipientUserId && data.recipientUserId !== user.id)) return;
+    const kind = data.notificationKind;
+    const id = data.notificationId;
+    if (isExpiredPush(data.expiresAt)) {
+      trackClientEvent("notification_foreground_discarded", { reason: "expired" });
+      return;
+    }
+    trackClientEvent("notification_foreground_received", {
+      notification_kind: typeof kind === "string" ? kind : "unknown",
+    });
+    if (kind === "notification_test") {
+      setNotificationStatus(notification.body?.trim() || ts("notifications.testNotificationSentBody"));
+      return;
+    }
+    if (kind !== "counsel_comment" && kind !== "counsel_decision_shared" && kind !== "challenge_circle_nudge") return;
+    if (typeof id !== "string" || !id || !notification.title?.trim() || !notification.body?.trim()) return;
+    const seen = seenForegroundPushIdsRef.current;
+    const key = `${user.id}:${kind}:${id}`;
+    if (seen.has(key)) return;
+    if (seen.size >= 100) {
+      const oldest = seen.values().next();
+      if (!oldest.done) seen.delete(oldest.value);
+    }
+    seen.add(key);
+    setForegroundPush({ userId: user.id, title: notification.title, body: notification.body, data });
+  });
+  useEffect(() => {
+    if (!foregroundPush) return;
+    const expiry = typeof foregroundPush.data.expiresAt === "string" ? Date.parse(foregroundPush.data.expiresAt) : Number.NaN;
+    if (!Number.isFinite(expiry)) return;
+    const timer = window.setTimeout(() => setForegroundPush(null), Math.max(0, expiry - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [foregroundPush]);
 
   useEffect(() => {
     if (!startupPaintReady || !isNativePushShell() || typeof window === "undefined") {
@@ -7463,25 +7499,27 @@ export function AletheiaApp({
     let receivedHandle: PluginListenerHandle | null = null;
     let appStateHandle: PluginListenerHandle | null = null;
 
-    const clearNativeBadge = () => {
-      void PushNotifications.removeAllDeliveredNotifications().catch(() => undefined);
-      void fetch("/api/notifications/native", {
-        method: "PATCH",
-        credentials: "same-origin",
-      }).catch(() => undefined);
+    const removeExpiredNativePush = () => {
+      if (getNativePushPlatform() !== "android") return;
+      void PushNotifications.getDeliveredNotifications().then(({ notifications }) => {
+        const expired = notifications.filter((item) => isExpiredPush(item.data?.expiresAt));
+        if (expired.length) return PushNotifications.removeDeliveredNotifications({ notifications: expired });
+      }).catch((error) => console.warn("Could not clear expired push notifications", error));
     };
 
-    clearNativeBadge();
+    removeExpiredNativePush();
 
     void App.addListener("appStateChange", ({ isActive }) => {
       if (active && isActive) {
-        clearNativeBadge();
+        removeExpiredNativePush();
+        setNativePushResumeCount((count) => count + 1);
       }
     })
       .then((handle) => {
-        appStateHandle = handle;
+        if (active) appStateHandle = handle;
+        else void handle.remove();
       })
-      .catch(() => undefined);
+      .catch((error) => console.warn("Could not listen for native app resume", error));
 
     void PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
       if (!active) {
@@ -7490,34 +7528,19 @@ export function AletheiaApp({
       handleNativePushActionPerformed(notification);
     })
       .then((handle) => {
-        actionHandle = handle;
+        if (active) actionHandle = handle;
+        else void handle.remove();
       })
-      .catch(() => undefined);
+      .catch((error) => console.warn("Could not listen for native notification taps", error));
 
     void PushNotifications.addListener("pushNotificationReceived", (notification) => {
-      if (!active) {
-        return;
-      }
-      const data = notification.data as Record<string, unknown> | undefined;
-      const expiresAt = typeof data?.expiresAt === "string" ? Date.parse(data.expiresAt) : Number.NaN;
-      if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-        trackClientEvent("notification_foreground_discarded", { reason: "expired" });
-        return;
-      }
-      const title = notification.title?.trim() || ts("labels.notifications");
-      const body = notification.body?.trim() || ts("notifications.notificationsEnabledBody");
-      announceWorkflow(title, body, "info", {
-        label: ts("labels.open"),
-        onClick: () => handleNativePushActionPerformed({ notification: { data: data ?? null } }),
-      });
-      trackClientEvent("notification_foreground_received", {
-        notification_kind: typeof data?.notificationKind === "string" ? data.notificationKind : "unknown",
-      });
+      if (active) handleNativePushReceived(notification);
     })
       .then((handle) => {
-        receivedHandle = handle;
+        if (active) receivedHandle = handle;
+        else void handle.remove();
       })
-      .catch(() => undefined);
+      .catch((error) => console.warn("Could not listen for foreground notifications", error));
 
     return () => {
       active = false;
@@ -7525,7 +7548,7 @@ export function AletheiaApp({
       void receivedHandle?.remove().catch(() => undefined);
       void appStateHandle?.remove().catch(() => undefined);
     };
-  }, [announceWorkflow, startupPaintReady, ts]);
+  }, [startupPaintReady]);
 
   const setTopNav = useCallback((topNav: HTMLElement | null) => {
     if (!topNav) return;
@@ -8607,10 +8630,11 @@ export function AletheiaApp({
   }, [clientStateRestored]);
 
   useEffect(() => {
-    if (!startupPaintReady) {
+    if (!startupPaintReady || authStatus === "checking" || authStatus === "signing-out") {
       return;
     }
 
+    let active = true;
     async function loadNotificationStatus() {
       const notificationApi = getBrowserNotificationApi();
       if (notificationApi) {
@@ -8619,20 +8643,23 @@ export function AletheiaApp({
         setNotificationStatus(ts('notifications.notificationsUnavailableBody'));
       }
       if (isNativePushShell()) {
-        const nativePermission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
-        const nativeStatusResponse = await fetch("/api/notifications/native", { cache: "no-store" }).catch(() => null);
-        const nativeStatus = nativeStatusResponse?.ok
-          ? await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; latestDevice?: { enabled?: boolean } | null }
-          : null;
+        const nativePermission = await PushNotifications.checkPermissions();
+        const deviceId = readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY);
+        const statusUrl = deviceId ? `/api/notifications/native?deviceId=${encodeURIComponent(deviceId)}` : "/api/notifications/native";
+        const nativeStatusResponse = await fetch(statusUrl, { cache: "no-store" });
+        if (!nativeStatusResponse.ok) throw new Error(`Native push status request failed (${nativeStatusResponse.status}).`);
+        const nativeStatus = await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; deviceSubscribed?: boolean };
+        if (!active) return;
         const nativePlatform = getNativePushPlatform();
         const nativeConfigured = nativePlatform === "ios"
           ? Boolean(nativeStatus?.apnsConfigured)
           : nativePlatform === "android"
             ? Boolean(nativeStatus?.fcmConfigured)
             : Boolean(nativeStatus?.configured);
-        const nativeDeviceSubscribed = Boolean(nativeStatus?.devices && nativeStatus.devices > 0 && nativeStatus.latestDevice?.enabled !== false);
+        const optedOut = Boolean(user && readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id));
+        const nativeDeviceSubscribed = Boolean(nativeStatus?.deviceSubscribed && !optedOut && nativePermission.receive === "granted");
         setNotificationsConfigured(nativeConfigured);
-        setNotificationAccountEnabled(nativeDeviceSubscribed);
+        setNotificationAccountEnabled(Boolean(nativeStatus?.devices));
         setNotificationDeviceSubscribed(nativeDeviceSubscribed);
         setNotificationsEnabled(nativeDeviceSubscribed);
         setNotificationDiagnostics(null);
@@ -8641,26 +8668,42 @@ export function AletheiaApp({
           !user
             ? ts('notifications.signInRequiredBody')
             : nativeConfigured
-              ? nativeDeviceSubscribed
+              ? optedOut
+                ? ts('notifications.notificationsOffBody')
+                : nativePermission.receive === "denied"
+                  ? ts('notifications.notificationsNotEnabled')
+                  : nativeDeviceSubscribed
                 ? ts('notifications.notificationsEnabledBody')
                 : ts('notifications.notificationsOptionalWhenReady')
               : ts('notifications.nativeServerSetupRequiredBody')
         );
         if (
           user &&
-          nativeConfigured &&
+          nativeConfigured && !optedOut &&
           nativePermission.receive === "granted" &&
-          (!nativeDeviceSubscribed || shouldRefreshNotificationSubscription())
+          (!nativeDeviceSubscribed || nativePushRegisteredUserRef.current !== user.id || shouldRefreshNotificationSubscription())
         ) {
           void selfHealNotificationSubscription("status_load");
         }
         return;
       }
-      const response = await fetch("/api/notifications/status");
+      const localSubscription =
+        "serviceWorker" in navigator && "PushManager" in window
+          ? await navigator.serviceWorker
+              .getRegistration("/")
+              .then((registration) => registration?.pushManager.getSubscription())
+              .catch(() => null)
+          : null;
+      const response = await fetch("/api/notifications/status", {
+        cache: "no-store",
+        headers: localSubscription ? { "X-Push-Endpoint": localSubscription.endpoint } : undefined,
+      });
+      if (!response.ok) throw new Error(`Notification status request failed (${response.status}).`);
       const data = (await response.json()) as {
         configured?: boolean;
         nativeConfigured?: boolean;
         enabled?: boolean;
+        deviceSubscribed?: boolean;
         nativeDevices?: number;
         timingConfigured?: boolean;
         hasExplicitTiming?: boolean;
@@ -8669,13 +8712,6 @@ export function AletheiaApp({
         timezoneMode?: NotificationTiming["timezoneMode"];
         deliveryStrategy?: NotificationTiming["deliveryStrategy"];
       };
-      const localSubscription =
-        !isNativePushShell() && "serviceWorker" in navigator && "PushManager" in window
-          ? await navigator.serviceWorker
-              .getRegistration("/")
-              .then((registration) => registration?.pushManager.getSubscription())
-              .catch(() => null)
-          : null;
       let localSubscriptionUsesCurrentKey = true;
       if (localSubscription && data.configured) {
         const keyResponse = await fetch("/api/notifications/key", { cache: "no-store" }).catch(() => null);
@@ -8685,7 +8721,9 @@ export function AletheiaApp({
           : true;
       }
       const accountEnabled = Boolean(data.enabled);
-      const deviceSubscribed = Boolean(localSubscription && localSubscriptionUsesCurrentKey);
+      if (!active) return;
+      const deviceSubscribed = Boolean(data.deviceSubscribed && localSubscription && localSubscriptionUsesCurrentKey && getBrowserNotificationPermission() === "granted" &&
+        !(user && readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id)));
       setNotificationsConfigured(Boolean(data.configured));
       setNotificationAccountEnabled(accountEnabled);
       setNotificationDeviceSubscribed(deviceSubscribed);
@@ -8718,15 +8756,18 @@ export function AletheiaApp({
       }
       const notificationPermission = getBrowserNotificationPermission();
       const shouldAttemptSelfHeal =
-        Boolean(user) &&
+        user &&
         Boolean(data.configured) &&
         !isNativePushShell() &&
         notificationPermission === "granted" &&
+        !readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id) &&
         (!accountEnabled || !deviceSubscribed || shouldRefreshNotificationSubscription());
       if (shouldAttemptSelfHeal) {
         void selfHealNotificationSubscription("status_load");
       }
-      if (!data.configured) {
+      if (user && readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id)) {
+        setNotificationStatus(ts('notifications.notificationsOffBody'));
+      } else if (!data.configured) {
         setNotificationStatus(ts('notifications.notificationsNotConfiguredBody'));
       } else if (!user) {
         setNotificationStatus(ts('notifications.signInRequiredBody'));
@@ -8754,31 +8795,32 @@ export function AletheiaApp({
           return;
         }
         const diagnosticsData = (await diagnosticsResponse.json()) as NotificationDiagnostics;
+        if (!active) return;
         setNotificationDiagnostics(diagnosticsData);
       } catch {
         setNotificationDiagnostics(null);
       }
     }
 
-    loadNotificationStatus().catch(() =>
+    loadNotificationStatus().catch((error) =>
       {
+        if (!active) return;
+        console.error("Could not load push notification status", error);
         setNotificationStatus(ts('notifications.notificationStatusLoadFailed'));
         setNotificationDiagnostics(null);
       }
     );
-  }, [startupPaintReady, ts, user]);
+    return () => { active = false; };
+  }, [startupPaintReady, ts, user, authStatus, nativePushResumeCount]);
 
   useEffect(() => {
-    if (notificationTiming.timezoneMode !== "auto") {
-      return;
-    }
-
     const syncDeviceTimezone = () => {
       if (document.visibilityState === "hidden") {
         return;
       }
+      if (notificationTiming.timezoneMode !== "auto") return;
       if (
-        (isNativePushShell() ? notificationPermission === "granted" : getBrowserNotificationPermission() === "granted") &&
+        !isNativePushShell() && getBrowserNotificationPermission() === "granted" &&
         (!notificationsEnabled || !notificationDeviceSubscribed || shouldRefreshNotificationSubscription())
       ) {
         void selfHealNotificationSubscription("focus");
@@ -8800,7 +8842,7 @@ export function AletheiaApp({
       window.removeEventListener("focus", syncDeviceTimezone);
       document.removeEventListener("visibilitychange", syncDeviceTimezone);
     };
-  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, notificationPermission, user, notificationsEnabled, notificationDeviceSubscribed]);
+  }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user, notificationsEnabled, notificationDeviceSubscribed]);
 
   // Detect newly accepted counsel invites
   useEffect(() => {
@@ -9981,7 +10023,7 @@ function startFirstRunGuestFlow() {
       ...analyticsQuestionMetadata(exchange.question?.text ?? "", exchange.mode),
     });
     setAnswerFocusId("continuation-pending");
-    void askAletheia(continuation.prompt, undefined, continuation.direction, exchange.mode);
+    void askAletheia(continuation.prompt, undefined, continuation.direction, exchange.mode, { autoFit: false });
   }
 
   function waitFromExchange(exchange: ConversationExchange) {
@@ -10917,6 +10959,31 @@ function startFirstRunGuestFlow() {
       ...analyticsQuestionMetadata(trimmed, questionMode),
     };
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode: questionMode, text: visibleQuestion?.trim() || trimmed };
+    const registerAutoFit = (reply: ChatMessage, persistedQuestionMessageId = userMessage.id) => {
+      const switchedMode = reply.mode;
+      if (!switchedMode || !(options.autoFit ?? autoFitEnabled) || switchedMode === questionMode) return false;
+      const topic = reply.intelligence?.safeTopic ?? "general";
+      setMode(switchedMode);
+      setActiveAutoModeSwitch({
+        question: trimmed,
+        visibleQuestion,
+        originalMode: questionMode,
+        suggestedMode: switchedMode,
+        learningTopic: topic,
+        questionMessageId: userMessage.id,
+        answerMessageId: reply.id,
+        persistedQuestionMessageId,
+        consentOverride,
+      });
+      recordModeSwitchFeedback(window.localStorage, questionMode, switchedMode, topic, "accepted");
+      trackClientEvent("mode_better_fit_accepted", {
+        from_mode: questionMode,
+        to_mode: switchedMode,
+        topic,
+        unified_pipeline: true,
+      });
+      return true;
+    };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
       setMessages((current) => {
@@ -10995,31 +11062,7 @@ function startFirstRunGuestFlow() {
       }
       if (requestId !== chatRequestSequenceRef.current || requestController.signal.aborted) return;
       latestModeFitObservationRef.current = options.modeFitObservation;
-      const switchedMode = data.reply.mode && data.reply.mode !== questionMode ? data.reply.mode : null;
-      const autoSwitched = switchedMode !== null;
-      if (switchedMode) {
-        userMessage.mode = switchedMode;
-        setMode(switchedMode);
-        setActiveAutoModeSwitch({
-          question: trimmed,
-          visibleQuestion,
-          originalMode: questionMode,
-          suggestedMode: switchedMode,
-          learningTopic: data.intelligence?.safeTopic ?? "general",
-          reason: data.intelligence?.ambiguity.reason ?? "",
-          questionMessageId: userMessage.id,
-          answerMessageId: data.reply.id,
-          persistedQuestionMessageId: data.userMessage?.id ?? userMessage.id,
-          consentOverride,
-        });
-        recordModeSwitchFeedback(window.localStorage, questionMode, switchedMode, data.intelligence?.safeTopic ?? "general", "accepted");
-        trackClientEvent("mode_better_fit_accepted", {
-          from_mode: questionMode,
-          to_mode: switchedMode,
-          topic: data.intelligence?.safeTopic ?? "general",
-          unified_pipeline: true,
-        });
-      }
+      const autoSwitched = registerAutoFit(data.reply, data.userMessage?.id);
       if (options.learningTransition) {
         recordModeSwitchFeedback(
           window.localStorage,
@@ -11050,7 +11093,8 @@ function startFirstRunGuestFlow() {
         }
       }
       setMessages((current) =>
-        current.map((message) => (message.id === "thinking" ? data.reply! : message))
+        current.map((message) => message.id === "thinking" ? data.reply!
+          : autoSwitched && message.id === userMessage.id ? { ...message, mode: data.reply!.mode } : message)
       );
       if (!autoSwitched) setAnswerFocusId(data.reply.id);
       const responseMessage =
@@ -11077,15 +11121,18 @@ function startFirstRunGuestFlow() {
         mode: questionMode,
         ...analyticsQuestionMetadata(trimmed, questionMode),
       });
-      const fallback = composeResponse(trimmed, questionMode, preferences);
+      const fallbackMode = (options.autoFit ?? autoFitEnabled) && counselSafetyTopic(trimmed) !== "crisis"
+        ? suggestModeForQuestion(trimmed, questionMode)?.mode ?? questionMode : questionMode;
+      const fallback = composeResponse(trimmed, fallbackMode, preferences);
+      const reply: ChatMessage = { id: crypto.randomUUID(), role: "aletheia", mode: fallbackMode, text: fallback.text, sources: fallback.sources };
+      const autoSwitched = registerAutoFit(reply);
       setMessages((current) =>
         current.map((message) =>
-          message.id === "thinking"
-            ? { id: crypto.randomUUID(), role: "aletheia", mode: questionMode, text: fallback.text, sources: fallback.sources }
-            : message
+          message.id === "thinking" ? reply
+            : autoSwitched && message.id === userMessage.id ? { ...message, mode: fallbackMode } : message
         )
       );
-      setAnswerFocusId("offline-fallback");
+      if (!autoSwitched) setAnswerFocusId(reply.id);
       setStatusMessage(ts('status.offlineFallback'));
       announceWorkflow(ts('notifications.offlineAnswerReady'), ts('notifications.offlineAnswerReadyBody'), "warning");
       if (!user) {
@@ -11300,6 +11347,10 @@ function startFirstRunGuestFlow() {
     if (!window.confirm(ts('confirm.signOut'))) {
       return;
     }
+    if (notificationBusy || notificationSelfHealInFlightRef.current) {
+      announceWorkflow(ts("notifications.preferencesSaving"), ts("notifications.preparingDeviceNotifications"), "info");
+      return;
+    }
     setAuthStatus("signing-out");
     trackClientEvent("auth_logout", { hadUser: Boolean(user) });
     setAuthNotice(ts('auth.signingOut'));
@@ -11310,22 +11361,20 @@ function startFirstRunGuestFlow() {
     // A push token is account-bound state. Detach this device before the
     // authenticated session disappears so the previous account cannot keep
     // receiving reminders after sign-out or an account switch.
-    if (isNativePushShell()) {
-      await disableNativePushSubscription().catch(() => undefined);
-    } else if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration("/").catch(() => undefined);
-      const subscription = await registration?.pushManager.getSubscription().catch(() => null);
-      await fetch("/api/notifications/unsubscribe", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: subscription?.endpoint }),
-      }).catch(() => undefined);
-      await subscription?.unsubscribe().catch(() => undefined);
+    try {
+      if (isNativePushShell()) await disableNativePushSubscription();
+      else await disableWebPushSubscription();
+    } catch (error) {
+      console.error("Could not detach push registration on sign-out", error);
+      setAuthStatus("signed-in");
+      setAuthNotice(ts("notifications.notificationSyncFailedBody"));
+      announceWorkflow(ts("notifications.notificationSyncFailed"), ts("notifications.notificationSyncFailedBody"), "error");
+      return;
     }
     await fetch("/api/auth/logout", { method: "POST" });
     await authSignOut({ redirect: false }).catch(() => undefined);
     setUser(null);
+    setForegroundPush(null);
     setAuthStatus("guest");
     setAuthNotice(ts('status.signedOutGuest'));
     clearLocalPrivateWorkspace();
@@ -11566,11 +11615,15 @@ function startFirstRunGuestFlow() {
         deviceName: appInfo?.name ?? null,
         appVersion: appInfo?.version ?? null,
         buildVersion: appInfo?.build ?? null,
+        deviceId: readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY),
         pushEnvironment: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : null,
       }),
     });
 
     if (response.ok) {
+      const data = await response.json() as { deviceId?: string };
+      if (!data.deviceId) return { ok: false, status: response.status, errorCode: "save_failed", error: null };
+      writePushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY, data.deviceId);
       return { ok: true, status: response.status, errorCode: null, error: null };
     }
 
@@ -11588,18 +11641,41 @@ function startFirstRunGuestFlow() {
   }
 
   async function disableNativePushSubscription() {
-    try {
-      await PushNotifications.unregister();
-    } catch {
-      // Ignore unregister failures and still clear the backend state.
+    const deviceId = readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY);
+    if (deviceId) {
+      const response = await fetch("/api/notifications/native", {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId }),
+      });
+      if (!response.ok) throw new Error(`Native push unsubscribe failed (${response.status}).`);
     }
+    await PushNotifications.unregister().catch((error) => {
+      if (!deviceId) throw error;
+      console.warn("Native push was removed from the server but could not be unregistered locally", error);
+    });
+    writePushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY, null);
+    nativePushRegisteredUserRef.current = null;
+  }
 
-    await fetch("/api/notifications/native", {
-      method: "DELETE",
+  async function currentWebPushSubscription() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+    const registration = await navigator.serviceWorker.getRegistration("/");
+    return (await registration?.pushManager.getSubscription()) ?? null;
+  }
+
+  async function disableWebPushSubscription() {
+    const subscription = await currentWebPushSubscription();
+    if (!subscription) return;
+    const response = await fetch("/api/notifications/unsubscribe", {
+      method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    }).catch(() => undefined);
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
+    if (!response.ok) throw new Error(`Web push unsubscribe failed (${response.status}).`);
+    await subscription.unsubscribe().catch((error) => console.warn("Web push could not be unregistered locally", error));
   }
 
   async function registerNativePushSubscription({ silent = false }: { silent?: boolean } = {}) {
@@ -11616,7 +11692,7 @@ function startFirstRunGuestFlow() {
     const currentPermission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
     const permission = currentPermission.receive === "granted"
       ? currentPermission
-      : await PushNotifications.requestPermissions().catch(() => ({ receive: "denied" as const }));
+      : silent ? currentPermission : await PushNotifications.requestPermissions().catch(() => ({ receive: "denied" as const }));
     if (permission.receive !== "granted") {
       trackClientEvent("notification_enable_failed", { reason: "permission_denied", platform });
       setNotificationStatus(ts('notifications.notificationsNotEnabledBody'));
@@ -11689,8 +11765,9 @@ function startFirstRunGuestFlow() {
         cleanup(timeoutId);
       }
       trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
-      setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
-      announceNativeRegistration(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      const failure = ts(platform === "ios" ? "notifications.nativeRegistrationFailedBody" : "notifications.notificationSetupFailedBody");
+      setNotificationStatus(failure);
+      announceNativeRegistration(ts('notifications.notificationSetupFailed'), failure, "error");
       console.error("Native push registration failed", error);
       return false;
     }
@@ -11700,8 +11777,9 @@ function startFirstRunGuestFlow() {
       token = await tokenPromise;
     } catch (error) {
       trackClientEvent("notification_enable_failed", { reason: "native_registration_failed", platform });
-      setNotificationStatus(ts('notifications.nativeRegistrationFailedBody'));
-      announceNativeRegistration(ts('notifications.notificationSetupFailed'), ts('notifications.nativeRegistrationFailedBody'), "error");
+      const failure = ts(platform === "ios" ? "notifications.nativeRegistrationFailedBody" : "notifications.notificationSetupFailedBody");
+      setNotificationStatus(failure);
+      announceNativeRegistration(ts('notifications.notificationSetupFailed'), failure, "error");
       console.error("Native push registration failed", error);
       return false;
     }
@@ -11720,6 +11798,10 @@ function startFirstRunGuestFlow() {
     }
 
     setNotificationsEnabled(true);
+    if (user) {
+      nativePushRegisteredUserRef.current = user.id;
+      if (!silent) writePushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id, null);
+    }
     setNotificationsConfigured(true);
     setNotificationAccountEnabled(true);
     setNotificationDeviceSubscribed(true);
@@ -11732,13 +11814,16 @@ function startFirstRunGuestFlow() {
   }
 
   async function enableNotifications() {
-    if (notificationBusy) {
+    if (notificationBusy || notificationSelfHealInFlightRef.current) {
       return;
     }
     if (isNativePushShell()) {
       setNotificationBusy(true);
       try {
         await registerNativePushSubscription();
+      } catch (error) {
+        console.error("Could not enable native push", error);
+        setNotificationStatus(ts("notifications.notificationSetupFailedBody"));
       } finally {
         setNotificationBusy(false);
       }
@@ -11823,6 +11908,7 @@ function startFirstRunGuestFlow() {
       }
 
       setNotificationsEnabled(true);
+      writePushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id, null);
       setNotificationAccountEnabled(true);
       setNotificationDeviceSubscribed(true);
       const nextTiming = normalizeNotificationTiming({
@@ -11847,81 +11933,53 @@ function startFirstRunGuestFlow() {
   }
 
   async function disableNotifications() {
-    if (notificationBusy) {
-      return;
-    }
-    if (isNativePushShell()) {
-      setNotificationBusy(true);
-      try {
-        await disableNativePushSubscription();
-      } finally {
-        setNotificationBusy(false);
-      }
-      try {
-        window.localStorage.removeItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY);
-      } catch {
-        // Ignore storage failures during teardown.
-      }
-      setNotificationsEnabled(false);
-      setNotificationAccountEnabled(false);
-      setNotificationDeviceSubscribed(false);
-      trackClientEvent("notification_disabled", {
-        hadPermission: notificationPermission === "granted",
-        wasEnabled: true,
-      });
-      setNotificationStatus(ts('notifications.notificationsOffBody'));
-      announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
-      return;
-    }
-    if (!window.confirm(ts('confirm.turnOffNotifications'))) {
-      return;
-    }
+    if (notificationBusy || notificationSelfHealInFlightRef.current || !user) return;
+    if (!isNativePushShell() && !window.confirm(ts('confirm.turnOffNotifications'))) return;
     setNotificationBusy(true);
     try {
-      if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration("/");
-        const subscription = await registration?.pushManager.getSubscription();
-        await subscription?.unsubscribe();
-        await fetch("/api/notifications/unsubscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: subscription?.endpoint }),
-        });
-      } else {
-        await fetch("/api/notifications/unsubscribe", { method: "POST" });
-      }
+      if (isNativePushShell()) await disableNativePushSubscription();
+      else await disableWebPushSubscription();
+      writePushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id, "1");
+    } catch (error) {
+      console.error("Could not disable push notifications", error);
+      setNotificationStatus(ts("notifications.notificationSyncFailedBody"));
+      return;
     } finally {
       setNotificationBusy(false);
     }
-    try {
-      window.localStorage.removeItem(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY);
-    } catch {
-      // Ignore storage failures during teardown.
-    }
+    writePushStorage(NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY, null);
+    setForegroundPush(null);
     setNotificationsEnabled(false);
-    setNotificationAccountEnabled(false);
     setNotificationDeviceSubscribed(false);
     trackClientEvent("notification_disabled", {
       hadPermission: notificationPermission === "granted",
       wasEnabled: true,
     });
     setNotificationStatus(ts('notifications.notificationsOffBody'));
-    announceWorkflow(ts('notifications.notificationsOff'), ts('notifications.notificationsOffBody'), "info");
   }
 
   async function sendTestNotification() {
     if (notificationBusy || !user || !notificationsEnabled) return;
     setNotificationBusy(true);
     try {
-      const response = await fetch("/api/notifications/test", { method: "POST" });
-      if (!response.ok) throw new Error("notification_test_failed");
+      const nativeDeviceId = isNativePushShell() ? readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY) : null;
+      const webEndpoint = isNativePushShell() ? null : (await currentWebPushSubscription())?.endpoint;
+      if (!nativeDeviceId && !webEndpoint) {
+        setNotificationStatus(ts("notifications.notificationsNeedReenableDevice"));
+        return;
+      }
+      const response = await fetch("/api/notifications/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nativeDeviceId ? { nativeDeviceId } : { webEndpoint }),
+      });
+      if (!response.ok) throw new Error(`Test push failed (${response.status}).`);
       trackClientEvent("notification_test_sent", { runtime: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web" });
       setNotificationStatus(ts("notifications.testNotificationSentBody"));
-      announceWorkflow(ts("notifications.testNotificationSent"), ts("notifications.testNotificationSentBody"), "success");
-    } catch {
+    } catch (error) {
+      console.error("Could not send test push", error);
       trackClientEvent("notification_enable_failed", { reason: "test_delivery_failed" });
       setNotificationStatus(ts("notifications.notificationSetupFailedBody"));
-      announceWorkflow(ts("notifications.notificationSetupFailed"), ts("notifications.notificationSetupFailedBody"), "error");
     } finally {
       setNotificationBusy(false);
     }
@@ -11982,7 +12040,7 @@ function startFirstRunGuestFlow() {
   }
 
   const selfHealNotificationSubscription = useEffectEvent(async (trigger: "status_load" | "focus") => {
-    if (!user) {
+    if (!user || authStatus !== "signed-in" || notificationBusy || readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id)) {
       return false;
     }
     if (notificationSelfHealInFlightRef.current) {
@@ -11990,6 +12048,7 @@ function startFirstRunGuestFlow() {
     }
 
     notificationSelfHealInFlightRef.current = true;
+    setNotificationBusy(true);
     try {
       if (isNativePushShell()) {
         const permission = await PushNotifications.checkPermissions().catch(() => ({ receive: "prompt" as const }));
@@ -12058,6 +12117,7 @@ function startFirstRunGuestFlow() {
       return false;
     } finally {
       notificationSelfHealInFlightRef.current = false;
+      setNotificationBusy(false);
     }
   });
 
@@ -12115,12 +12175,10 @@ function startFirstRunGuestFlow() {
       }
       if (!notificationsEnabled) {
         setNotificationStatus(ts('notifications.preferencesSyncedBody'));
-        announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
         return;
       }
       if (isNativePushShell()) {
         setNotificationStatus(ts('notifications.preferencesSyncedBody'));
-        announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
         return;
       }
       const registration = await getReliableServiceWorkerRegistration();
@@ -12137,7 +12195,6 @@ function startFirstRunGuestFlow() {
       }
       persistNotificationSubscriptionRefreshAt();
       setNotificationStatus(ts('notifications.preferencesSynced'));
-      announceWorkflow(ts('notifications.notificationTimingSaved'), ts('notifications.notificationTimingSavedBody').replace('{time}', notificationTimeLabel(nextTiming.preferredLocalHour, preferences.language)), "success");
     } catch {
       setNotificationStatus(ts('notifications.preferencesSavedLocallyBody'));
     } finally {
@@ -13496,6 +13553,19 @@ function startFirstRunGuestFlow() {
         </aside>
 
         <section className="min-w-0">
+          {activeView === "companion" && homeSection === "today" && foregroundPush && user?.id === foregroundPush.userId ? (
+            <aside className="mb-4 flex items-start gap-2 rounded-xl border px-3 py-2 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{foregroundPush.title}</p>
+                <p className="break-words" style={{ color: theme.textSecondary }}>{foregroundPush.body}</p>
+                <button type="button" className="min-h-11 font-semibold underline" onClick={() => {
+                  openNativePush(foregroundPush.data);
+                  setForegroundPush(null);
+                }}>{ts("journey.open")}</button>
+              </div>
+              <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full" aria-label={ts("labels.dismissWorkflowNotice")} onClick={() => setForegroundPush(null)}><X size={16} /></button>
+            </aside>
+          ) : null}
           <section
             ref={workspaceRef}
             tabIndex={-1}
@@ -13853,6 +13923,7 @@ function startFirstRunGuestFlow() {
                       notificationAccountEnabled={notificationAccountEnabled}
                       notificationDeviceSubscribed={notificationDeviceSubscribed}
                       notificationStatus={notificationStatus}
+                      notificationPermission={notificationPermission}
                       notificationDiagnostics={notificationDiagnostics}
                       notificationBusy={notificationBusy}
                       notificationTiming={notificationTiming}
@@ -14916,7 +14987,7 @@ function WorkflowNotice({
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto rounded-[1rem] border px-3 py-2.5 shadow-lg backdrop-blur-xl" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
+      <div className="rounded-[1rem] border px-3 py-2.5 shadow-lg backdrop-blur-xl" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.text }}>
         <div className="flex items-start gap-2.5">
           <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.bg, color: colors.border }}>
             <span className="size-2 rounded-full" style={{ backgroundColor: colors.border }} />
@@ -14931,7 +15002,7 @@ function WorkflowNotice({
                   notice.action!.onClick();
                   onClose();
                 }}
-                className="mt-1.5 h-8 rounded-full px-3 text-[10px] font-semibold transition"
+                className="pointer-events-auto mt-1.5 min-h-11 rounded-full px-3 text-xs font-semibold transition"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 {notice.action.label}
@@ -14941,7 +15012,7 @@ function WorkflowNotice({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-7 shrink-0 place-items-center rounded-full border transition"
+            className="pointer-events-auto grid size-11 shrink-0 place-items-center rounded-full border transition"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             aria-label={ts('labels.dismissWorkflowNotice')}
           >
@@ -16707,6 +16778,7 @@ function AccountPanel({
   notificationAccountEnabled,
   notificationDeviceSubscribed,
   notificationStatus,
+  notificationPermission,
   notificationDiagnostics,
   notificationBusy,
   notificationTiming,
@@ -16784,6 +16856,7 @@ function AccountPanel({
   notificationAccountEnabled: boolean;
   notificationDeviceSubscribed: boolean;
   notificationStatus: string;
+  notificationPermission: NotificationPermission;
   notificationDiagnostics: NotificationDiagnostics | null;
   notificationBusy: boolean;
   notificationTiming: NotificationTiming;
@@ -17046,7 +17119,8 @@ function AccountPanel({
           accountEnabled={notificationAccountEnabled}
           deviceSubscribed={notificationDeviceSubscribed}
           configured={notificationsConfigured}
-          permission={getBrowserNotificationPermission()}
+          permission={notificationPermission}
+          status={notificationStatus}
           busy={notificationBusy}
           timing={notificationTiming}
           diagnostics={notificationDiagnostics}
@@ -17057,7 +17131,6 @@ function AccountPanel({
           onSendTest={onSendTestNotification}
           onRequestSignIn={onRequestSignInForNotifications}
         />
-        {notificationStatus ? <p role="status" className="text-sm" style={{ color: theme.textSecondary }}>{notificationStatus}</p> : null}
         </>
       ) : null}
 
@@ -23257,6 +23330,7 @@ function NotificationPanel({
   configured,
   permission,
   busy,
+  status,
   timing,
   diagnostics,
   onPreferenceChange,
@@ -23277,6 +23351,7 @@ function NotificationPanel({
   configured: boolean;
   permission: NotificationPermission;
   busy: boolean;
+  status: string;
   timing: NotificationTiming;
   diagnostics: NotificationDiagnostics | null;
   onPreferenceChange: (patch: Partial<UserPreferences>) => void;
@@ -23293,7 +23368,7 @@ function NotificationPanel({
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const unsupported =
     typeof window !== "undefined" &&
-    (!NATIVE_WEB_BUNDLE && (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)));
+    (!isNativePushShell() && (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)));
   const enableDisabled = busy || !user || !configured || unsupported || permission === "denied";
   const switchDisabled = enabled ? busy : enableDisabled;
   const signedIn = Boolean(user);
@@ -23501,6 +23576,7 @@ function NotificationPanel({
         </section>
       )}
 
+      <p role="status" className="text-sm empty:hidden" style={{ color: theme.textSecondary }}>{status}</p>
       <section className="space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {signedIn && enabled && deviceSubscribed ? (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: theme.borderLight }}>
@@ -27215,7 +27291,7 @@ function CompanionPanel({
                   type="button"
                   onClick={onToggleAutoFit}
                   aria-pressed={autoFitEnabled}
-                  aria-label={ts('modeSuggestion.autoFitActive')}
+                  aria-label={ts('modeSuggestion.autoFitLabel')}
                   className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-medium transition active:scale-95"
                   style={{ color: autoFitEnabled ? accessibleAccentText(theme) : theme.textMuted }}
                 >
@@ -27230,7 +27306,7 @@ function CompanionPanel({
                   >
                     <Sparkles size={12} aria-hidden="true" />
                   </motion.span>
-                  {autoFitEnabled ? ts('modeSuggestion.autoFitActive') : null}
+                  {ts('modeSuggestion.autoFitLabel')}
                 </button>
               </div>
               <div className="relative">
@@ -27302,7 +27378,7 @@ function CompanionPanel({
                     </div>
                     <p className="line-clamp-2 flex min-w-0 items-start gap-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
                       <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: theme.accentGold }} aria-hidden="true" />
-                      <span>{activeAutoModeSwitch.reason || ts('modeSuggestion.autoUsing').replace('{mode}', suggestedModeLabel)}</span>
+                      <span>{ts('modeSuggestion.autoUsing').replace('{mode}', suggestedModeLabel)}</span>
                     </p>
                   </div>
                   <motion.button
@@ -27395,6 +27471,9 @@ function CompanionPanel({
                 type="submit"
                 disabled={isWorking}
                 aria-busy={isWorking}
+                onPointerDown={(event) => {
+                  if (event.pointerType === "touch") event.preventDefault();
+                }}
                 onPointerUp={(event) => {
                   if (event.pointerType !== "touch") return;
                   event.preventDefault();
@@ -28756,7 +28835,7 @@ function ModeSelectorJourney({
       </div>
       <div className="mt-1 text-center" role="status" aria-live="polite" aria-atomic="true">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-          {modeLabel} · {ts('modeSuggestion.autoFitActive')}
+          {modeLabel} · {ts('modeSuggestion.autoFitLabel')}
         </p>
         <AnimatePresence mode="wait" initial={false}>
           <motion.p

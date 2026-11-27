@@ -11,6 +11,26 @@ type ModeSuggestionContext = {
   followUp?: boolean;
 };
 
+// These cues describe an expressed goal, not a condition inferred from emotion.
+const FOCUSED_GOALS: Array<{ mode: Mode; cue: RegExp }> = [
+  { mode: MODE_KEYS.LIFE, cue: /\b(?:repair|rebuild|protect|save|restore|heal)\b.{0,45}\b(?:marriage|friendship|health|relationship(?! with (?:my |our |the )?(?:boss|manager|team|coworker))|trust with (?:my |our )?(?:spouse|partner|family|friend|child))\b|\b(?:reconstruir|reparar|salvar|proteger)\b.{0,45}\b(?:matrimonio|relacion|casamento|relacionamento)\b|\b(?:reparer|sauver|reconstruire)\b.{0,45}\b(?:couple|mariage)\b/u },
+  { mode: MODE_KEYS.PURPOSE, cue: /\b(?:stop|quit|learn not to)\b.{0,45}\b(?:tying|basing|measuring|judging|defining)\b.{0,45}\b(?:worth|value|identity)\b|\b(?:who i am|my worth|my value)\b.{0,30}\b(?:depends on|is tied to)\b/u },
+  { mode: MODE_KEYS.GENEROSITY, cue: /\b(?:say no|set (?:a )?limit|set boundaries)\b.{0,70}\b(?:lend|giving|bail(?:ing)? out|financial help|asking for money)\b|\b(?:decir que no|poner limites)\b.{0,65}\b(?:prestar|dinero|ayuda economica)\b/u },
+  { mode: MODE_KEYS.MONEY, cue: /\b(?:cover|make|pay)\b.{0,30}\b(?:rent|mortgage|bills|essentials)\b|\b(?:stretch|balance|rebuild)\b.{0,35}\b(?:budget|savings)\b/u },
+  { mode: MODE_KEYS.WORK, cue: /\b(?:negotiate|renegotiate|reduce|prioritize)\b.{0,40}\b(?:workload|deadlines?|hours|responsibilities|job duties)\b/u },
+];
+
+const LOCALIZED_GOALS: Record<Mode, string[]> = {
+  Life: ["reconstruir la confianza con mi pareja", "réparer mon couple", "meine ehe retten", "reconstruir a confiança no meu casamento", "إصلاح زواجي", "gyara aurena", "idozi alụmdi na nwunye m", "tún ìgbéyàwó mi ṣe", "अपनी शादी कैसे बचाऊँ", "ayusin ang pagsasama namin"],
+  Work: ["renegociar mi carga de trabajo", "renégocier ma charge de travail", "meine arbeitsbelastung neu verhandeln", "renegociar minha carga de trabalho", "إعادة التفاوض بشأن عبء عملي", "sake tattauna nauyin aikina", "kparịta ibu ọrụ m ọzọ", "tún jíròrò ẹrù iṣẹ́ mi", "काम का बोझ कम करने की बात कैसे करूँ", "muling pag-usapan ang dami ng trabaho ko"],
+  Purpose: ["dejar de medir mi valor por mis logros", "arrêter de mesurer ma valeur à mes réussites", "meinen wert nicht mehr an meiner leistung messen", "parar de medir meu valor pelas minhas conquistas", "أتوقف عن قياس قيمتي بإنجازاتي", "daina auna kimata da nasarorina", "kwụsị iji ihe m rụzuru tụọ uru m", "dáwọ́ wíwọ̀n iyì mi pẹ̀lú àṣeyọrí mi dúró", "अपनी उपलब्धियों से अपना मूल्य आँकना कैसे छोड़ूँ", "itigil ang pagsukat ng halaga ko sa mga tagumpay ko"],
+  Money: ["pagar el alquiler", "payer mon loyer", "meine miete bezahlen", "pagar meu aluguel", "دفع الإيجار", "biya kuɗin haya", "kwụọ ụgwọ ụlọ", "san owó ilé", "किराया कैसे चुकाऊँ", "bayaran ang upa"],
+  Generosity: ["poner límites a los préstamos", "poser des limites aux prêts", "beim geldleihen grenzen setzen", "impor limites aos empréstimos", "أضع حدودا للإقراض", "sanya iyaka ga aron kuɗi", "tinye oke n'ibinye ego", "fi ààlà sí yíyá owó", "उधार देने की सीमा कैसे तय करूँ", "magtakda ng hangganan sa pagpapautang"],
+};
+
+const ASK_START = /^(?:how|what|should|can|i (?:want|need) to|como|que puedo|comment|wie|كيف|ta yaya|kedu ka|bawo ni|paano)(?=\s)/u;
+const HINDI_ASK = /(?:^|\s)(?:कैसे|क्या)(?=\s|$)/u;
+
 type ModeSignals = {
   phrases: string[];
   terms: string[];
@@ -199,11 +219,14 @@ const SIGNALS: Record<Mode, ModeSignals> = {
 };
 
 function normalize(value: string) {
-  return value.toLocaleLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim();
+  return value.toLowerCase().normalize("NFKD")
+    .replace(/(\p{Script=Latin})\p{M}+/gu, "$1")
+    .replace(/[\u064b-\u065f\u0670]/gu, "")
+    .replace(/[‘’]/gu, "'").replace(/\s+/gu, " ").trim();
 }
 
 function wordSet(value: string) {
-  return new Set(normalize(value).match(/[\p{L}\p{M}\p{N}]+/gu) ?? []);
+  return new Set(value.match(/[\p{L}\p{M}\p{N}]+/gu) ?? []);
 }
 
 function hasConcept(words: Set<string>, concepts: string[]) {
@@ -214,7 +237,9 @@ function hasConcept(words: Set<string>, concepts: string[]) {
 }
 
 function scoreMode(question: string, words: Set<string>, signals: ModeSignals) {
-  const phraseMatches = new Set(signals.phrases.map(normalize).filter((phrase) => question.includes(phrase)));
+  const key = (value: string) => ` ${[...(value.match(/[\p{L}\p{M}\p{N}']+/gu) ?? [])].join(" ")} `;
+  const questionKey = key(question);
+  const phraseMatches = new Set(signals.phrases.map(normalize).filter((phrase) => questionKey.includes(key(phrase))));
   const termMatches = new Set(signals.terms.map(normalize).filter((term) => words.has(term)));
   const contextPairMatches = (signals.contextPairs ?? []).filter(
     (pair) => hasConcept(words, pair.intent) && hasConcept(words, pair.context),
@@ -227,6 +252,31 @@ function scoreMode(question: string, words: Set<string>, signals: ModeSignals) {
   };
 }
 
+function focusedGoals(question: string) {
+  const asks = question.split(/[.!?¿؟;।]+|\s+(?:but|pero|mas|mais|aber|لكن|amma|mana|sugbon|लेकिन)\s+/u)
+    .map((clause) => clause.trim())
+    .filter((clause) => ASK_START.test(clause) || HINDI_ASK.test(clause))
+    .map((clause) => clause.split(/\s+(?:without|rather than|instead of|sin|sans|sem|ohne|دون|ba tare da|n'eghi|lai|nang hindi)\s+/u, 1)[0]);
+  return FOCUSED_GOALS.filter(({ mode, cue }) => asks.some((clause) =>
+    cue.test(clause) || LOCALIZED_GOALS[mode].some((goal) => ` ${clause} `.includes(` ${normalize(goal)} `)),
+  ));
+}
+
+export function modeFitExplicitGoal(question: string) {
+  const goals = focusedGoals(normalize(question));
+  return goals.length === 1 ? goals[0].mode : null;
+}
+
+export function hasCompetingModeFitGoals(question: string) {
+  return focusedGoals(normalize(question)).length > 1;
+}
+
+export function isModeFitContinuation(question: string) {
+  const normalized = normalize(question).replace(/^[¿¡]+/u, "");
+  return /^(?:and |but |so )?(?:what (?:about|if) (?:it|that|this|they|he|she|the other option)\b|how (?:do|can|should) i (?:say|do|handle|start) (?:it|that|this)\b|can you (?:say more|explain that)\b|tell me more\b)/u.test(normalized)
+    || /^(?:que pasa si (?:ellos|ellas|eso)|et s(?:'ils|'elles|i cela)|was,? wenn (?:sie|das)|e se (?:eles|elas|isso)|ماذا لو|me zai faru idan (?:su|hakan)|gini ma o buru na ha|ki lo sele ti won ba|अगर वे|paano kung (?:sila|iyon))(?=$|[^\p{L}\p{M}])/u.test(normalized);
+}
+
 export function suggestModeForQuestion(
   question: string,
   currentMode: Mode,
@@ -235,6 +285,13 @@ export function suggestModeForQuestion(
   const normalizedQuestion = normalize(question);
   const words = wordSet(normalizedQuestion);
   if (normalizedQuestion.length < 12 || words.size < 3) return null;
+  const goals = focusedGoals(normalizedQuestion);
+  if (goals.length > 1) return null;
+  if (goals.length === 1) {
+    const goal = goals[0].mode;
+    return goal === currentMode ? null : { mode: goal, confidence: "very_high", evidence: "context_pair" };
+  }
+  if (isModeFitContinuation(normalizedQuestion)) return null;
 
   const ranked = (Object.keys(SIGNALS) as Mode[])
     .map((mode) => ({ mode, ...scoreMode(normalizedQuestion, words, SIGNALS[mode]) }))

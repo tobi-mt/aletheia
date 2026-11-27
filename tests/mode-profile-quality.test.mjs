@@ -27,7 +27,7 @@ test("every wisdom mode has a complete and distinct intelligence profile", () =>
 test("Ask keeps lens guidance inside the existing selector without a duplicate panel", () => {
   const panel = app.slice(app.indexOf("function CompanionPanel"), app.indexOf("function ScriptureChips"));
   assert.doesNotMatch(panel, /sectionId="active-mode-intelligence"/);
-  assert.match(panel, /activeAutoModeSwitch\.reason/);
+  assert.match(panel, /modeSuggestion\.autoUsing/);
   assert.match(panel, /modeSuggestion\.keep/);
 });
 

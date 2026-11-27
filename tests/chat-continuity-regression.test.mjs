@@ -39,13 +39,13 @@ test("mode-fit and counsel use one authoritative server pipeline", () => {
   assert.match(app, /autoFit: options\.autoFit \?\? autoFitEnabled/);
   assert.match(app, /aletheia_auto_fit_enabled/);
   assert.match(app, /aria-pressed=\{autoFitEnabled\}/);
-  assert.match(app, /data\.reply\.mode !== questionMode/);
+  assert.match(app, /registerAutoFit\(data\.reply, data\.userMessage\?\.id\)/);
   assert.match(app, /data\.reply\.intelligence = data\.intelligence/);
   assert.match(submit, /modeFitSubmissionInFlightRef\.current/);
   assert.match(submit, /setIsSubmittingQuestion\(true\)/);
-  assert.match(panel, /modeSuggestion\.autoFitActive/);
+  assert.match(panel, /modeSuggestion\.autoFitLabel/);
   assert.doesNotMatch(app, /answer-lens-intelligence-/);
-  assert.match(panel, /activeAutoModeSwitch\.reason/);
+  assert.match(panel, /ts\('modeSuggestion\.autoUsing'\)\.replace\('\{mode\}', suggestedModeLabel\)/);
   assert.match(panel, /modeSuggestion\.keep/);
   assert.match(app, /autoFit: false/);
   assert.match(app, /supersedeMessageIds/);

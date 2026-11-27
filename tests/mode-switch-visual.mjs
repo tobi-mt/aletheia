@@ -6,7 +6,10 @@ import { chromium } from "playwright";
 const baseUrl = process.env.MODE_SWITCH_TEST_URL || "http://localhost:3000";
 const outputDir = path.resolve("test-results/mode-switch-visual");
 const freshConsentScenario = process.env.MODE_SWITCH_FRESH_CONSENT === "1";
-const testQuestion = "How do I become more productive at work?";
+const offlineScenario = process.env.MODE_SWITCH_OFFLINE === "1";
+const testQuestion = offlineScenario
+  ? "I'm worried about debt and covering rent. How can I renegotiate my workload?"
+  : "How do I become more productive at work?";
 await mkdir(outputDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
@@ -48,6 +51,10 @@ await page.route("**/api/chat", async (route) => {
   const keptOriginal = body.autoFit === false;
   const responseMode = keptOriginal ? "Money" : "Work";
   await new Promise((resolve) => setTimeout(resolve, 2800));
+  if (offlineScenario && !keptOriginal) {
+    await route.abort("internetdisconnected");
+    return;
+  }
   await route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -69,7 +76,7 @@ await page.route("**/api/chat", async (route) => {
   }).catch(() => undefined);
 });
 
-try {
+async function verifyJourney() {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.evaluate(({ freshConsentScenario }) => {
     localStorage.setItem("aletheia_preferences", JSON.stringify({
@@ -92,7 +99,7 @@ try {
   }
   await page.getByRole("button", { name: "Ask Aletheia", exact: true }).first().click();
   await page.locator("#companion-question-input").waitFor({ state: "visible", timeout: 10_000 });
-  const autoFitControl = page.getByRole("button", { name: "Auto-fit on", exact: true });
+  const autoFitControl = page.getByRole("button", { name: "Auto-fit", exact: true });
   assert.equal(await autoFitControl.getAttribute("aria-pressed"), "true");
   await autoFitControl.tap();
   assert.equal(await autoFitControl.getAttribute("aria-pressed"), "false");
@@ -111,10 +118,34 @@ try {
   } else {
     await page.waitForFunction(() => document.querySelector('#companion-question-input')?.closest('form')?.querySelector('button[type="submit"]')?.getAttribute('aria-busy') === 'true');
   }
-  assert.notEqual(await page.evaluate(() => document.activeElement?.id), "companion-question-input");
+  await page.waitForFunction(() => document.activeElement?.id !== "companion-question-input", undefined, { timeout: 3_000 });
   await page.getByTestId("mode-selector-journey").getByText("Retrieving grounded wisdom...", { exact: true }).waitFor({ state: "visible", timeout: 3_000 });
   const journeyBox = await page.getByTestId("mode-selector-journey").boundingBox();
   assert.ok(journeyBox && journeyBox.y >= 0 && journeyBox.y + journeyBox.height <= 852, "reasoning animation must remain inside the phone viewport");
+  if (offlineScenario) {
+    const transition = page.getByTestId("auto-mode-transition");
+    await transition.waitFor({ state: "visible" });
+    assert.match(await transition.innerText(), /Work/);
+    assert.doesNotMatch(await transition.innerText(), /\{mode\}/);
+    const inlineReference = /^(?:[1-3]\s)?[A-Za-z ]+ \d+:\d+(?:\s*[-–]\s*\d+)?$/u;
+    const evidence = page.getByRole("button", { name: inlineReference }).first();
+    await evidence.waitFor({ state: "visible" });
+    await evidence.click();
+    const reader = page.getByRole("dialog");
+    await reader.getByRole("button", { name: "Dive Deep", exact: true }).click();
+    await reader.getByRole("heading", { name: "Study Mode", exact: true }).waitFor({ state: "visible" });
+    await reader.getByRole("button", { name: "Close scripture quick read", exact: true }).click();
+    await page.getByRole("button", { name: "Keep Money", exact: true }).tap();
+    await page.getByText("ORIGINAL_MONEY_COUNSEL", { exact: true }).waitFor({ state: "visible" });
+    assert.equal(await page.getByRole("button", { name: inlineReference }).count(), 0);
+    assert.equal(await page.getByText(testQuestion, { exact: true }).count(), 1);
+    assert.deepEqual(chatRequests.map(({ mode, autoFit }) => ({ mode, autoFit })), [
+      { mode: "Money", autoFit: true },
+      { mode: "Money", autoFit: false },
+    ]);
+    console.log("PASS offline Auto-Fit, linked evidence, and keep-original replacement");
+    return;
+  }
   await page.screenshot({ path: path.join(outputDir, "00-reasoning-journey.png"), fullPage: false });
   await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).waitFor({ state: "visible", timeout: 5_000 }).catch(async (error) => {
     console.error({ chatRequests, body: (await page.locator("body").innerText()).slice(-3_000) });
@@ -122,7 +153,8 @@ try {
   });
   assert.deepEqual(chatRequests.map(({ mode, autoFit }) => ({ mode, autoFit })), [{ mode: "Money", autoFit: true }]);
   assert.equal(legacyClassifierCalls, 0);
-  assert.equal(await page.getByText("The central question concerns vocation, capacity, and sustainable effort.", { exact: true }).isVisible(), true);
+  assert.equal(await page.getByText("Using the Work lens for a better fit", { exact: true }).isVisible(), true);
+  assert.equal(await page.getByText("The central question concerns vocation, capacity, and sustainable effort.", { exact: true }).count(), 0);
   assert.equal(await page.locator('[data-testid^="answer-lens-intelligence"], [data-testid="active-mode-intelligence"]').count(), 0);
   const keepButton = page.getByRole("button", { name: "Keep Money", exact: true });
   assert.equal(await keepButton.isVisible(), true);
@@ -160,6 +192,10 @@ try {
 
   console.log(`PASS unified visual mode-switch and keep-original flow: ${chatRequests.length} chat requests, ${legacyClassifierCalls} classifier requests`);
   console.log(outputDir);
+}
+
+try {
+  await verifyJourney();
 } finally {
   await browser.close();
 }

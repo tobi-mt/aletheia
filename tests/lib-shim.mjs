@@ -44,6 +44,10 @@ export async function sendCounselCommentNotifications() {
 
 export async function recordDailyNotificationUnauthorizedHit() {}
 
+export async function sendTestWisdomNotification() {
+  throw new Error("Expected the test to supply a push delivery stub.");
+}
+
 export async function claimNotificationCronWindow() {
   return { claimed: true, windowKey: "test-window" };
 }

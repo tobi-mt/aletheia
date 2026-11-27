@@ -44,7 +44,7 @@
     "stay": "Ci gaba da {mode}",
     "autoUsing": "Ana amfani da hangen {mode} domin ya fi dacewa",
     "keep": "Ci gaba da {mode}",
-    "autoFitActive": "Daidaitawa ta atomatik tana kunne"
+    "autoFitLabel": "Zaɓi ta atomatik"
   },
   "trustLayer": "Matakin amincewa",
   "preferencesTitle": "Harshe da yanki",

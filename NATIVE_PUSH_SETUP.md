@@ -66,6 +66,12 @@ printenv | sort | rg '^(NATIVE_PUSH_APNS|NATIVE_PUSH_FCM|GOOGLE_APPLICATION_CRED
 
 ## Minimal QA Checklist
 
+- For the simulated native foreground and settings smoke test, run `UI_REGRESSION_BASE_URL=http://localhost:3000 node scripts/ui-push-regression.mjs` against a local app. This does not contact push providers.
+- Check OS permission and, on Android, the Aletheia notification channel. Permission alone does not mean the current installation is registered on the server.
+- In **Account → Notifications**, send a test from each device. Provider acceptance is not proof of delivery: confirm receipt on the device, including while the app is backgrounded and after a cold launch from a notification tap.
+- With two devices on one account, turn notifications off on one. Reopen it and confirm it stays off and that the other device still receives notifications.
+- Foreground routine reminders do not cover the app; new counsel and circle activity appears inline on Home. Fresh system notifications stay in the system tray when opening the app; expired notifications are discarded when the device makes the expiry metadata available.
+- Confirm the Railway scheduler is reaching the daily endpoint and check APNs, FCM, and Web Push configuration independently. A missing Web Push key must not stop native sends.
 - iOS: tap a daily wisdom push, a gratitude push, and a counsel/private comment push.
 - Android: tap a challenge nudge push, a daily wisdom push, and a counsel/private comment push.
 - PWA: tap the same notification types in the browser and confirm the correct in-app screen opens after the service worker click handler runs.
