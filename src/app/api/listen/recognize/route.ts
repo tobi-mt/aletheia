@@ -9,6 +9,7 @@ import { trackServerEvent } from "@/lib/analytics";
 import { normalizeMode } from "@/lib/wisdom-data";
 import type { WisdomListenResult } from "@/lib/wisdom-listen";
 import { one } from "@/lib/db";
+import { describeTranscriptionError, isUnreadableAudioError, prepareTranscriptionAudio } from "@/lib/listen-audio";
 
 export const runtime = "nodejs";
 
@@ -58,10 +59,15 @@ export async function POST(request: Request) {
   if (!(audio instanceof File) || !audio.size || audio.size > MAX_AUDIO_BYTES) return NextResponse.json({ errorCode: "listen_invalid_audio" }, { status: 400 });
   const baseType = audio.type.split(";")[0]?.toLowerCase();
   if (baseType && !SUPPORTED_AUDIO_TYPES.has(baseType)) return NextResponse.json({ errorCode: "listen_unsupported_audio" }, { status: 415 });
+  const prepared = await prepareTranscriptionAudio(audio, "wisdom-listen");
+  if (!prepared) {
+    await trackServerEvent({ eventName: "listen_recognition_failed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, failure_stage: "audio_container", labelled_type: baseType || "none" } });
+    return NextResponse.json({ errorCode: "listen_unreadable_audio" }, { status: 422 });
+  }
 
   try {
     const transcription = await client.audio.transcriptions.create({
-      file: audio,
+      file: prepared.file,
       model: process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe",
       language: language === "tl" ? "fil" : language,
       prompt: "Short sermon, Bible study, podcast, or trusted-counsel excerpt. Preserve Scripture wording, Bible book names, chapter and verse numbers, Hebrew and Greek names, and repeated phrases accurately. Do not silently omit a spoken reference.",
@@ -154,8 +160,11 @@ export async function POST(request: Request) {
     await trackServerEvent({ eventName: "listen_recognition_completed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, candidate_count: matches.length, rejected_count: rejectedCandidateIds.size, interpretation_available: Boolean(counsel || application) } });
     return NextResponse.json({ result }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
-    console.error("Listen for Wisdom transcription failed", error);
-    await trackServerEvent({ eventName: "listen_recognition_failed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, failure_stage: "transcription" } });
-    return NextResponse.json({ errorCode: "listen_transcription_failed" }, { status: 502 });
+    const unreadable = isUnreadableAudioError(error);
+    console.error("Listen for Wisdom transcription failed", { ...describeTranscriptionError(error), container: prepared.container, labelledType: prepared.labelledType, audioBytes: audio.size });
+    await trackServerEvent({ eventName: "listen_recognition_failed", userId: user?.id ?? null, path: "/api/listen/recognize", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, failure_stage: unreadable ? "audio_decode" : "transcription", container: prepared.container, labelled_type: prepared.labelledType || "none" } });
+    return unreadable
+      ? NextResponse.json({ errorCode: "listen_unreadable_audio" }, { status: 422 })
+      : NextResponse.json({ errorCode: "listen_transcription_failed" }, { status: 502 });
   }
 }

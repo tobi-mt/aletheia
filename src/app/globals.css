@@ -647,6 +647,22 @@ html[data-theme="dark"] .theme-dark-root [style*="background-color: #d0ad55"] {
   box-shadow: none !important;
 }
 
+/* The surrounding pill carries the focus ring so the bare input never shows an inner box. */
+.app-shell .bible-reader-field:focus-visible {
+  outline: none;
+}
+
+.app-shell label:has(> .bible-reader-field:focus-visible) {
+  outline: 2px solid var(--aletheia-control-ink, #775b1f);
+  outline-offset: 2px;
+}
+
+.bible-reader-field::-webkit-search-cancel-button,
+.bible-reader-field::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .theme-dark-root [class*="bg-[#edf2ee]"],
 .theme-dark-root [class*="bg-[#f5edda]"],
 .theme-dark-root [class*="bg-[#fff8dc]"],

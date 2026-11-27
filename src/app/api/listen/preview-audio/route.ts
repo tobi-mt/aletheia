@@ -7,6 +7,7 @@ import { retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMat
 import { normalizeListenTranscriptForRetrieval } from "@/lib/listen-language-normalization";
 import { bibleTranslations, type BibleTranslation } from "@/lib/localization";
 import { trackServerEvent } from "@/lib/analytics";
+import { describeTranscriptionError, isUnreadableAudioError, prepareTranscriptionAudio } from "@/lib/listen-audio";
 
 export const runtime = "nodejs";
 
@@ -44,10 +45,13 @@ export async function POST(request: Request) {
   if (!(audio instanceof File) || !audio.size || audio.size > MAX_AUDIO_BYTES) return NextResponse.json({ candidates: [] }, { status: 400 });
   const baseType = audio.type.split(";")[0]?.toLowerCase();
   if (baseType && !SUPPORTED_AUDIO_TYPES.has(baseType)) return NextResponse.json({ candidates: [] }, { status: 415 });
+  // Mid-recording snapshots can be partial; skip them quietly rather than spending a transcription call.
+  const prepared = await prepareTranscriptionAudio(audio, "wisdom-preview");
+  if (!prepared) return NextResponse.json({ candidates: [] }, { status: 422 });
 
   try {
     const transcription = await client.audio.transcriptions.create({
-      file: audio,
+      file: prepared.file,
       model: process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe",
       language: language === "tl" ? "fil" : language,
       prompt: "Short sermon or Bible quotation. Preserve Scripture wording, Bible book names, chapter and verse numbers, and repeated phrases accurately.",
@@ -63,7 +67,8 @@ export async function POST(request: Request) {
     await trackServerEvent({ eventName: "listen_preview_processed", userId: user?.id ?? null, path: "/api/listen/preview-audio", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, candidate_count: candidates.length, outcome: "success" } });
     return NextResponse.json({ transcript, candidates }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
-    console.error("Listen for Wisdom live preview failed", error);
+    // Undecodable partial snapshots are expected during live preview; only real failures are logged.
+    if (!isUnreadableAudioError(error)) console.error("Listen for Wisdom live preview failed", describeTranscriptionError(error));
     await trackServerEvent({ eventName: "listen_preview_processed", userId: user?.id ?? null, path: "/api/listen/preview-audio", source: "server", metadata: { duration_ms: Math.round(performance.now() - startedAt), audio_bytes: audio.size, clip_seconds: durationSeconds, language, translation: bibleTranslation, candidate_count: 0, outcome: "failure" } });
     return NextResponse.json({ candidates: [] }, { status: 502 });
   }

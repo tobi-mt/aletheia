@@ -33,7 +33,7 @@ export async function updateUserStreak(userId: string): Promise<number> {
       last_use_date: string | null;
       streak_achievements: Record<number, StreakAchievement> | string | null;
     }>(
-      `SELECT consecutive_use_days, last_use_date, streak_achievements 
+      `SELECT consecutive_use_days, last_use_date::text AS last_use_date, streak_achievements 
        FROM users WHERE id = ?`,
       [userId]
     );
@@ -87,7 +87,7 @@ export async function getUserStreak(userId: string): Promise<StreakData> {
       last_use_date: string | null;
       streak_achievements: Record<number, StreakAchievement> | string | null;
     }>(
-      `SELECT consecutive_use_days, last_use_date, streak_achievements 
+      `SELECT consecutive_use_days, last_use_date::text AS last_use_date, streak_achievements 
        FROM users WHERE id = ?`,
       [userId]
     );

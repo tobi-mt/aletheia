@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { normalizeAvatarUrl } from "@/lib/avatars";
+import { MAX_AVATAR_DATA_URL_LENGTH, normalizeAvatarUrl } from "@/lib/avatars";
 import { run } from "@/lib/db";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
@@ -10,13 +10,18 @@ type ProfileBody = {
   name?: string | null;
 };
 
-export async function PUT(request: Request) {
-  const user = await getCurrentUser();
+// The body must fit the largest accepted avatar data URL plus the name and JSON envelope.
+const MAX_PROFILE_BODY_BYTES = MAX_AVATAR_DATA_URL_LENGTH + 4_000;
+
+const profileDeps = { getCurrentUser, run };
+
+export async function putProfile(request: Request, deps = profileDeps) {
+  const user = await deps.getCurrentUser();
   if (!user) {
     return apiError(401, "sign_in_required", "Sign in to update your profile.");
   }
 
-  const parsedBody = await readJsonBody<ProfileBody>(request, { maxBytes: 2_000, emptyBody: {} });
+  const parsedBody = await readJsonBody<ProfileBody>(request, { maxBytes: MAX_PROFILE_BODY_BYTES, emptyBody: {} });
   if (!parsedBody.ok) {
     return parsedBody.response;
   }
@@ -39,7 +44,7 @@ export async function PUT(request: Request) {
     return apiError(400, "invalid_input", "Use a name between 1 and 80 characters.");
   }
 
-  await run(
+  await deps.run(
     "UPDATE users SET avatar_url = CASE WHEN ? THEN ? ELSE avatar_url END, name = CASE WHEN ? THEN ? ELSE name END WHERE id = ?",
     hasAvatarField,
     avatarUrl,
@@ -55,4 +60,8 @@ export async function PUT(request: Request) {
       avatarUrl: hasAvatarField ? avatarUrl : user.avatarUrl,
     },
   });
+}
+
+export async function PUT(request: Request) {
+  return putProfile(request);
 }

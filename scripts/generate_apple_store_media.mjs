@@ -84,13 +84,6 @@ const SCREENS = [
     },
   },
   {
-    file: "08-reflect-formation.png",
-    action: async (page) => {
-      await clickPrimaryNav(page, 2);
-      await page.getByRole("tab", { name: "Formation", exact: true }).click();
-    },
-  },
-  {
     file: "09-library-formation.png",
     action: async (page) => {
       await clickPrimaryNav(page, 3);

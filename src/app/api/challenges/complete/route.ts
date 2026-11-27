@@ -53,6 +53,15 @@ export async function POST(request: Request) {
       now
     );
 
+    await run(
+      `INSERT INTO challenge_enrollments (user_id, challenge_id, started_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (user_id, challenge_id) DO NOTHING`,
+      user.id,
+      challengeId,
+      now
+    ).catch(() => undefined);
+
     await trackServerEvent({
       eventName: "challenge_day_completed",
       userId: user.id,

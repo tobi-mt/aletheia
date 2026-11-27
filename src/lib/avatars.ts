@@ -1,5 +1,5 @@
 const MAX_AVATAR_URL_LENGTH = 600;
-const MAX_AVATAR_DATA_URL_LENGTH = 2_500_000;
+export const MAX_AVATAR_DATA_URL_LENGTH = 2_500_000;
 const MAX_AVATAR_SVG_DATA_URL_LENGTH = 24_000;
 const SAFE_DATA_IMAGE_PREFIX = "data:image/";
 const SAFE_DATA_SVG_PREFIX = "data:image/svg+xml,";
@@ -242,4 +242,10 @@ export function defaultAvatarDataUrl(seed: string, label: string) {
 </svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+// WebKit (iOS) cannot encode WebP and silently returns a much larger PNG, so fall back to JPEG there.
+export function encodeAvatarCanvas(canvas: { toDataURL(type?: string, quality?: number): string }, quality = 0.86) {
+  const webp = canvas.toDataURL("image/webp", quality);
+  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", quality);
 }

@@ -8,17 +8,28 @@ type StreakRow = {
   streak_achievements: Record<string, { milestone: number; unlockedAt: string }> | null;
 };
 
+// DATE is read as text: node-pg turns DATE into local midnight, which shifts the day
+// in timezones ahead of UTC and made every app open count as a new streak day.
+const STREAK_SELECT = `SELECT consecutive_use_days, last_use_date::text AS last_use_date, streak_achievements FROM users WHERE id = ?`;
+
+const streakDeps = { getCurrentUser, one, run };
+
 export async function GET() {
-  const user = await getCurrentUser();
+  return getStreak();
+}
+
+export async function POST() {
+  return postStreak();
+}
+
+export async function getStreak(deps = streakDeps) {
+  const user = await deps.getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const row = await one<StreakRow>(
-      `SELECT consecutive_use_days, last_use_date, streak_achievements FROM users WHERE id = ?`,
-      user.id
-    );
+    const row = await deps.one<StreakRow>(STREAK_SELECT, user.id);
 
     return NextResponse.json({
       consecutiveDays: row?.consecutive_use_days || 0,
@@ -31,26 +42,23 @@ export async function GET() {
   }
 }
 
-export async function POST() {
-  const user = await getCurrentUser();
+export async function postStreak(deps = streakDeps, now = new Date()) {
+  const user = await deps.getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     // Get current user data
-    const row = await one<StreakRow>(
-      `SELECT consecutive_use_days, last_use_date, streak_achievements FROM users WHERE id = ?`,
-      user.id
-    );
+    const row = await deps.one<StreakRow>(STREAK_SELECT, user.id);
 
     if (!row) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const lastUseDate = row.last_use_date ? new Date(row.last_use_date).toISOString().split("T")[0] : null;
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const today = now.toISOString().slice(0, 10);
+    const lastUseDate = row.last_use_date ? String(row.last_use_date).slice(0, 10) : null;
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
 
     let newStreak = row.consecutive_use_days || 0;
     const newAchievements: Record<string, { milestone: number; unlockedAt: string }> = {
@@ -73,14 +81,14 @@ export async function POST() {
         if (newStreak >= milestone && !newAchievements[milestone]) {
           newAchievements[milestone] = {
             milestone,
-            unlockedAt: new Date().toISOString(),
+            unlockedAt: now.toISOString(),
           };
           unlockedMilestones.push(milestone);
         }
       }
 
       // Update user
-      await run(
+      await deps.run(
         `UPDATE users SET consecutive_use_days = ?, last_use_date = ?, streak_achievements = ?, updated_at = NOW() WHERE id = ?`,
         newStreak,
         today,

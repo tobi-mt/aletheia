@@ -5,18 +5,16 @@ import test from "node:test";
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
 const wisdomIntelligence = readFileSync(new URL("../src/lib/wisdom-intelligence.ts", import.meta.url), "utf8");
 
-test("Reflect replaces Wisdom Check with focused gratitude, journal, and formation history sections", () => {
+test("Reflect stays focused on gratitude and journal; formation history lives in Library", () => {
   const reflectPanel = app.slice(app.indexOf("function ReflectPanel"), app.indexOf("function GratitudeEntryModal"));
   assert.doesNotMatch(reflectPanel, /key: "check"/);
   assert.doesNotMatch(reflectPanel, /<WisdomCheck/);
   assert.match(reflectPanel, /id="reflect-gratitude"/);
   assert.match(reflectPanel, /id="reflect-journal"/);
-  assert.match(reflectPanel, /key: "formation"/);
-  assert.match(reflectPanel, /<FormationReflectionHistory/);
-  assert.match(reflectPanel, /id="reflect-formation"/);
+  assert.doesNotMatch(reflectPanel, /key: "formation"/);
+  assert.doesNotMatch(app, /FormationReflectionHistory|id="reflect-formation"/);
   assert.doesNotMatch(reflectPanel, /FormationRailSection/);
   assert.match(reflectPanel, /reflectSection === "gratitude" \? \(/);
-  assert.match(reflectPanel, /reflectSection === "journal" \? \(/);
   assert.doesNotMatch(reflectPanel, /scrollTargetBelowTopChrome\(target\)/);
 });
 

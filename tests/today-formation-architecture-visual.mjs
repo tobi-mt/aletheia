@@ -55,18 +55,18 @@ try {
   await page.getByText("Continue your current practice", { exact: true }).click();
   await page.getByText("Formation Practices", { exact: true }).waitFor();
   await page.getByText("Shared circle", { exact: true }).waitFor();
-  await page.screenshot({ path: path.join(outputDir, "02-library-formation-workspace.png"), fullPage: true });
+  await page.getByText("All practices", { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(outputDir, "02-library-formation-practice.png"), fullPage: true });
+
+  await page.getByText("All practices", { exact: true }).click();
+  await page.getByRole("tab", { name: "History", exact: true }).click();
+  await page.getByText("I noticed an unexpected kindness.", { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(outputDir, "03-library-formation-history.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Reflect", exact: true }).last().click();
-  await page.getByRole("tab", { name: "Formation", exact: true }).waitFor({ timeout: 5_000 }).catch(async (error) => {
-    console.error((await page.locator("body").innerText()).slice(-3_000));
-    throw error;
-  });
-  await page.getByRole("tab", { name: "Formation", exact: true }).click();
-  await page.getByText("I noticed an unexpected kindness.", { exact: true }).waitFor();
-  await page.screenshot({ path: path.join(outputDir, "03-reflect-formation-history.png"), fullPage: true });
+  assert.equal(await page.getByRole("tab", { name: "Formation", exact: true }).count(), 0);
 
-  console.log(`PASS Today → Library Formation → Reflect history architecture`);
+  console.log(`PASS Today → Library Formation practice → Library Formation history`);
   console.log(outputDir);
 } finally {
   await browser.close();

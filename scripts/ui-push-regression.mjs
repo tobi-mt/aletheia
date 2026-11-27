@@ -118,8 +118,8 @@ try {
   await account.click();
   await destination.click();
   const toggle = panel.getByRole("switch", { name: "Daily wisdom notifications" });
-  await panel.getByRole("button", { name: "Send a test", exact: true }).click();
-  await panel.getByText("Aletheia could not finish device subscription. Please try again.", { exact: true }).waitFor();
+  await panel.getByRole("button", { name: "Send test", exact: true }).click();
+  await panel.getByText("The test could not be sent right now. Please try again in a moment.", { exact: true }).waitFor();
   assert.deepEqual(testTarget, { nativeDeviceId: "qa-device" });
   assert.equal(await page.evaluate(() => window.qaPush.registrationCount), 1);
   await toggle.click();

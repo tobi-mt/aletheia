@@ -25,7 +25,9 @@ async function findCircle(token: string) {
   return one<CircleRow>(
     `SELECT id, challenge_id, owner_user_id, invite_status
      FROM challenge_circles
-     WHERE invite_token_hash = ?`,
+     WHERE invite_token_hash = ?
+        OR id = (SELECT l.circle_id FROM challenge_circle_invite_links l WHERE l.token_hash = ?)`,
+    hashChallengeInviteToken(token),
     hashChallengeInviteToken(token)
   );
 }

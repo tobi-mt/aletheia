@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { normalizeSpokenScriptureReferences, retrieveVerifiedCuratedCandidates, retrieveVerifiedScriptureCandidates, retrieveVerifiedScriptureCandidatesForTranslation, verifiedCandidateMatchLabel } from "../src/lib/scripture-recognition.ts";
 import { normalizeStoredWisdomListenResult, wisdomListenDecisionNote, wisdomListenReflectionBody } from "../src/lib/wisdom-listen.ts";
+import { describeTranscriptionError, detectAudioContainer, isUnreadableAudioError, prepareTranscriptionAudio } from "../src/lib/listen-audio.ts";
 
 test("deterministic retrieval finds a directly quoted verse in the verified corpus", () => {
   const candidates = retrieveVerifiedScriptureCandidates("For God so loved the world that he gave his one and only Son", 5);
@@ -251,4 +252,67 @@ test("calibrated evaluation set separates quotations from ordinary speech", asyn
   const expectedCount = evaluations.filter((evaluation) => evaluation.expected).length;
   assert.ok(recognized / expectedCount >= 0.82, `recognition recall was ${recognized}/${expectedCount}`);
   assert.equal(falsePositives, 0, "ordinary speech must not be labeled as a quotation or likely paraphrase");
+});
+
+const signature = (...parts) => {
+  const bytes = new Uint8Array(32);
+  let offset = 0;
+  for (const part of parts) {
+    const chunk = typeof part === "string" ? [...part].map((char) => char.charCodeAt(0)) : part;
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+};
+
+test("audio containers are identified from their bytes, not the recorder label", () => {
+  assert.equal(detectAudioContainer(signature("RIFF", [0, 0, 0, 0], "WAVE")), "wav");
+  assert.equal(detectAudioContainer(signature([0x1a, 0x45, 0xdf, 0xa3])), "webm");
+  assert.equal(detectAudioContainer(signature([0, 0, 0, 0x1c], "ftypM4A ")), "mp4");
+  assert.equal(detectAudioContainer(signature([0, 0, 0, 0x1c], "ftyp3gp4")), "3gp");
+  assert.equal(detectAudioContainer(signature("OggS")), "ogg");
+  assert.equal(detectAudioContainer(signature("ID3")), "mp3");
+  assert.equal(detectAudioContainer(signature([0xff, 0xf1])), "aac");
+  assert.equal(detectAudioContainer(signature([0xff, 0xfb])), "mp3");
+  assert.equal(detectAudioContainer(new Uint8Array(32)), null);
+  assert.equal(detectAudioContainer(new Uint8Array([0x1a, 0x45])), null);
+});
+
+test("MP4 audio mislabelled as webm is re-labelled before reaching OpenAI", async () => {
+  const mislabelled = new File([signature([0, 0, 0, 0x1c], "ftypM4A ")], "wisdom-listen.webm", { type: "audio/webm" });
+  const prepared = await prepareTranscriptionAudio(mislabelled, "wisdom-listen");
+  assert.equal(prepared.container, "mp4");
+  assert.equal(prepared.labelledType, "audio/webm");
+  assert.equal(prepared.file.name, "wisdom-listen.m4a");
+  assert.equal(prepared.file.type, "audio/mp4");
+  assert.equal(prepared.file.size, mislabelled.size);
+  assert.equal(await prepareTranscriptionAudio(new File([new Uint8Array(64)], "x.webm", { type: "audio/webm" }), "x"), null);
+});
+
+test("undecodable audio is reported to the user as unreadable, and logs stay free of response headers", async () => {
+  const openAiRejection = Object.assign(new Error("400 Audio file might be corrupted or unsupported"), {
+    status: 400, code: "invalid_value", param: "file", requestID: "req_1",
+    headers: { "set-cookie": "__cf_bm=secret" },
+  });
+  assert.equal(isUnreadableAudioError(openAiRejection), true);
+  assert.equal(isUnreadableAudioError(Object.assign(new Error("rate limited"), { status: 429 })), false);
+  assert.equal(isUnreadableAudioError(Object.assign(new Error("aborted"), { code: "ECONNRESET" })), false);
+  const logged = JSON.stringify(describeTranscriptionError(openAiRejection));
+  assert.doesNotMatch(logged, /set-cookie|__cf_bm/);
+  assert.match(logged, /invalid_value/);
+
+  const [recognize, preview] = await Promise.all([
+    readFile(new URL("../src/app/api/listen/recognize/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/listen/preview-audio/route.ts", import.meta.url), "utf8"),
+  ]);
+  for (const route of [recognize, preview]) {
+    assert.match(route, /file: prepared\.file/);
+    assert.doesNotMatch(route, /file: audio,/);
+  }
+  assert.match(recognize, /errorCode: "listen_unreadable_audio" \}, \{ status: 422 \}/);
+  const recorder = await readFile(new URL("../src/components/listen-for-wisdom.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(recorder, /\|\| "audio\/webm"/);
+  const recognizeBody = recorder.slice(recorder.indexOf("async function recognize("), recorder.indexOf("async function previewRecordedAudio("));
+  assert.doesNotMatch(recognizeBody, /previewControllerRef\.current\?\.abort\(\)/);
+  assert.match(recorder, /if \(!isCurrent\(\)\) return;/);
 });

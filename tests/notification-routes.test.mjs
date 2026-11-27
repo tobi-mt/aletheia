@@ -11,6 +11,7 @@ import { getAnalyticsSummaryRoute } from "../src/app/api/analytics/summary/route
 import { postNotificationSubscription } from "../src/app/api/notifications/subscribe/route.ts";
 import { runDailyNotifications } from "../src/app/api/notifications/daily/route.ts";
 import { postTestNotification } from "../src/app/api/notifications/test/route.ts";
+import { putProfile } from "../src/app/api/auth/profile/route.ts";
 import { buildNotificationUrl, parseNotificationLaunchUrl } from "../src/lib/notification-routing.ts";
 import { calculatePushRetryDelayMs, sendNotificationWithRetry } from "../src/lib/notifications.ts";
 import { isExpiredPush, isPermanentNativePushFailure } from "../src/lib/push-policy.ts";
@@ -945,4 +946,26 @@ test("the web worker does not show or open an expired push", async () => {
   handlers.get("push")({ data: { json: () => fresh }, waitUntil() {} });
   assert.equal(displayed[0].title, fresh.title);
   assert.equal(displayed[0].options.data.expiresAt, fresh.expiresAt);
+});
+
+test("profile route accepts gallery photo avatars and rejects only oversized bodies", async () => {
+  const user = { id: "user-1", email: "a@example.com", name: "Ada", avatarUrl: null };
+  const writes = [];
+  const deps = { getCurrentUser: async () => user, run: async (...args) => { writes.push(args); } };
+  const photo = `data:image/jpeg;base64,${"A".repeat(600_000)}`;
+  const putJson = (body) => new Request("http://localhost/api/auth/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const accepted = await putProfile(putJson({ avatarUrl: photo }), deps);
+  assert.equal(accepted.status, 200);
+  assert.equal((await accepted.json()).user.avatarUrl, photo);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0][2], photo);
+
+  const oversized = await putProfile(putJson({ avatarUrl: `data:image/jpeg;base64,${"A".repeat(2_600_000)}` }), deps);
+  assert.equal(oversized.status, 413);
+  assert.equal(writes.length, 1);
 });

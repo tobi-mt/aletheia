@@ -129,7 +129,8 @@ function recordingExtension(type: string) {
   if (baseType === "audio/mpeg") return "mp3";
   if (baseType === "audio/wav") return "wav";
   if (baseType === "audio/3gpp") return "3gp";
-  return "webm";
+  if (baseType === "audio/webm") return "webm";
+  return "audio";
 }
 
 export default function ListenForWisdom(props: Props) {
@@ -474,8 +475,10 @@ export default function ListenForWisdom(props: Props) {
   }, [bibleTranslation, result]);
 
   async function recognize(blob: Blob) {
-    previewControllerRef.current?.abort();
+    // Detach rather than abort: cutting an upload mid-body surfaces as ECONNRESET on the server.
+    previewControllerRef.current = null;
     previewInFlightRef.current = false;
+    setPreviewing(false);
     setBusy(true);
     setError("");
     try {
@@ -483,7 +486,7 @@ export default function ListenForWisdom(props: Props) {
       formData.append(
         "audio",
         new File([blob], `wisdom-listen.${recordingExtension(blob.type)}`, {
-          type: blob.type || "audio/webm",
+          type: blob.type,
         })
       );
       formData.append("mode", mode);
@@ -533,18 +536,20 @@ export default function ListenForWisdom(props: Props) {
     if (previewInFlightRef.current || !chunksRef.current.length) return;
     const blob =
       pcmWavBlob() ??
-      new Blob([...chunksRef.current], { type: mimeType || "audio/webm" });
+      new Blob([...chunksRef.current], { type: mimeType });
     if (!blob.size) return;
     previewInFlightRef.current = true;
     const controller = new AbortController();
     previewControllerRef.current = controller;
+    const isCurrent = () =>
+      previewControllerRef.current === controller && !controller.signal.aborted;
     setPreviewing(true);
     try {
       const formData = new FormData();
       formData.append(
         "audio",
         new File([blob], `wisdom-preview.${recordingExtension(blob.type)}`, {
-          type: blob.type || "audio/webm",
+          type: blob.type,
         })
       );
       formData.append("language", language);
@@ -556,11 +561,12 @@ export default function ListenForWisdom(props: Props) {
         body: formData,
         signal: controller.signal,
       });
-      if (!response.ok) return;
+      if (!response.ok || !isCurrent()) return;
       const data = (await response.json()) as {
         transcript?: string;
         candidates?: LiveCandidate[];
       };
+      if (!isCurrent()) return;
       if (typeof data.transcript === "string")
         setLiveTranscript(data.transcript);
       if (Array.isArray(data.candidates)) {
@@ -620,8 +626,10 @@ export default function ListenForWisdom(props: Props) {
     } catch {
       /* The full recording remains available for final recognition. */
     } finally {
-      if (!controller.signal.aborted) setPreviewing(false);
-      previewInFlightRef.current = false;
+      if (isCurrent()) {
+        setPreviewing(false);
+        previewInFlightRef.current = false;
+      }
     }
   }
 
@@ -719,6 +727,8 @@ export default function ListenForWisdom(props: Props) {
         preferredType ? { mimeType: preferredType } : undefined
       );
       recorderRef.current = recorder;
+      // Some WebKit builds report an empty mimeType; never guess "webm" for what may be MP4 bytes.
+      const recordedType = () => recorder.mimeType || preferredType || "";
       chunksRef.current = [];
       recorder.ondataavailable = (event) => {
         if (event.data.size) chunksRef.current.push(event.data);
@@ -741,9 +751,7 @@ export default function ListenForWisdom(props: Props) {
         setRecording(false);
         const blob =
           pcmWavBlob() ??
-          new Blob(chunksRef.current, {
-            type: recorder.mimeType || "audio/webm",
-          });
+          new Blob(chunksRef.current, { type: recordedType() });
         chunksRef.current = [];
         if (blob.size && elapsedRef.current >= 2) void recognize(blob);
         else
@@ -760,7 +768,7 @@ export default function ListenForWisdom(props: Props) {
         elapsedRef.current += 1;
         setElapsed(elapsedRef.current);
         if (elapsedRef.current >= 3 && (elapsedRef.current - 3) % 4 === 0)
-          void previewRecordedAudio(recorder.mimeType);
+          void previewRecordedAudio(recordedType());
         if (elapsedRef.current >= MAX_SECONDS) stopRecording();
       }, 1000);
     } catch (recordingError) {

@@ -267,6 +267,32 @@ async function initializeDatabase() {
       UNIQUE(user_id, book, chapter, verse)
     );
 
+    CREATE TABLE IF NOT EXISTS scripture_notes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      client_entry_id TEXT NOT NULL,
+      book TEXT NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER NOT NULL,
+      end_verse INTEGER NOT NULL,
+      passage TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      UNIQUE(user_id, client_entry_id),
+      UNIQUE(user_id, book, chapter, verse)
+    );
+
+    CREATE TABLE IF NOT EXISTS scripture_highlights (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      book TEXT NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER NOT NULL,
+      color TEXT,
+      updated_at TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (user_id, book, chapter, verse)
+    );
+
     CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT PRIMARY KEY,
       count INTEGER NOT NULL,
@@ -473,6 +499,13 @@ async function initializeDatabase() {
     );
 
     ALTER TABLE challenge_circles ADD COLUMN IF NOT EXISTS invite_details_json JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+    CREATE TABLE IF NOT EXISTS challenge_circle_invite_links (
+      token_hash TEXT PRIMARY KEY,
+      circle_id TEXT NOT NULL REFERENCES challenge_circles(id) ON DELETE CASCADE,
+      created_by_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL
+    );
 
     CREATE TABLE IF NOT EXISTS challenge_circle_nudges (
       id TEXT PRIMARY KEY,
@@ -692,6 +725,8 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS wisdom_listen_captures_user_created_idx ON wisdom_listen_captures(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS gratitude_entries_user_created_idx ON gratitude_entries(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS saved_scriptures_user_saved_idx ON saved_scriptures(user_id, saved_at DESC);
+    CREATE INDEX IF NOT EXISTS scripture_notes_user_updated_idx ON scripture_notes(user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS scripture_highlights_user_updated_idx ON scripture_highlights(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS rate_limits_reset_idx ON rate_limits(reset_at);
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS push_subscriptions_enabled_idx ON push_subscriptions(enabled, preferred_hour);
@@ -715,6 +750,7 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS counsel_comments_contact_decision_idx ON counsel_comments(contact_id, decision_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_owner_idx ON challenge_circles(owner_user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circles_invite_hash_idx ON challenge_circles(invite_token_hash);
+    CREATE INDEX IF NOT EXISTS challenge_circle_invite_links_circle_idx ON challenge_circle_invite_links(circle_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_members_circle_idx ON challenge_circle_members(circle_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_members_user_idx ON challenge_circle_members(user_id, joined_at DESC);
     CREATE INDEX IF NOT EXISTS challenge_circle_nudges_circle_idx ON challenge_circle_nudges(circle_id, created_at DESC);
@@ -751,6 +787,13 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS challenge_progress_user_challenge_idx ON challenge_progress(user_id, challenge_id, day);
     CREATE INDEX IF NOT EXISTS challenge_progress_user_completed_idx ON challenge_progress(user_id, completed_at DESC);
+
+    CREATE TABLE IF NOT EXISTS challenge_enrollments (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      challenge_id TEXT NOT NULL,
+      started_at TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (user_id, challenge_id)
+    );
   `)
   );
 

@@ -92,7 +92,9 @@ async function findCircle(token: string) {
             u.name AS owner_name, u.avatar_url AS owner_avatar_url
      FROM challenge_circles c
      LEFT JOIN users u ON u.id = c.owner_user_id
-     WHERE c.invite_token_hash = ?`,
+     WHERE c.invite_token_hash = ?
+        OR c.id = (SELECT l.circle_id FROM challenge_circle_invite_links l WHERE l.token_hash = ?)`,
+    hashChallengeInviteToken(token),
     hashChallengeInviteToken(token)
   );
 }

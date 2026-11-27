@@ -6,11 +6,14 @@ import { challengeDefinitions } from "@/lib/challenge-data";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const user = await requireUser();
+const challengesDeps = { requireUser, many };
 
-    const rows = await many<{
+export async function getChallenges(deps = challengesDeps) {
+  try {
+    const user = await deps.requireUser();
+    if (!user) throw new Error("sign_in_required");
+
+    const rows = await deps.many<{
       challenge_id: string;
       day: number;
       reflection: string;
@@ -21,6 +24,16 @@ export async function GET() {
        WHERE user_id = ?
        ORDER BY challenge_id, day`,
       user.id
+    );
+    const enrollmentRows = await deps.many<{ challenge_id: string; started_at: string | Date }>(
+      `SELECT challenge_id, started_at FROM challenge_enrollments WHERE user_id = ?`,
+      user.id
+    ).catch(() => []); // Progress must still load if the enrollment table is not migrated yet.
+    const startedAtByChallengeId = new Map(
+      enrollmentRows.map((row) => [
+        row.challenge_id,
+        row.started_at instanceof Date ? row.started_at.toISOString() : row.started_at,
+      ])
     );
 
     const progressByChallengeId = new Map<
@@ -46,10 +59,15 @@ export async function GET() {
       totalDays: def.totalDays,
       mode: def.mode,
       completedDays: progressByChallengeId.get(def.id) ?? [],
+      startedAt: startedAtByChallengeId.get(def.id) ?? progressByChallengeId.get(def.id)?.[0]?.completedAt ?? null,
     }));
 
     return NextResponse.json({ challenges });
   } catch {
     return apiError(401, "sign_in_required", "Sign in to track challenge progress.");
   }
+}
+
+export async function GET() {
+  return getChallenges();
 }

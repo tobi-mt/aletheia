@@ -37,6 +37,9 @@ import {
   Compass,
   Copy,
   ChevronDown,
+  ChevronLeft,
+  Lock,
+  UserPlus,
   Feather,
   HandHeart,
   Home,
@@ -123,7 +126,7 @@ import { getCompanionTemplate, resolveGenerationLanguage } from "@/lib/scripture
 import type { Mode } from "@/lib/wisdom-data";
 import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { decisionStartedDiscerningBody, decisionTimelineObservation, localizeDecisionEventBody } from "@/lib/decision-copy";
-import { curatedAvatarOptions, defaultAvatarDataUrl, normalizeAvatarUrl } from "@/lib/avatars";
+import { curatedAvatarOptions, defaultAvatarDataUrl, encodeAvatarCanvas, normalizeAvatarUrl } from "@/lib/avatars";
 import { challengeInviteAppUrl as buildChallengeInviteAppUrl, challengeInviteUrl as buildChallengeInviteUrl } from "@/lib/challenge-circles";
 import { counselInviteAppUrl as buildCounselInviteAppUrl, counselInviteUrl as buildCounselInviteUrl } from "@/lib/counsel-invite-links";
 import { applyGratitudeImageEffect } from "@/lib/gratitude-image-effects";
@@ -157,9 +160,9 @@ import { ManagedAudio } from "@/lib/native-audio";
 import { NativeAuth, supportsNativeAppleSignIn } from "@/lib/native-auth";
 import { NativeBiometricLock, supportsNativeBiometricLock, type BiometricLockState } from "@/lib/native-biometric-lock";
 import { shouldLockAfterBackground } from "@/lib/native-biometric-lifecycle";
-import { scriptureHighlightKey, type SavedScripture, type ScriptureHighlightColor, type ScriptureHighlights } from "@/lib/saved-scripture";
+import { BIBLE_LAST_POSITION_STORAGE_KEY, BIBLE_READER_SETTINGS_STORAGE_KEY, BIBLE_SELECTION_HINT_STORAGE_KEY, entriesFromLegacyHighlights, highlightsFromEntries, isScriptureHighlightEntry, isScriptureNote, mergeScriptureHighlightEntries, mergeScriptureNotes, scriptureHighlightKey, type SavedScripture, type ScriptureHighlightColor, type ScriptureHighlightEntry, type ScriptureHighlights, type ScriptureNote } from "@/lib/saved-scripture";
 import { ToastContainer, useToast } from "@/components/toast-notification";
-import { StreakBadge, StreakAchievementNotification } from "@/components/streak-badge";
+import { StreakAchievementNotification } from "@/components/streak-badge";
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
@@ -451,6 +454,9 @@ type WorkflowNoticeState = {
     onClick: () => void;
   };
 };
+
+type NotificationTestState = "idle" | "sending" | "waiting" | "sent" | "received" | "not_received" | "failed" | "needs_reenable";
+
 type NotificationTiming = {
   preferredLocalHour: number;
   preferredTimezone: string;
@@ -513,6 +519,9 @@ const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const SAVED_SCRIPTURES_STORAGE_KEY = "aletheia_saved_scriptures";
 const SCRIPTURE_HIGHLIGHTS_STORAGE_KEY = "aletheia_scripture_highlights";
+const SCRIPTURE_HIGHLIGHT_ENTRIES_STORAGE_KEY = "aletheia_scripture_highlight_entries";
+const HIGHLIGHT_SYNC_DELAY_MS = 600;
+const SCRIPTURE_NOTES_STORAGE_KEY = "aletheia_scripture_notes";
 const COUNSEL_INVITE_STORAGE_KEY = "aletheia_counsel_invite_token";
 const COUNSEL_ACCEPTED_INVITE_STORAGE_KEY = "aletheia_counsel_accepted_invite_token";
 const CHALLENGE_INVITE_STORAGE_KEY = "aletheia_challenge_invite_token";
@@ -883,12 +892,14 @@ function AvatarCircle({
   label,
   size,
   className,
+  decorative = false,
 }: {
   avatarUrl?: string | null;
   seed: string;
   label: string;
   size: number;
   className?: string;
+  decorative?: boolean;
 }) {
   const fallback = defaultAvatarDataUrl(seed, label);
   const src = normalizeAvatarUrl(avatarUrl ?? "") ?? fallback;
@@ -900,7 +911,7 @@ function AvatarCircle({
     >
       <Image
         src={src}
-        alt={label}
+        alt={decorative ? "" : label}
         fill
         sizes={`${size}px`}
         className="h-full w-full object-cover"
@@ -5663,6 +5674,16 @@ function storedSavedScriptures(): SavedScripture[] {
   }
 }
 
+function storedScriptureNotes(): ScriptureNote[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SCRIPTURE_NOTES_STORAGE_KEY) || "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter(isScriptureNote) : [];
+  } catch {
+    return [];
+  }
+}
+
 function storedScriptureHighlights(): ScriptureHighlights {
   if (typeof window === "undefined") return {};
   try {
@@ -5671,6 +5692,36 @@ function storedScriptureHighlights(): ScriptureHighlights {
   } catch {
     return {};
   }
+}
+
+function storedScriptureHighlightEntries(): ScriptureHighlightEntry[] {
+  if (typeof window === "undefined") return [];
+  let entries: ScriptureHighlightEntry[] = [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SCRIPTURE_HIGHLIGHT_ENTRIES_STORAGE_KEY) || "[]");
+    entries = Array.isArray(parsed) ? parsed.filter(isScriptureHighlightEntry) : [];
+  } catch { /* Fall back to the colour map below. */ }
+  // Highlights saved before edit-time tracking only exist in the colour map.
+  const tracked = new Set(entries.map((entry) => scriptureHighlightKey(entry.book, entry.chapter, entry.verse)));
+  const legacy = entriesFromLegacyHighlights(storedScriptureHighlights()).filter((entry) => !tracked.has(scriptureHighlightKey(entry.book, entry.chapter, entry.verse)));
+  return [...entries, ...legacy];
+}
+
+function flushPendingHighlightSync(pending: Map<string, ScriptureHighlightEntry>, timerRef: { current: number | null }) {
+  if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+  timerRef.current = null;
+  const highlights = [...pending.values()];
+  pending.clear();
+  if (!highlights.length) return;
+  // keepalive lets the last edits finish when the app is backgrounded; failures are retried by the next account merge.
+  void fetch("/api/scripture-highlights", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ highlights }) }).catch(() => undefined);
+}
+
+function storeScriptureHighlightEntries(entries: ScriptureHighlightEntry[]) {
+  try {
+    window.localStorage.setItem(SCRIPTURE_HIGHLIGHT_ENTRIES_STORAGE_KEY, JSON.stringify(entries));
+    window.localStorage.setItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY, JSON.stringify(highlightsFromEntries(entries)));
+  } catch { /* Keep highlights in memory for this session. */ }
 }
 
 function companionCardFromDaily({
@@ -5839,7 +5890,7 @@ export function AletheiaApp({
   const [journalTitle, setJournalTitle] = useState("");
   const [journalBody, setJournalBody] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal" | "formation">("gratitude");
+  const [reflectSection, setReflectSection] = useState<"gratitude" | "journal">("gratitude");
   const [gratitudeEntries, setGratitudeEntries] = useState<GratitudeEntry[]>(() => storedGratitudeEntries());
   const [gratitudeSyncStatus, setGratitudeSyncStatus] = useState<GratitudeSyncStatus>("local");
   const [isOnline, setIsOnline] = useState(true);
@@ -5894,6 +5945,20 @@ export function AletheiaApp({
   const [scriptureMemory, setScriptureMemory] = useState<ScriptureMemory | null>(null);
   const [savedScriptures, setSavedScriptures] = useState<SavedScripture[]>(() => storedSavedScriptures());
   const [scriptureHighlights, setScriptureHighlights] = useState<ScriptureHighlights>({});
+  const pendingHighlightSyncRef = useRef(new Map<string, ScriptureHighlightEntry>());
+  const highlightSyncTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    const pending = pendingHighlightSyncRef.current;
+    const flush = () => { if (document.visibilityState === "hidden") flushPendingHighlightSync(pending, highlightSyncTimerRef); };
+    const flushNow = () => flushPendingHighlightSync(pending, highlightSyncTimerRef);
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flushNow);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flushNow);
+    };
+  }, []);
+  const [scriptureNotes, setScriptureNotes] = useState<ScriptureNote[]>([]);
   const [availableVoices] = useState<ManagedVoiceOption[]>(managedSpeechVoices);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
     const saved = storedVoicePreference();
@@ -5943,6 +6008,8 @@ export function AletheiaApp({
   const biometricBackgroundedAtRef = useRef<number | null>(null);
   const biometricUnlockReasonRef = useRef("");
   const [notificationStatus, setNotificationStatus] = useState("");
+  const [notificationTestState, setNotificationTestState] = useState<NotificationTestState>("idle");
+  const notificationTestTimerRef = useRef<number | null>(null);
   const [foregroundPush, setForegroundPush] = useState<{
     userId: string;
     title: string;
@@ -6261,6 +6328,7 @@ export function AletheiaApp({
       setScriptureMemory(storedScriptureMemory(restoredPreferences));
       setSavedScriptures(storedSavedScriptures());
       setScriptureHighlights(storedScriptureHighlights());
+      setScriptureNotes(storedScriptureNotes());
       setSelectedVoice(storedVoicePreference());
       setNotificationTiming(storedNotificationTiming());
       try {
@@ -6368,6 +6436,9 @@ export function AletheiaApp({
           }
           const challengeParam = params.get("challenge");
           if (challengeParam) {
+            // Formation lives in Library; older shared links still say tab=reflect.
+            setActiveViewState("library");
+            setRequestedLibrarySection("formation");
             setPendingChallengeId(challengeParam);
           }
         }
@@ -7472,7 +7543,10 @@ export function AletheiaApp({
       notification_kind: typeof kind === "string" ? kind : "unknown",
     });
     if (kind === "notification_test") {
-      setNotificationStatus(notification.body?.trim() || ts("notifications.testNotificationSentBody"));
+      // iOS hides foreground banners (presentationOptions: []), so confirm receipt in-app on every screen.
+      clearNotificationTestTimer();
+      setNotificationTestState("received");
+      announceWorkflow(ts("notifications.testNotificationReceived"), ts("notifications.testNotificationReceivedBody"), "success");
       return;
     }
     if (kind !== "counsel_comment" && kind !== "counsel_decision_shared" && kind !== "challenge_circle_nudge") return;
@@ -7721,7 +7795,7 @@ export function AletheiaApp({
         } catch { return []; }
       })(),
     };
-    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse, savedScripturesResponse] = await Promise.allSettled([
+    const [chatResponse, journalResponse, notificationResponse, decisionsResponse, counselResponse, rulesResponse, preferencesResponse, contextResponse, savedScripturesResponse, scriptureNotesResponse, scriptureHighlightsResponse] = await Promise.allSettled([
       fetch("/api/chat"),
       fetch("/api/journal"),
       fetch("/api/notifications/status"),
@@ -7731,6 +7805,8 @@ export function AletheiaApp({
       fetch("/api/preferences"),
       fetch("/api/context"),
       fetch("/api/saved-scriptures", { cache: "no-store" }),
+      fetch("/api/scripture-notes", { cache: "no-store" }),
+      fetch("/api/scripture-highlights", { cache: "no-store" }),
     ]);
     const chatData = await readJsonOrFallback(
       chatResponse.status === "fulfilled" ? chatResponse.value : null,
@@ -7836,15 +7912,53 @@ export function AletheiaApp({
     } else {
       void fetch("/api/preferences", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personalization: localPersonalization }) }).catch(() => undefined);
     }
+    let accountScripturesForHighlights: SavedScripture[] = [];
     if (savedScripturesResponse.status === "fulfilled" && savedScripturesResponse.value.ok) {
       const savedData = (await savedScripturesResponse.value.json()) as { scriptures?: SavedScripture[] };
       const accountScriptures = Array.isArray(savedData.scriptures) ? savedData.scriptures : [];
+      accountScripturesForHighlights = accountScriptures;
       const missingScriptures = scripturesMissingFromAccount(localSavedScriptures, accountScriptures);
       const mergedScriptures = mergeSavedScriptures(localSavedScriptures, accountScriptures);
       setSavedScriptures(mergedScriptures);
       try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(mergedScriptures)); } catch { /* Keep the merged library in memory. */ }
       if (missingScriptures.length) {
         void fetch("/api/saved-scriptures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scriptures: missingScriptures }) }).catch(() => undefined);
+      }
+    }
+    if (scriptureNotesResponse.status === "fulfilled" && scriptureNotesResponse.value.ok) {
+      const notesData = (await scriptureNotesResponse.value.json()) as { notes?: unknown[] };
+      const accountNotes = Array.isArray(notesData.notes) ? notesData.notes.filter(isScriptureNote) : [];
+      const localNotes = storedScriptureNotes();
+      const mergedNotes = mergeScriptureNotes(localNotes, accountNotes);
+      const accountById = new Map(accountNotes.map((note) => [note.id, note]));
+      const notesToUpload = mergedNotes.filter((note) => {
+        const accountNote = accountById.get(note.id);
+        return !accountNote || Date.parse(note.updatedAt) > Date.parse(accountNote.updatedAt);
+      });
+      setScriptureNotes(mergedNotes);
+      try { window.localStorage.setItem(SCRIPTURE_NOTES_STORAGE_KEY, JSON.stringify(mergedNotes)); } catch { /* Keep the merged notes in memory. */ }
+      if (notesToUpload.length) {
+        void fetch("/api/scripture-notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notes: notesToUpload }) }).catch(() => undefined);
+      }
+    }
+    if (scriptureHighlightsResponse.status === "fulfilled" && scriptureHighlightsResponse.value.ok) {
+      const highlightData = (await scriptureHighlightsResponse.value.json()) as { highlights?: unknown[] };
+      const accountEntries = Array.isArray(highlightData.highlights) ? highlightData.highlights.filter(isScriptureHighlightEntry) : [];
+      const accountKeys = new Set(accountEntries.map((entry) => scriptureHighlightKey(entry.book, entry.chapter, entry.verse)));
+      // Older accounts only kept highlights on saved verses; adopt them until a tracked edit exists.
+      const savedVerseEntries = entriesFromLegacyHighlights(Object.fromEntries(
+        accountScripturesForHighlights.filter((item) => item.highlight).map((item) => [scriptureHighlightKey(item.book, item.chapter, item.verse), item.highlight as ScriptureHighlightColor])
+      )).filter((entry) => !accountKeys.has(scriptureHighlightKey(entry.book, entry.chapter, entry.verse)));
+      const accountByKey = new Map(accountEntries.map((entry) => [scriptureHighlightKey(entry.book, entry.chapter, entry.verse), entry]));
+      const mergedEntries = mergeScriptureHighlightEntries(storedScriptureHighlightEntries(), [...accountEntries, ...savedVerseEntries]);
+      const entriesToUpload = mergedEntries.filter((entry) => {
+        const accountEntry = accountByKey.get(scriptureHighlightKey(entry.book, entry.chapter, entry.verse));
+        return !accountEntry || Date.parse(entry.updatedAt) > Date.parse(accountEntry.updatedAt);
+      });
+      setScriptureHighlights(highlightsFromEntries(mergedEntries));
+      storeScriptureHighlightEntries(mergedEntries);
+      if (entriesToUpload.length) {
+        void fetch("/api/scripture-highlights", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ highlights: entriesToUpload }) }).catch(() => undefined);
       }
     }
     if (contextData.context) {
@@ -9628,15 +9742,27 @@ function startFirstRunGuestFlow() {
     });
   }
 
+  function flushHighlightSync() {
+    flushPendingHighlightSync(pendingHighlightSyncRef.current, highlightSyncTimerRef);
+  }
+
   function setScriptureHighlight(book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) {
     const key = scriptureHighlightKey(book, chapter, verse);
+    const entry: ScriptureHighlightEntry = { book, chapter, verse, color: highlight, updatedAt: new Date().toISOString() };
+    const entries = [entry, ...storedScriptureHighlightEntries().filter((item) => scriptureHighlightKey(item.book, item.chapter, item.verse) !== key)];
+    storeScriptureHighlightEntries(entries);
     setScriptureHighlights((current) => {
       const next = { ...current };
       if (highlight) next[key] = highlight;
       else delete next[key];
-      try { window.localStorage.setItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
       return next;
     });
+    if (user) {
+      // Range highlights touch many verses at once, so batch them into one request.
+      pendingHighlightSyncRef.current.set(key, entry);
+      if (highlightSyncTimerRef.current !== null) window.clearTimeout(highlightSyncTimerRef.current);
+      highlightSyncTimerRef.current = window.setTimeout(flushHighlightSync, HIGHLIGHT_SYNC_DELAY_MS);
+    }
     setSavedScriptures((current) => {
       const next = current.map((item) => item.book === book && item.chapter === chapter && item.verse === verse ? { ...item, highlight } : item);
       try { window.localStorage.setItem(SAVED_SCRIPTURES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
@@ -9646,24 +9772,45 @@ function startFirstRunGuestFlow() {
     });
   }
 
-  function scriptureShareText(book: string, chapter: number, verse: number, text: string) {
-    const reference = `${localizedBibleBookName(book, preferences.language)} ${chapter}:${verse}`;
+  function saveScriptureNote(input: Omit<ScriptureNote, "id" | "updatedAt"> & { id?: string }) {
+    const existing = scriptureNotes.find((note) => (input.id && note.id === input.id) || (note.book === input.book && note.chapter === input.chapter && note.verse === input.verse));
+    const saved: ScriptureNote = { ...input, id: existing?.id ?? input.id ?? crypto.randomUUID(), updatedAt: new Date().toISOString() };
+    const next = [saved, ...scriptureNotes.filter((note) => note.id !== saved.id && !(note.book === saved.book && note.chapter === saved.chapter && note.verse === saved.verse))];
+    setScriptureNotes(next);
+    try { window.localStorage.setItem(SCRIPTURE_NOTES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep notes for this session. */ }
+    if (user) void fetch("/api/scripture-notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: saved }) }).catch(() => undefined);
+  }
+
+  function deleteScriptureNote(id: string) {
+    const next = scriptureNotes.filter((note) => note.id !== id);
+    setScriptureNotes(next);
+    try { window.localStorage.setItem(SCRIPTURE_NOTES_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep changes for this session. */ }
+    if (user) void fetch(`/api/scripture-notes/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
+  }
+
+  function scriptureVerseReference(book: string, chapter: number, verse: number, endVerse?: number) {
+    const range = endVerse && endVerse > verse ? `${verse}\u2013${endVerse}` : `${verse}`;
+    return `${localizedBibleBookName(book, preferences.language)} ${chapter}:${range}`;
+  }
+
+  function scriptureShareText(book: string, chapter: number, verse: number, text: string, endVerse?: number) {
+    const reference = scriptureVerseReference(book, chapter, verse, endVerse);
     const translation = bibleTranslations[preferences.bibleTranslation]?.label ?? preferences.bibleTranslation;
     return `${text}\n\n${reference} (${translation})`;
   }
 
-  async function copyScripture(book: string, chapter: number, verse: number, text: string) {
+  async function copyScripture(book: string, chapter: number, verse: number, text: string, endVerse?: number) {
     try {
-      await navigator.clipboard.writeText(scriptureShareText(book, chapter, verse, text));
+      await navigator.clipboard.writeText(scriptureShareText(book, chapter, verse, text, endVerse));
       return true;
     } catch {
       return false;
     }
   }
 
-  async function shareScripture(book: string, chapter: number, verse: number, text: string) {
-    const reference = `${localizedBibleBookName(book, preferences.language)} ${chapter}:${verse}`;
-    const shareText = scriptureShareText(book, chapter, verse, text);
+  async function shareScripture(book: string, chapter: number, verse: number, text: string, endVerse?: number) {
+    const reference = scriptureVerseReference(book, chapter, verse, endVerse);
+    const shareText = scriptureShareText(book, chapter, verse, text, endVerse);
     if (navigator.share) {
       try {
         await navigator.share({ title: reference, text: shareText });
@@ -9672,7 +9819,7 @@ function startFirstRunGuestFlow() {
         return false;
       }
     }
-    return copyScripture(book, chapter, verse, text);
+    return copyScripture(book, chapter, verse, text, endVerse);
   }
 
   function shareScriptureMemoryCard(memory: ScriptureMemory) {
@@ -10178,6 +10325,10 @@ function startFirstRunGuestFlow() {
     setScriptureMemory(null);
     setSavedScriptures([]);
     setScriptureHighlights({});
+    pendingHighlightSyncRef.current.clear();
+    if (highlightSyncTimerRef.current !== null) window.clearTimeout(highlightSyncTimerRef.current);
+    highlightSyncTimerRef.current = null;
+    setScriptureNotes([]);
     setManualContext(defaultManualContext);
     setCounselSummaries([]);
     try {
@@ -10189,6 +10340,11 @@ function startFirstRunGuestFlow() {
       window.localStorage.removeItem(SCRIPTURE_MEMORY_STORAGE_KEY);
       window.localStorage.removeItem(SAVED_SCRIPTURES_STORAGE_KEY);
       window.localStorage.removeItem(SCRIPTURE_HIGHLIGHTS_STORAGE_KEY);
+      window.localStorage.removeItem(SCRIPTURE_HIGHLIGHT_ENTRIES_STORAGE_KEY);
+      window.localStorage.removeItem(SCRIPTURE_NOTES_STORAGE_KEY);
+      window.localStorage.removeItem(BIBLE_READER_SETTINGS_STORAGE_KEY);
+      window.localStorage.removeItem(BIBLE_LAST_POSITION_STORAGE_KEY);
+      window.localStorage.removeItem(BIBLE_SELECTION_HINT_STORAGE_KEY);
       window.localStorage.removeItem(MANUAL_CONTEXT_STORAGE_KEY);
       window.localStorage.removeItem("aletheia_onboarding_complete");
       window.localStorage.removeItem(ONBOARDING_PROGRESS_STORAGE_KEY);
@@ -11975,6 +12131,8 @@ function startFirstRunGuestFlow() {
     setForegroundPush(null);
     setNotificationsEnabled(false);
     setNotificationDeviceSubscribed(false);
+    clearNotificationTestTimer();
+    setNotificationTestState("idle");
     trackClientEvent("notification_disabled", {
       hadPermission: notificationPermission === "granted",
       wasEnabled: true,
@@ -11982,14 +12140,24 @@ function startFirstRunGuestFlow() {
     setNotificationStatus(ts('notifications.notificationsOffBody'));
   }
 
+  function clearNotificationTestTimer() {
+    if (notificationTestTimerRef.current !== null) {
+      window.clearTimeout(notificationTestTimerRef.current);
+      notificationTestTimerRef.current = null;
+    }
+  }
+
   async function sendTestNotification() {
     if (notificationBusy || !user || !notificationsEnabled) return;
+    clearNotificationTestTimer();
     setNotificationBusy(true);
+    setNotificationTestState("sending");
     try {
-      const nativeDeviceId = isNativePushShell() ? readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY) : null;
-      const webEndpoint = isNativePushShell() ? null : (await currentWebPushSubscription())?.endpoint;
+      const native = isNativePushShell();
+      const nativeDeviceId = native ? readPushStorage(NATIVE_PUSH_DEVICE_STORAGE_KEY) : null;
+      const webEndpoint = native ? null : (await currentWebPushSubscription())?.endpoint;
       if (!nativeDeviceId && !webEndpoint) {
-        setNotificationStatus(ts("notifications.notificationsNeedReenableDevice"));
+        setNotificationTestState("needs_reenable");
         return;
       }
       const response = await fetch("/api/notifications/test", {
@@ -11997,17 +12165,49 @@ function startFirstRunGuestFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nativeDeviceId ? { nativeDeviceId } : { webEndpoint }),
       });
-      if (!response.ok) throw new Error(`Test push failed (${response.status}).`);
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { errorCode?: string } | null;
+        throw new Error(payload?.errorCode === "invalid_subscription" ? "needs_reenable" : `Test push failed (${response.status}).`);
+      }
       trackClientEvent("notification_test_sent", { runtime: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web" });
-      setNotificationStatus(ts("notifications.testNotificationSentBody"));
+      if (!native) {
+        // The service worker always displays web pushes, even while this tab is focused.
+        setNotificationTestState("sent");
+        return;
+      }
+      setNotificationTestState("waiting");
+      notificationTestTimerRef.current = window.setTimeout(() => {
+        notificationTestTimerRef.current = null;
+        setNotificationTestState((current) => (current === "waiting" ? "not_received" : current));
+      }, 20_000);
     } catch (error) {
       console.error("Could not send test push", error);
       trackClientEvent("notification_enable_failed", { reason: "test_delivery_failed" });
-      setNotificationStatus(ts("notifications.notificationSetupFailedBody"));
+      setNotificationTestState(error instanceof Error && error.message === "needs_reenable" ? "needs_reenable" : "failed");
     } finally {
       setNotificationBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (notificationTestState !== "waiting") return;
+    // Leaving the app while waiting means iOS presents the push as a normal banner.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        if (notificationTestTimerRef.current !== null) {
+          window.clearTimeout(notificationTestTimerRef.current);
+          notificationTestTimerRef.current = null;
+        }
+        setNotificationTestState("sent");
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [notificationTestState]);
+
+  useEffect(() => () => {
+    if (notificationTestTimerRef.current !== null) window.clearTimeout(notificationTestTimerRef.current);
+  }, []);
 
   async function saveNotificationSubscription(
     subscription: PushSubscription,
@@ -13850,6 +14050,11 @@ function startFirstRunGuestFlow() {
                       onSetScriptureHighlight={setScriptureHighlight}
                       onCopyScripture={copyScripture}
                       onShareScripture={shareScripture}
+                      scriptureNotes={scriptureNotes}
+                      onSaveScriptureNote={saveScriptureNote}
+                      onDeleteScriptureNote={deleteScriptureNote}
+                      onListenToScripture={(text, label) => { void speakText(text, ts('notifications.readingAloud'), label, undefined, "scripture"); }}
+                      isListeningToScripture={isSpeaking || speechPaused}
                       onSaveScriptureMemory={saveScriptureMemory}
                       onSaveStudyActionAsRule={saveStudyActionAsRule}
                       onShareScriptureMemory={shareScriptureMemoryCard}
@@ -13878,6 +14083,7 @@ function startFirstRunGuestFlow() {
                           pendingChallengeId={pendingChallengeId}
                           pendingChallengeFocus={pendingChallengeFocus}
                           onClearPendingChallenge={() => { setPendingChallengeId(null); setPendingChallengeFocus(null); }}
+                          onRequestSignIn={() => startWelcomeAuthFlow("login")}
                           challengeCircleRefreshKey={challengeCircleRefreshKey}
                           onChallengeCircleChanged={refreshChallengeCircles}
                           onChallengeInviteReady={({ inviteUrl, circle }) => {
@@ -13955,6 +14161,7 @@ function startFirstRunGuestFlow() {
                       onEnableNotifications={enableNotifications}
                       onDisableNotifications={disableNotifications}
                       onSendTestNotification={sendTestNotification}
+                      notificationTestState={notificationTestState}
                       onRequestSignInForNotifications={promptSignInForNotifications}
                       messages={messages}
                       decisions={wisdomDecisions}
@@ -16253,7 +16460,7 @@ function ModalHeaderChrome({
 
   return (
     <div
-      className={`relative overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5 ${className}`.trim()}
+      className={`relative shrink-0 overflow-hidden border-b px-4 py-4 sm:px-5 sm:py-5 ${className}`.trim()}
       style={style}
     >
       <div className="relative pr-16 sm:pr-16">
@@ -16810,6 +17017,7 @@ function AccountPanel({
   onEnableNotifications,
   onDisableNotifications,
   onSendTestNotification,
+  notificationTestState,
   onRequestSignInForNotifications,
   messages,
   decisions,
@@ -16888,6 +17096,7 @@ function AccountPanel({
   onEnableNotifications: () => void;
   onDisableNotifications: () => void;
   onSendTestNotification: () => void;
+  notificationTestState: NotificationTestState;
   onRequestSignInForNotifications: () => void;
   messages: ChatMessage[];
   decisions: WisdomDecision[];
@@ -16939,6 +17148,7 @@ function AccountPanel({
   const exchanges = conversationExchanges(messages).filter((exchange) => exchange.question);
   const hasLocalWorkspaceData = exchanges.length > 0 || decisions.length > 0 || journalEntries.length > 0 || counselContacts.length > 0 || rulesOfLife.length > 0;
   const profileName = user?.name || user?.email || ts('auth.guest');
+  const showProfileStreak = Boolean(user) && streakData.consecutiveDays > 0;
   const profileStats = [
     {
       icon: Feather,
@@ -17023,7 +17233,7 @@ function AccountPanel({
               label={user ? profileName : destinations.profile.label}
               detail={user ? user.email : ts('labels.accountGuestSummary')}
               icon={destinations.profile.icon}
-              leading={<AvatarCircle avatarUrl={user?.avatarUrl} seed={user?.id ?? user?.email ?? "guest"} label="" size={42} />}
+              leading={<AvatarCircle avatarUrl={user?.avatarUrl} seed={user?.id ?? user?.email ?? "guest"} label={user?.name || user?.email || ""} size={42} decorative />}
               onOpen={openSection}
               theme={theme}
             />
@@ -17059,29 +17269,29 @@ function AccountPanel({
             />
           ) : null}
           {user ? <AvatarStudioCard theme={theme} user={user} ts={ts} language={preferences.language} onUpdateProfileAvatar={onUpdateProfileAvatar} onUpdateProfileName={onUpdateProfileName} /> : null}
-          {user && streakData.consecutiveDays > 0 && (
-            <button
-              type="button"
-              onClick={onOpenStreakMilestones}
-              className="mt-2 inline-flex rounded-[1.15rem] outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ WebkitTapHighlightColor: "transparent" }}
-              aria-label={ts('streak.openMilestones')}
+          <section
+              className={`mt-3 grid ${showProfileStreak ? "grid-cols-4" : "grid-cols-3"} gap-1 rounded-[1.35rem] border p-2`}
+              style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
             >
-              <StreakBadge
-                days={streakData.consecutiveDays}
-                size="md"
-                showLabel={true}
-                animated={true}
-                theme={theme}
-                ts={ts}
-              />
-            </button>
-          )}
-          <div className="grid grid-cols-3 gap-1.5 border-t px-2.5 py-2.5 sm:px-4" style={{ borderColor: theme.borderLight }}>
-            {profileStats.map((stat) => (
-              <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
-            ))}
-          </div>
+              {showProfileStreak ? (
+                <button
+                  type="button"
+                  onClick={onOpenStreakMilestones}
+                  className="flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[1rem] px-1 py-2 text-center outline-none transition active:scale-[0.97] focus-visible:ring-2"
+                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  aria-label={`${ts('streak.current')}: ${streakData.consecutiveDays}. ${ts('streak.openMilestones')}`}
+                >
+                  <span className="text-lg font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>
+                    <span aria-hidden="true" className="mr-1 text-base">{streakData.consecutiveDays < 7 ? "🌱" : streakData.consecutiveDays < 30 ? "🔥" : streakData.consecutiveDays < 100 ? "⚡" : "👑"}</span>
+                    {streakData.consecutiveDays}
+                  </span>
+                  <span className="line-clamp-2 text-[11px] leading-4" style={{ color: accessibleAccentText(theme) }}>{ts('streak.current')}</span>
+                </button>
+              ) : null}
+              {profileStats.map((stat) => (
+                <AccountHeaderStat key={stat.detail} icon={stat.icon} value={stat.value} detail={stat.detail} theme={theme} />
+              ))}
+            </section>
             {!user ? (
               <AuthPanel
                 theme={theme}
@@ -17153,6 +17363,7 @@ function AccountPanel({
           onEnable={onEnableNotifications}
           onDisable={onDisableNotifications}
           onSendTest={onSendTestNotification}
+          testState={notificationTestState}
           onRequestSignIn={onRequestSignInForNotifications}
         />
         </>
@@ -17262,7 +17473,7 @@ function TodayFormationContinuation({
   ts: (key: string, fallback?: string) => string;
   onOpenChallenge: (challengeId: string) => void;
 }) {
-  const [activeChallenge, setActiveChallenge] = useState<ChallengeWithProgress | null>(null);
+  const [activeChallenges, setActiveChallenges] = useState<ChallengeWithProgress[]>([]);
 
   useEffect(() => {
     if (!signedIn) {
@@ -17273,20 +17484,28 @@ function TodayFormationContinuation({
       .then(async (response) => response.ok ? await response.json() as { challenges?: ChallengeWithProgress[] } : {})
       .then((data) => {
         if (cancelled) return;
+        const nowMs = Date.now();
+        const lastMs = (challenge: ChallengeWithProgress) => Date.parse(challenge.completedDays.at(-1)?.completedAt ?? "") || 0;
+        const doneToday = (challenge: ChallengeWithProgress) =>
+          getChallengeProgressState({ completedDays: challenge.completedDays.length, totalDays: challenge.totalDays, lastCompletedAt: challenge.completedDays.at(-1)?.completedAt ?? null }, nowMs) === "completed_today";
+        // Practices still waiting for today's step come first, so Home always points at something doable.
         const active = [...(data.challenges ?? [])]
-          .filter((challenge) => challenge.completedDays.length > 0 && challenge.completedDays.length < challenge.totalDays)
-          .sort((left, right) => Date.parse(right.completedDays.at(-1)?.completedAt ?? "") - Date.parse(left.completedDays.at(-1)?.completedAt ?? ""))[0] ?? null;
-        setActiveChallenge(active);
+          .filter((challenge) => (challenge.completedDays.length > 0 || Boolean(challenge.startedAt)) && challenge.completedDays.length < challenge.totalDays)
+          .sort((left, right) => Number(doneToday(left)) - Number(doneToday(right)) || lastMs(right) - lastMs(left));
+        setActiveChallenges(active);
       })
       .catch(() => {
-        if (!cancelled) setActiveChallenge(null);
+        if (!cancelled) setActiveChallenges([]);
       });
     return () => { cancelled = true; };
   }, [signedIn]);
 
+  const activeChallenge = activeChallenges[0] ?? null;
   if (!signedIn || !activeChallenge) return null;
   const completed = activeChallenge.completedDays.length;
   const nextDay = Math.min(activeChallenge.totalDays, completed + 1);
+  const waitsForTomorrow = getChallengeProgressState({ completedDays: completed, totalDays: activeChallenge.totalDays, lastCompletedAt: activeChallenge.completedDays.at(-1)?.completedAt ?? null }) === "completed_today";
+  const moreCount = activeChallenges.length - 1;
   return (
     <button
       type="button"
@@ -17305,7 +17524,8 @@ function TodayFormationContinuation({
           {ts(activeChallenge.titleKey, activeChallenge.title)}
         </span>
         <span className="mt-0.5 block text-xs leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.inProgressBody").replace("{nextDay}", String(nextDay)).replace("{total}", String(activeChallenge.totalDays))}
+          {ts(waitsForTomorrow ? "challenges.completedTodayBody" : "challenges.inProgressBody").replace("{nextDay}", String(nextDay)).replace("{total}", String(activeChallenge.totalDays))}
+          {moreCount > 0 ? ` · ${ts("challenges.moreInProgress").replace("{count}", String(moreCount))}` : ""}
         </span>
       </span>
       <ChevronRight size={18} className="shrink-0" style={{ color: theme.textMuted }} aria-hidden="true" />
@@ -17463,15 +17683,15 @@ function AccountHeaderStat({
   const accessibleLabel = `${value} ${detail}`;
   return (
     <span
-      className="flex min-h-10 min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left shadow-[0_4px_10px_rgba(7,10,8,0.03)]"
-      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+      className="flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center"
+      role="group"
       aria-label={accessibleLabel}
-      title={accessibleLabel}
     >
-      <span className="grid size-7 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
-        <Icon size={14} aria-hidden="true" />
+      <span className="inline-flex items-center gap-1 text-lg font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }} aria-hidden="true">
+        <Icon size={14} style={{ color: theme.textSecondary }} />
+        {value}
       </span>
-      <span className="text-sm font-semibold leading-none tracking-[-0.02em]" style={{ color: theme.textPrimary }}>{value}</span>
+      <span className="line-clamp-2 text-[11px] leading-4 first-letter:uppercase" style={{ color: theme.textSecondary }} aria-hidden="true">{detail}</span>
     </span>
   );
 }
@@ -17557,9 +17777,9 @@ function AccountToggleRow({
   }
 
   return (
-    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border p-1.5 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:p-2" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
-        <div className="flex min-w-0 items-start gap-2">
+    <div className="relative editorial-surface premium-tap-card rounded-[1rem] border px-3.5 py-3 shadow-[0_4px_10px_rgba(7,10,8,0.04)] sm:px-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-2.5">
           <span className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border sm:size-[1.875rem]" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
             <Icon size={14} />
           </span>
@@ -17859,6 +18079,7 @@ type ChallengeWithProgress = {
   totalDays: number;
   mode: string;
   completedDays: ChallengeProgressEntry[];
+  startedAt?: string | null;
   days?: ChallengeDefinitionPreview["days"];
 };
 
@@ -17952,6 +18173,37 @@ type ChallengeCircleSummary = {
 };
 
 const FASTING_CHALLENGE_ID = "fasting-custom";
+const FORMATION_STARTED_STORAGE_KEY = "aletheia:formation-started";
+
+type FormationView = "mine" | "discover" | "history";
+
+// Practices begun offline wait here, keyed by account, until the server confirms the enrollment.
+function readStartedFormationStore(): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(FORMATION_STARTED_STORAGE_KEY) || "{}") as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function readStartedFormationIds(userId: string | null | undefined): string[] {
+  if (!userId) return [];
+  const list = readStartedFormationStore()[userId];
+  return Array.isArray(list) ? list.filter((id): id is string => typeof id === "string").slice(0, 40) : [];
+}
+
+function writeStartedFormationIds(userId: string | null | undefined, ids: string[]) {
+  if (!userId) return;
+  try {
+    const store = readStartedFormationStore();
+    if (ids.length) store[userId] = ids;
+    else delete store[userId];
+    window.localStorage.setItem(FORMATION_STARTED_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Enrolment stays in memory for this session.
+  }
+}
 
 function FormationRailSection({
   theme,
@@ -17967,6 +18219,7 @@ function FormationRailSection({
   pendingChallengeId,
   pendingChallengeFocus,
   onClearPendingChallenge,
+  onRequestSignIn,
   challengeCircleRefreshKey,
   onChallengeCircleChanged,
   onChallengeInviteReady,
@@ -17986,6 +18239,7 @@ function FormationRailSection({
   pendingChallengeId: string | null;
   pendingChallengeFocus: "nudges" | null;
   onClearPendingChallenge: () => void;
+  onRequestSignIn: () => void;
   challengeCircleRefreshKey: number;
   onChallengeCircleChanged: () => void;
   onChallengeInviteReady: (payload: { inviteUrl: string; circle: ChallengeCircleSummary }) => void;
@@ -17996,7 +18250,6 @@ function FormationRailSection({
   const [challengeCircles, setChallengeCircles] = useState<ChallengeCircleSummary[]>([]);
   const [challengeDefs, setChallengeDefs] = useState<ChallengeDefinitionPreview[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(pendingChallengeId);
-  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
   const [openDayDetailDay, setOpenDayDetailDay] = useState<number | null>(null);
   const [reflectionText, setReflectionText] = useState("");
   const [savingDay, setSavingDay] = useState<{ challengeId: string; day: number } | null>(null);
@@ -18016,20 +18269,89 @@ function FormationRailSection({
   const [recipientNameDraft, setRecipientNameDraft] = useState("");
   const [recipientNoteDraft, setRecipientNoteDraft] = useState("");
   const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now());
+  const [formationView, setFormationView] = useState<FormationView | null>(null);
+  const [startedChallengeIds, setStartedChallengeIds] = useState<string[]>([]);
+  const [saveDayError, setSaveDayError] = useState("");
+  const [inviteLinkBusy, setInviteLinkBusy] = useState(false);
+  const [inviteLinkError, setInviteLinkError] = useState("");
   const sectionRef = useRef<HTMLElement | null>(null);
   const selectedChallengeDetailRef = useRef<HTMLElement | null>(null);
-  const dayCarouselRef = useRef<HTMLDivElement | null>(null);
   const nudgePanelRef = useRef<HTMLDivElement | null>(null);
   const nudgeComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingChallengeLandingRef = useRef<"formation" | "nudges" | null>(null);
-  const dayCardRefs = useRef<Record<number, HTMLElement | null>>({});
+  const clearPendingChallengeRef = useRef(onClearPendingChallenge);
+
+  useEffect(() => {
+    clearPendingChallengeRef.current = onClearPendingChallenge;
+  }, [onClearPendingChallenge]);
+
+  const viewerUserId = user?.id ?? null;
+
+  useEffect(() => {
+    queueMicrotask(() => setStartedChallengeIds(readStartedFormationIds(viewerUserId)));
+  }, [viewerUserId]);
+
+  function updateStartedChallengeIds(update: (current: string[]) => string[]) {
+    setStartedChallengeIds((current) => {
+      const next = update(current);
+      writeStartedFormationIds(viewerUserId, next);
+      return next;
+    });
+  }
+
+  function applyEnrollments(enrollments: Array<{ challengeId: string; startedAt: string }>) {
+    if (!enrollments.length) return;
+    const startedAtById = new Map(enrollments.map((entry) => [entry.challengeId, entry.startedAt]));
+    setChallenges((prev) =>
+      prev.map((challenge) =>
+        startedAtById.has(challenge.id) ? { ...challenge, startedAt: startedAtById.get(challenge.id) ?? null } : challenge
+      )
+    );
+    updateStartedChallengeIds((current) => current.filter((id) => !startedAtById.has(id)));
+  }
+
+  // Retries practices that were begun while offline once the server list is known.
+  function syncPendingEnrollments(serverChallenges: ChallengeWithProgress[]) {
+    const pendingIds = readStartedFormationIds(viewerUserId);
+    const unsyncedIds = pendingIds.filter((id) => {
+      const serverChallenge = serverChallenges.find((challenge) => challenge.id === id);
+      return Boolean(serverChallenge && !serverChallenge.startedAt && serverChallenge.completedDays.length === 0);
+    });
+    if (unsyncedIds.length !== pendingIds.length) {
+      updateStartedChallengeIds((current) => current.filter((id) => unsyncedIds.includes(id)));
+    }
+    if (unsyncedIds.length) void persistEnrollments(unsyncedIds);
+  }
+
+  const syncPendingEnrollmentsRef = useRef(syncPendingEnrollments);
+  useEffect(() => {
+    syncPendingEnrollmentsRef.current = syncPendingEnrollments;
+  });
+
+  async function persistEnrollments(challengeIds: string[]) {
+    if (!challengeIds.length) return false;
+    try {
+      const response = await fetch("/api/challenges/enrollment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeIds }),
+      });
+      if (!response.ok) return false;
+      const data = (await response.json().catch(() => ({}))) as {
+        enrollments?: Array<{ challengeId: string; startedAt: string }>;
+      };
+      applyEnrollments(data.enrollments ?? []);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   useEffect(() => {
     if (pendingChallengeId) {
       pendingChallengeLandingRef.current = pendingChallengeFocus === "nudges" ? "nudges" : "formation";
       queueMicrotask(() => {
         setSelectedChallengeId(pendingChallengeId);
-        setSelectedDayNumber(null);
         setOpenDayDetailDay(null);
       });
     }
@@ -18076,6 +18398,7 @@ function FormationRailSection({
             const challengeData = (await challengeResponse.json()) as { challenges?: ChallengeWithProgress[] };
             if (challengeData.challenges) {
               setChallenges(challengeData.challenges);
+              syncPendingEnrollmentsRef.current(challengeData.challenges);
             }
           } catch {
             // Keep the current challenge list if the payload is malformed.
@@ -18129,6 +18452,7 @@ function FormationRailSection({
             totalDays: def.days.length,
             mode: withProgress?.mode ?? "Life",
             completedDays: withProgress?.completedDays ?? [],
+            startedAt: withProgress?.startedAt ?? null,
             days: def.days,
           } as ChallengeWithProgress;
         }),
@@ -18207,32 +18531,15 @@ function FormationRailSection({
     });
   }, [activeChallengeProgress, completionChallengeIds, focusIntentions, journalEntries, language, manualContext, messages, mode, wisdomDecisions]);
 
-  const effectiveSelectedChallengeId =
-    pendingChallengeId ??
-    selectedChallengeId ??
-    activeChallengeProgress?.id ??
-    recommendationSignals.primary?.challengeId ??
-    displayChallenges[0]?.id ??
-    null;
-  const baseSelectedChallenge = displayChallenges.find((challenge) => challenge.id === effectiveSelectedChallengeId) ?? null;
-  const baseSelectedCircle = baseSelectedChallenge
-    ? [...challengeCircles]
-        .filter((circle) => circle.challengeId === baseSelectedChallenge.id)
-        .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
+  // The tapped practice is always the one shown; a circle on another practice must never override it.
+  const selectedChallenge = selectedChallengeId
+    ? displayChallenges.find((challenge) => challenge.id === selectedChallengeId) ?? null
     : null;
-  const latestChallengeCircle = [...challengeCircles]
-    .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null;
-  const selectedChallenge = baseSelectedCircle
-    ? baseSelectedChallenge
-    : latestChallengeCircle
-      ? displayChallenges.find((challenge) => challenge.id === latestChallengeCircle.challengeId) ?? baseSelectedChallenge
-      : baseSelectedChallenge;
-  const formationAutoSwitched = Boolean(baseSelectedChallenge && selectedChallenge && selectedChallenge.id !== baseSelectedChallenge.id);
-  const selectedCircle = selectedChallenge
-    ? [...challengeCircles]
-        .filter((circle) => circle.challengeId === selectedChallenge.id)
-        .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null
-    : null;
+  const circleForChallenge = (challengeId: string) =>
+    [...challengeCircles]
+      .filter((circle) => circle.challengeId === challengeId)
+      .sort((a, b) => Date.parse(b.invite.createdAt) - Date.parse(a.invite.createdAt))[0] ?? null;
+  const selectedCircle = selectedChallenge ? circleForChallenge(selectedChallenge.id) : null;
   const currentUserName = user?.name ?? user?.email ?? ts("labels.counselContact");
   const selectedCircleInviteDetails = selectedCircle?.invite.details ?? null;
   const selectedCircleHasCurrentMember =
@@ -18378,8 +18685,14 @@ function FormationRailSection({
           scrollTargetBelowTopChrome(fallbackTarget);
           return true;
         }
+        return false;
       }
 
+      const detail = selectedChallengeDetailRef.current;
+      if (detail) {
+        scrollTargetBelowTopChrome(detail);
+        return true;
+      }
       return false;
     };
 
@@ -18389,16 +18702,16 @@ function FormationRailSection({
           return;
         }
         const focused = focusChallengeLanding();
-        if (focused && delay >= 1400) {
+        if (focused && (landing === "formation" || delay >= 1400)) {
           settled = true;
           pendingChallengeLandingRef.current = null;
-          onClearPendingChallenge();
+          clearPendingChallengeRef.current();
           return;
         }
         if (!focused && delay === 5200) {
           settled = true;
           pendingChallengeLandingRef.current = null;
-          onClearPendingChallenge();
+          clearPendingChallengeRef.current();
         }
       }, delay)
     );
@@ -18407,7 +18720,7 @@ function FormationRailSection({
       settled = true;
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [onClearPendingChallenge, pendingChallengeId, selectedChallengeId, selectedCircle]);
+  }, [pendingChallengeId, selectedChallengeId, selectedCircle]);
 
   useEffect(() => {
     queueMicrotask(() => setSharedCircleNudgeRecipientId(null));
@@ -18511,11 +18824,6 @@ function FormationRailSection({
       setSharedCircleNudgeStatus(ts("notifications.apiUnavailable"));
     }
   }
-  const selectedChallengeNextDay = selectedChallenge
-    ? selectedChallengeProgressState === "completed_today"
-      ? Math.min(selectedChallengeCompletedDays.length, selectedChallenge.totalDays)
-      : nextDayFor(selectedChallenge)
-    : 1;
 
   function updateReadWithMeInviteDraft(patch: Partial<ReadWithMeInviteDetails>) {
     setReadWithMeInviteDraft((current) => ({ ...current, ...patch }));
@@ -18536,7 +18844,6 @@ function FormationRailSection({
     const inviteDetails = circle?.invite.details ?? null;
 
     setSelectedChallengeId(challenge.id);
-    setSelectedDayNumber(null);
     setOpenDayDetailDay(null);
 
     if (inviteDetails?.kind === "read-with-me") {
@@ -18566,7 +18873,6 @@ function FormationRailSection({
 
     setInviteEditorChallengeId(null);
     setSelectedChallengeId(challenge.id);
-    setSelectedDayNumber(null);
     setOpenDayDetailDay(null);
     setInviteViewerChallengeId(challenge.id);
   }
@@ -18617,12 +18923,6 @@ function FormationRailSection({
     addRecipientDraft(contact.name, contact.notes || contact.contact || contact.role || "");
   }
 
-  const selectedChallengeFocusedDay = selectedChallenge
-    ? Math.min(
-        selectedDayNumber ?? selectedChallengeNextDay,
-        selectedChallenge.totalDays
-      )
-    : null;
   const selectedChallengeDefinition = selectedChallenge
     ? challengeDefs.find((def) => def.id === selectedChallenge.id) ?? null
     : null;
@@ -18639,21 +18939,6 @@ function FormationRailSection({
   const selectedChallengeModalCompletion = selectedChallenge && openDayDetailDay !== null
     ? completionForDay(selectedChallenge, openDayDetailDay)
     : null;
-  const dayCarouselHasOverflow = useRailOverflowCue(dayCarouselRef, Boolean(selectedChallenge), [selectedChallenge?.id, selectedChallenge?.totalDays, selectedChallengeFocusedDay, selectedChallenge?.completedDays.length]);
-  const currentDayPracticeHint = ({
-    en: "Tap the current day card below to open the full practice.",
-    es: "Toca la tarjeta del día de hoy abajo para abrir la práctica completa.",
-    fr: "Touchez la carte du jour ci-dessous pour ouvrir la pratique complète.",
-    pt: "Toque no cartão do dia de hoje abaixo para abrir a prática completa.",
-    de: "Tippe die heutige Karte unten an, um die ganze Praxis zu öffnen.",
-    yo: "Fọwọ́ kan kaadi ọjọ́ yìí ní isalẹ láti ṣí gbogbo ìṣe náà.",
-    ig: "Pịa kaadị ụbọchị taa dị n'okpuru ka o mepee omume dum.",
-    ha: "Taɓa katin ranar yau da ke ƙasa don buɗe cikakken aikin.",
-    tl: "I-tap ang card ng kasalukuyang araw sa ibaba para buksan ang buong praktis.",
-    ar: "انقر بطاقة اليوم أدناه لفتح الممارسة كاملة.",
-    hi: "पूरा अभ्यास खोलने के लिए नीचे वाले आज के कार्ड पर टैप करें.",
-  } as Partial<Record<LanguageCode, string>>)[language] ?? "Tap the current day card below to open the full practice.";
-
   const localizedDayPractice = useCallback((day: { practice: string; practiceKey?: string }) => {
     return typeof day.practiceKey === "string" ? ts(day.practiceKey, day.practice) : day.practice;
   }, [ts]);
@@ -18679,8 +18964,6 @@ function FormationRailSection({
     theme,
     ts,
   ]);
-
-  const visibleChallengeCards = displayChallenges;
 
   function completedDaysFor(challenge: ChallengeWithProgress) {
     return challenge.completedDays.length;
@@ -18730,7 +19013,7 @@ function FormationRailSection({
     const prompt = getDayPrompt(challenge.id, day);
     const title = `${ts("challenges.dayLabel").replace("{day}", String(day))} · ${ts(challenge.titleKey, challenge.title)}`;
     const text = buildChallengeDayShareText(challenge, day);
-    const url = `${getPublicAppOrigin()}/?tab=reflect&challenge=${encodeURIComponent(challenge.id)}&day=${day}`;
+    const url = `${getPublicAppOrigin()}/?tab=library&challenge=${encodeURIComponent(challenge.id)}&day=${day}`;
     if (navigator.share) {
       await navigator.share({ title, text, url }).catch(() => undefined);
     } else {
@@ -18747,9 +19030,20 @@ function FormationRailSection({
   async function markDayComplete(challenge: ChallengeWithProgress) {
     const day = nextDayFor(challenge);
     if (day > challenge.totalDays) return;
+    setSaveDayError("");
+    if (!user) {
+      onRequestSignIn();
+      return;
+    }
     const isFastingChallenge = challenge.id === FASTING_CHALLENGE_ID;
-    const fastingCircle = isFastingChallenge ? selectedCircle : null;
+    const fastingCircle = isFastingChallenge ? circleForChallenge(challenge.id) : null;
     if (isFastingChallenge && !fastingCircle) {
+      setOpenDayDetailDay(null);
+      openInviteEditor(challenge);
+      return;
+    }
+    if (progressStateFor(challenge) === "completed_today") {
+      setSaveDayError(ts("challenges.completedTodayBody").replace("{nextDay}", String(day)).replace("{total}", String(challenge.totalDays)));
       return;
     }
     setSavingDay({ challengeId: challenge.id, day });
@@ -18779,7 +19073,7 @@ function FormationRailSection({
           setChallenges((prev) =>
             prev.map((c) =>
               c.id === challenge.id
-                ? { ...c, completedDays: [...c.completedDays, { day, reflection: reflectionText.trim(), completedAt: now }] }
+                ? { ...c, startedAt: c.startedAt ?? now, completedDays: [...c.completedDays, { day, reflection: reflectionText.trim(), completedAt: now }] }
                 : c
             )
           );
@@ -18795,15 +19089,103 @@ function FormationRailSection({
           source: "challenges",
           challengeId: challenge.id,
         });
+        updateStartedChallengeIds((current) => current.filter((id) => id !== challenge.id));
         setOpenDayDetailDay(null);
-        setSelectedDayNumber(null);
+        return;
       }
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setSaveDayError(data.error || ts("challenges.saveFailed"));
     } catch {
-      // Let user retry.
-  } finally {
-    setSavingDay(null);
+      setSaveDayError(ts("challenges.saveFailed"));
+    } finally {
+      setSavingDay(null);
+    }
   }
-}
+
+  function progressStateFor(challenge: ChallengeWithProgress) {
+    return getChallengeProgressState(
+      {
+        completedDays: challenge.completedDays.length,
+        totalDays: challenge.totalDays,
+        lastCompletedAt: challenge.completedDays.at(-1)?.completedAt ?? null,
+      },
+      currentTimestampMs
+    );
+  }
+
+  function isChallengeEnrolled(challenge: ChallengeWithProgress) {
+    if (challenge.completedDays.length > 0) return true;
+    if (challenge.startedAt) return true;
+    if (startedChallengeIds.includes(challenge.id)) return true;
+    const circle = circleForChallenge(challenge.id);
+    return Boolean(circle && circle.members.some((member) => member.userId === user?.id));
+  }
+
+  function openPractice(challengeId: string) {
+    setSelectedChallengeId(challengeId);
+    setOpenDayDetailDay(null);
+    setSaveDayError("");
+    setInviteLinkError("");
+    window.requestAnimationFrame(() => {
+      if (sectionRef.current) scrollTargetBelowTopChrome(sectionRef.current, "auto");
+    });
+  }
+
+  function closePractice() {
+    setSelectedChallengeId(null);
+    setOpenDayDetailDay(null);
+    setChallengeNudgeThreadOpen(false);
+  }
+
+  function openPracticeDay(challenge: ChallengeWithProgress, day: number) {
+    setSaveDayError("");
+    setSelectedChallengeId(challenge.id);
+    setOpenDayDetailDay(day);
+  }
+
+  function beginPractice(challenge: ChallengeWithProgress) {
+    if (!user) {
+      onRequestSignIn();
+      return;
+    }
+    if (challenge.id === FASTING_CHALLENGE_ID && !circleForChallenge(challenge.id)) {
+      openInviteEditor(challenge);
+      return;
+    }
+    updateStartedChallengeIds((current) => (current.includes(challenge.id) ? current : [...current, challenge.id]));
+    void persistEnrollments([challenge.id]);
+    trackClientEvent("challenge_started", { challengeId: challenge.id });
+    openPracticeDay(challenge, Math.min(nextDayFor(challenge), challenge.totalDays));
+  }
+
+  function removeStartedPractice(challenge: ChallengeWithProgress) {
+    updateStartedChallengeIds((current) => current.filter((id) => id !== challenge.id));
+    setChallenges((prev) => prev.map((entry) => (entry.id === challenge.id ? { ...entry, startedAt: null } : entry)));
+    void fetch("/api/challenges/enrollment", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challengeId: challenge.id }),
+    }).catch(() => undefined);
+    closePractice();
+  }
+
+  async function inviteMoreFriends(challenge: ChallengeWithProgress, circle: ChallengeCircleSummary) {
+    setInviteLinkBusy(true);
+    setInviteLinkError("");
+    try {
+      const response = await fetch(`/api/challenge-circles/by-id/${encodeURIComponent(circle.id)}/invite-link`, { method: "POST" });
+      const data = (await response.json().catch(() => ({}))) as { inviteUrl?: string };
+      if (!response.ok || !data.inviteUrl) {
+        throw new Error("invite_link_failed");
+      }
+      onChallengeInviteReady({ inviteUrl: data.inviteUrl, circle });
+      trackClientEvent("challenge_shared", { challengeId: challenge.id, reshare: true });
+    } catch {
+      setInviteLinkError(ts("challenges.inviteLinkFailed"));
+    } finally {
+      setInviteLinkBusy(false);
+    }
+  }
 
   const challengeNudgeThreadModal =
     selectedCircle && selectedChallenge ? (
@@ -18868,7 +19250,28 @@ function FormationRailSection({
           </p>
         </div>
 
-        {selectedChallengeModalState === "current" ? (
+        {selectedChallengeModalState === "current" && selectedChallengeProgressState === "completed_today" ? (
+          <p className="mt-4 rounded-[1rem] px-3.5 py-3 text-sm leading-6" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
+            {ts("challenges.completedTodayBody").replace("{nextDay}", String(selectedChallengeModalDay.day)).replace("{total}", String(selectedChallenge.totalDays))}
+          </p>
+        ) : selectedChallengeModalState === "current" && !user ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {localizedDayPrompt(selectedChallengeModalPrompt)}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setOpenDayDetailDay(null);
+                onRequestSignIn();
+              }}
+              className="inline-flex h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold sm:w-auto"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {ts("challenges.signInToBegin")}
+            </button>
+          </div>
+        ) : selectedChallengeModalState === "current" ? (
           <div className="mt-4 space-y-3">
             <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
               {localizedDayPrompt(selectedChallengeModalPrompt)}
@@ -18885,15 +19288,24 @@ function FormationRailSection({
               value={reflectionText}
               onChange={(e) => setReflectionText(e.target.value)}
             />
+            {saveDayError ? (
+              <p role="alert" className="text-sm leading-5" style={{ color: theme.textSecondary }}>
+                {saveDayError}
+              </p>
+            ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
                 disabled={savingDay?.challengeId === selectedChallenge.id}
                 onClick={() => markDayComplete(selectedChallenge)}
-                className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
+                className="inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition disabled:opacity-60 sm:w-auto"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
-                {savingDay?.challengeId === selectedChallenge.id ? ts("challenges.saving") : ts("challenges.saveReflection")}
+                {savingDay?.challengeId === selectedChallenge.id
+                  ? ts("challenges.saving")
+                  : isFastingChallenge && !selectedCircle
+                    ? ts("challenges.setUpPractice")
+                    : ts("challenges.saveReflection")}
               </button>
             </div>
           </div>
@@ -19232,19 +19644,19 @@ function FormationRailSection({
                         </p>
                       </div>
                       <div className="space-y-3 p-4">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                        <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                           {ts("labels.startDate")}
                           <input
                             type="date"
                             value={readWithMeInviteDraft.startDate}
                             onChange={(event) => updateReadWithMeInviteDraft({ startDate: event.target.value })}
-                            className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                            className="mt-2 normal-case tracking-normal font-normal h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
                             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                           />
                         </label>
 
                         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                             {ts("challenges.responseWindow")}
                             <input
                               type="number"
@@ -19257,17 +19669,17 @@ function FormationRailSection({
                                   pendingAfterValue: event.target.value ? Number(event.target.value) : null,
                                 })
                               }
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              className="mt-2 normal-case tracking-normal font-normal h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
                               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                               placeholder="24"
                             />
                           </label>
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                          <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                             {ts("labels.durationUnit")}
                             <select
                               value={readWithMeInviteDraft.pendingAfterUnit}
                               onChange={(event) => updateReadWithMeInviteDraft({ pendingAfterUnit: event.target.value as ReadWithMeInvitePendingWindowUnit })}
-                              className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                              className="mt-2 normal-case tracking-normal font-normal h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
                               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                             >
                               <option value="hours">{ts("labels.hours")}</option>
@@ -19288,37 +19700,37 @@ function FormationRailSection({
                         </p>
                       </div>
                       <div className="space-y-3 p-4">
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                        <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                           {ts("labels.cadence")}
                           <textarea
                             rows={2}
                             value={readWithMeInviteDraft.cadence}
                             onChange={(event) => updateReadWithMeInviteDraft({ cadence: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            className="mt-2 normal-case tracking-normal font-normal w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                             placeholder={ts("challenges.readWithMeCadencePlaceholder")}
                           />
                         </label>
 
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                        <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                           {ts("labels.focus")}
                           <textarea
                             rows={3}
                             value={readWithMeInviteDraft.focus}
                             onChange={(event) => updateReadWithMeInviteDraft({ focus: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            className="mt-2 normal-case tracking-normal font-normal w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                             placeholder={ts("challenges.readWithMeFocusPlaceholder")}
                           />
                         </label>
 
-                        <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                        <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                           {ts("labels.note")}
                           <textarea
                             rows={3}
                             value={readWithMeInviteDraft.note}
                             onChange={(event) => updateReadWithMeInviteDraft({ note: event.target.value })}
-                            className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                            className="mt-2 normal-case tracking-normal font-normal w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                             placeholder={ts("challenges.readWithMeNotePlaceholder")}
                           />
@@ -19343,7 +19755,7 @@ function FormationRailSection({
                   </div>
                   <div className="space-y-3 p-4">
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
-                      <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                         {ts("labels.duration")}
                         <input
                           type="number"
@@ -19352,42 +19764,42 @@ function FormationRailSection({
                           step={1}
                           value={fastingInviteDraft.durationValue ?? ""}
                           onChange={(event) => updateFastingInviteDraft({ durationValue: event.target.value ? Number(event.target.value) : null })}
-                          className="mt-2 h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
+                          className="mt-2 normal-case tracking-normal font-normal h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
                           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                           placeholder="7"
                         />
                       </label>
-                      <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                         {ts("labels.startDate")}
                         <input
                           type="date"
                           value={fastingInviteDraft.startDate}
                           onChange={(event) => updateFastingInviteDraft({ startDate: event.target.value })}
-                          className="mt-2 h-11 w-full max-w-[11rem] rounded-[0.9rem] border px-3 text-sm outline-none sm:max-w-none"
+                          className="mt-2 normal-case tracking-normal font-normal h-11 w-full rounded-[0.9rem] border px-3 text-sm outline-none"
                           style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         />
                       </label>
                     </div>
 
-                    <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                       {ts("labels.goal")}
                       <textarea
                         rows={2}
                         value={fastingInviteDraft.goal}
                         onChange={(event) => updateFastingInviteDraft({ goal: event.target.value })}
-                        className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                        className="mt-2 normal-case tracking-normal font-normal w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         placeholder={ts("challenges.fastingCustom.goalPlaceholder")}
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textSecondary }}>
                       {ts("labels.note")}
                       <textarea
                         rows={3}
                         value={fastingInviteDraft.note}
                         onChange={(event) => updateFastingInviteDraft({ note: event.target.value })}
-                        className="mt-2 w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
+                        className="mt-2 normal-case tracking-normal font-normal w-full resize-none rounded-[0.9rem] border px-3 py-2.5 text-sm leading-6 outline-none"
                         style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
                         placeholder={ts("challenges.readWithMeNotePlaceholder")}
                       />
@@ -19482,556 +19894,654 @@ function FormationRailSection({
     document.body
   ) : null;
 
-  if (!user) {
+  const lastActivityMs = (challenge: ChallengeWithProgress) => Date.parse(challenge.completedDays.at(-1)?.completedAt ?? "") || 0;
+  const enrolledPractices = user ? displayChallenges.filter((challenge) => isChallengeEnrolled(challenge)) : [];
+  const activePractices = enrolledPractices
+    .filter((challenge) => progressStateFor(challenge) !== "completed")
+    .sort((a, b) => {
+      const aWaiting = progressStateFor(a) === "completed_today" ? 1 : 0;
+      const bWaiting = progressStateFor(b) === "completed_today" ? 1 : 0;
+      return aWaiting - bWaiting || lastActivityMs(b) - lastActivityMs(a);
+    });
+  const completedPractices = enrolledPractices.filter((challenge) => progressStateFor(challenge) === "completed");
+  const historyEntries = user
+    ? displayChallenges
+        .flatMap((challenge) => challenge.completedDays.map((entry) => ({ challenge, entry })))
+        .sort((a, b) => (Date.parse(b.entry.completedAt) || 0) - (Date.parse(a.entry.completedAt) || 0))
+    : [];
+  const activeFormationView: FormationView = formationView ?? (enrolledPractices.length > 0 ? "mine" : "discover");
+  const recommendedChallengeId = recommendationSignals.primary?.challengeId ?? null;
+  const discoverChallenges = [...displayChallenges].sort((a, b) =>
+    Number(b.id === recommendedChallengeId) - Number(a.id === recommendedChallengeId)
+  );
+  const todayKey = new Date(currentTimestampMs).toDateString();
+  const isToday = (value: string | null | undefined) => Boolean(value && new Date(value).toDateString() === todayKey);
+  const formatHistoryDate = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(language, { month: "short", day: "numeric" });
+  };
+
+  function practiceStatusLine(challenge: ChallengeWithProgress) {
+    const state = progressStateFor(challenge);
+    const nextDay = Math.min(nextDayFor(challenge), challenge.totalDays);
+    if (state === "completed") {
+      return ts("challenges.allDaysComplete").replace("{total}", String(challenge.totalDays));
+    }
+    if (state === "completed_today") {
+      return ts("challenges.completedTodayBody").replace("{nextDay}", String(nextDay)).replace("{total}", String(challenge.totalDays));
+    }
+    if (challenge.id === FASTING_CHALLENGE_ID && !circleForChallenge(challenge.id)) {
+      return ts("challenges.fastingCustom.formBody");
+    }
+    return ts("challenges.dayReady").replace("{day}", String(nextDay));
+  }
+
+  function renderProgressBar(done: number, total: number) {
     return (
-      <section
-        ref={sectionRef}
-        className="rounded-[1.35rem] border p-3.5 sm:p-4"
-        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+      <div
+        className="h-1.5 overflow-hidden rounded-full"
+        style={{ backgroundColor: theme.bgInput }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={done}
+        aria-label={ts("challenges.daysCompleted").replace("{count}", String(done)).replace("{total}", String(total))}
       >
-        <p className="text-sm leading-5" style={{ color: theme.textSecondary }}>
-          {ts("challenges.signInToTrack")}
-        </p>
-      </section>
+        <div
+          className="h-full rounded-full transition-[width] duration-500"
+          style={{
+            width: `${Math.max(0, Math.min(100, total > 0 ? (done / total) * 100 : 0))}%`,
+            background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
+          }}
+        />
+      </div>
+    );
+  }
+
+  function renderCircleAvatars(circle: ChallengeCircleSummary | null) {
+    if (!circle || circle.members.length < 2) return null;
+    const shown = circle.members.slice(0, 3);
+    return (
+      <span className="flex shrink-0 items-center" aria-label={ts("challenges.circleMembers").replace("{count}", String(circle.memberCount))}>
+        {shown.map((member, index) => (
+          <span key={member.userId} className="rounded-full" style={{ marginLeft: index === 0 ? 0 : -6, boxShadow: `0 0 0 2px ${theme.bgCard}` }}>
+            <AvatarCircle avatarUrl={member.avatarUrl} seed={member.userId} label={member.name ?? ts("labels.counselContact")} size={20} className="size-5" />
+          </span>
+        ))}
+        {circle.memberCount > shown.length ? (
+          <span className="ml-1 text-[11px] font-semibold tabular-nums" style={{ color: theme.textMuted }}>+{circle.memberCount - shown.length}</span>
+        ) : null}
+      </span>
+    );
+  }
+
+  function renderPracticeRow(challenge: ChallengeWithProgress, variant: "mine" | "discover") {
+    const done = completedDaysFor(challenge);
+    const state = progressStateFor(challenge);
+    const circle = circleForChallenge(challenge.id);
+    const enrolled = Boolean(user) && isChallengeEnrolled(challenge);
+    const isRecommended = variant === "discover" && challenge.id === recommendedChallengeId;
+    const badge = variant === "discover"
+      ? state === "completed"
+        ? ts("challenges.completedChallenge")
+        : enrolled
+          ? ts("challenges.inProgress")
+          : isRecommended
+            ? ts("challenges.recommended")
+            : null
+      : null;
+    const nextDay = Math.min(nextDayFor(challenge), challenge.totalDays);
+    const readyToday = variant === "mine" && state !== "completed" && state !== "completed_today";
+    return (
+      <li key={challenge.id} style={{ borderColor: theme.borderLight }}>
+        <button
+          type="button"
+          onClick={() => openPractice(challenge.id)}
+          className="formation-practice-row flex w-full items-start gap-3 px-3.5 py-3.5 text-left transition active:opacity-70 sm:px-4"
+          aria-label={ts(challenge.titleKey, challenge.title)}
+        >
+          <span
+            className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-[0.9rem]"
+            style={{
+              backgroundColor: readyToday ? theme.primary : theme.bgInput,
+              color: readyToday ? theme.textOnPrimary : accessibleAccentText(theme),
+            }}
+            aria-hidden="true"
+          >
+            {state === "completed" ? <Check size={17} /> : challenge.id === FASTING_CHALLENGE_ID || challenge.id === "read-with-me-7day" ? <Users size={17} /> : <Sprout size={17} />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-start justify-between gap-2">
+              <span className="min-w-0 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                {ts(challenge.titleKey, challenge.title)}
+              </span>
+              {variant === "mine" ? (
+                <span className="shrink-0 text-[11px] font-semibold tabular-nums leading-5" style={{ color: theme.textMuted }}>
+                  {done}/{challenge.totalDays}
+                </span>
+              ) : badge ? (
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-4"
+                  style={{ backgroundColor: isRecommended ? theme.activeBg : theme.bgInput, color: isRecommended ? accessibleAccentText(theme) : theme.textSecondary }}
+                >
+                  {badge}
+                </span>
+              ) : null}
+            </span>
+            {variant === "mine" ? (
+              <>
+                <span className="mt-2 block">{renderProgressBar(done, challenge.totalDays)}</span>
+                <span className="mt-2 flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-xs leading-5" style={{ color: readyToday ? theme.textPrimary : theme.textSecondary }}>
+                    {practiceStatusLine(challenge)}
+                  </span>
+                  {renderCircleAvatars(circle)}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="mt-1 line-clamp-2 block text-[0.85rem] leading-5" style={{ color: theme.textSecondary }}>
+                  {isRecommended && recommendationSignals.primary?.note
+                    ? recommendationSignals.primary.note
+                    : ts(challenge.descriptionKey, challenge.description)}
+                </span>
+                <span className="mt-1.5 block text-[11px] leading-4" style={{ color: theme.textMuted }}>
+                  {[
+                    ts("challenges.daysCount").replace("{count}", String(challenge.totalDays)),
+                    enrolled && state !== "completed" ? ts("challenges.dayOf").replace("{day}", String(nextDay)).replace("{total}", String(challenge.totalDays)) : null,
+                    circle ? ts("challenges.circleMembers").replace("{count}", String(circle.memberCount)) : null,
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              </>
+            )}
+          </span>
+          <ChevronRight size={16} className="mt-3 shrink-0 rtl:rotate-180" style={{ color: theme.textMuted }} aria-hidden="true" />
+        </button>
+      </li>
+    );
+  }
+
+  const listSurfaceClass = "divide-y overflow-hidden rounded-[1.35rem] border";
+  const listSurfaceStyle = { borderColor: theme.borderLight, backgroundColor: theme.bgCard };
+  const groupLabel = (label: string) => (
+    <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.textMuted }}>{label}</p>
+  );
+  const signInPrompt = (
+    <div className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+      <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.signInToTrack")}</p>
+      <button
+        type="button"
+        onClick={onRequestSignIn}
+        className="mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
+        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+      >
+        {ts("auth.signIn")}
+      </button>
+    </div>
+  );
+
+  const formationViewOptions: Array<{ id: FormationView; label: string }> = [
+    { id: "mine", label: ts("challenges.myPractices") },
+    { id: "discover", label: ts("challenges.discover") },
+    { id: "history", label: ts("challenges.historyTab") },
+  ];
+
+  function renderSelectedPractice(challenge: ChallengeWithProgress) {
+    const done = selectedChallengeCompletedDays.length;
+    const state = selectedChallengeProgressState ?? "not_started";
+    const enrolled = Boolean(user) && isChallengeEnrolled(challenge);
+    const needsSetup = (isFastingChallenge || isReadWithMeChallenge) && !selectedCircle;
+    const nextDay = Math.min(nextDayFor(challenge), challenge.totalDays);
+    const canRemove = enrolled && done === 0 && !selectedCircle && (Boolean(challenge.startedAt) || startedChallengeIds.includes(challenge.id));
+    const primaryAction: { label: string; onClick: () => void } | null = !user
+      ? { label: ts("challenges.signInToBegin"), onClick: onRequestSignIn }
+      : state === "completed"
+        ? null
+        : needsSetup && (isFastingChallenge || !enrolled)
+          ? { label: ts("challenges.setUpPractice"), onClick: () => openInviteEditor(challenge) }
+          : state === "completed_today"
+            ? null
+            : !enrolled
+              ? { label: ts("challenges.startChallenge"), onClick: () => beginPractice(challenge) }
+              : { label: ts("challenges.openTodayStep").replace("{day}", String(nextDay)), onClick: () => openPracticeDay(challenge, nextDay) };
+
+    return (
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
+        <article
+          ref={selectedChallengeDetailRef}
+          className="overflow-hidden rounded-[1.55rem] border scroll-mt-28"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+        >
+          <div className="px-3.5 pb-4 pt-3 sm:px-5 sm:pt-4">
+            <button
+              type="button"
+              onClick={closePractice}
+              className="-ml-1.5 inline-flex h-9 items-center gap-1 rounded-full px-1.5 text-sm font-semibold"
+              style={{ color: accessibleAccentText(theme) }}
+            >
+              <ChevronLeft size={17} className="rtl:rotate-180" aria-hidden="true" />
+              {ts("challenges.backToPractices")}
+            </button>
+            <h3 className="mt-2 text-[1.35rem] font-semibold leading-tight tracking-tight sm:text-[1.6rem]" style={{ color: theme.textPrimary }}>
+              {ts(challenge.titleKey, challenge.title)}
+            </h3>
+            <p className="mt-1.5 text-[0.95rem] leading-6" style={{ color: theme.textSecondary }}>
+              {ts(challenge.descriptionKey, challenge.description)}
+            </p>
+            {readWithMeInviteDetails?.bookTitle ? (
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {readWithMeInviteDetails.bookTitle}
+                {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
+                {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
+              </p>
+            ) : selectedCircle && fastingInviteDetails ? (
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {ts("challenges.fastingCustom.previewBody")}
+                {fastingDurationLabel ? ` · ${fastingDurationLabel}` : ""}
+                {fastingStartDate ? ` · ${fastingStartDate}` : ""}
+              </p>
+            ) : null}
+
+            <div className="mt-4 space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                  {ts("challenges.daysCompleted").replace("{count}", String(done)).replace("{total}", String(challenge.totalDays))}
+                </span>
+                <span className="text-xs tabular-nums" style={{ color: theme.textMuted }}>
+                  {Math.round(challenge.totalDays > 0 ? (done / challenge.totalDays) * 100 : 0)}%
+                </span>
+              </div>
+              {renderProgressBar(done, challenge.totalDays)}
+              <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                {enrolled || state === "completed" ? practiceStatusLine(challenge) : ts("challenges.noProgressYet")}
+              </p>
+            </div>
+
+            {primaryAction ? (
+              <button
+                type="button"
+                onClick={primaryAction.onClick}
+                className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition active:scale-[0.99] sm:w-auto"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                {primaryAction.label}
+              </button>
+            ) : null}
+            {canRemove ? (
+              <button
+                type="button"
+                onClick={() => removeStartedPractice(challenge)}
+                className="mt-2 block h-9 text-xs font-semibold"
+                style={{ color: theme.textMuted }}
+              >
+                {ts("challenges.removeFromMyPractices")}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="border-t" style={{ borderColor: theme.borderLight }}>
+            <p className="px-3.5 pb-1 pt-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] sm:px-5" style={{ color: theme.textMuted }}>
+              {ts("challenges.daysTitle")}
+            </p>
+            <ol className="pb-2" aria-label={ts("challenges.daysTitle")}>
+              {selectedChallengeDays.map((day) => {
+                const dayState = dayStateFor(challenge, day.day);
+                const completion = completionForDay(challenge, day.day);
+                const waitsForTomorrow = dayState === "current" && state === "completed_today";
+                const isCurrent = dayState === "current" && !waitsForTomorrow;
+                // Guests may preview Day 1; everything beyond the next open day stays locked.
+                const isLocked = dayState === "upcoming" || waitsForTomorrow;
+                const subtitle = completion
+                  ? (completion.reflection?.trim() || ts("challenges.completedChallenge"))
+                  : waitsForTomorrow
+                    ? ts("challenges.dayOpensTomorrow")
+                    : dayState === "upcoming"
+                      ? ts("challenges.dayLocked").replace("{day}", String(day.day - 1))
+                      : localizedDayPrompt(day);
+                return (
+                  <li key={day.day} className="flex items-center gap-1 pr-2 sm:pr-3">
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => openPracticeDay(challenge, day.day)}
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-[1rem] px-3.5 py-2.5 text-left transition enabled:active:opacity-70 disabled:cursor-default sm:px-5"
+                      style={{ backgroundColor: isCurrent ? theme.bgCardElevated : "transparent", opacity: isLocked ? 0.55 : 1 }}
+                      aria-current={isCurrent ? "step" : undefined}
+                    >
+                      <span
+                        className="grid size-8 shrink-0 place-items-center rounded-full border text-xs font-semibold tabular-nums"
+                        style={{
+                          borderColor: dayState === "completed" ? "transparent" : isCurrent ? theme.primary : theme.borderMedium,
+                          backgroundColor: dayState === "completed" ? theme.activeBg : isCurrent ? theme.primary : "transparent",
+                          color: dayState === "completed" ? accessibleAccentText(theme) : isCurrent ? theme.textOnPrimary : theme.textMuted,
+                        }}
+                        aria-hidden="true"
+                      >
+                        {dayState === "completed" ? <Check size={14} /> : isLocked ? <Lock size={12} /> : day.day}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                          {ts("challenges.dayLabel").replace("{day}", String(day.day))} · {localizedScriptureReference(day.scripture, language)}
+                        </span>
+                        <span className="block truncate text-xs leading-5" style={{ color: theme.textSecondary }}>
+                          {subtitle}
+                        </span>
+                      </span>
+                    </button>
+                    {completion ? (
+                      <button
+                        type="button"
+                        onClick={() => void shareChallengeDay(challenge, day.day)}
+                        className="formation-day-share-button grid size-9 shrink-0 place-items-center rounded-full"
+                        aria-label={`${ts("challenges.shareDay")} · ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
+                        style={{ color: theme.textMuted }}
+                      >
+                        <Share2 size={14} />
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </article>
+
+        <aside
+          id="challenge-nudges-card"
+          tabIndex={-1}
+          className="space-y-3 rounded-[1.45rem] border p-3.5 outline-none sm:p-4"
+          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
+              {ts("challenges.communityTitle")}
+            </p>
+            <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+              {selectedCircle ? ts("challenges.communitySummary") : ts("challenges.inviteFriendsBody")}
+            </p>
+          </div>
+
+          {selectedCircle ? (
+            <>
+              <ul className="divide-y" style={{ borderColor: theme.borderLight }} aria-label={ts("challenges.sharedProgress")}>
+                {[...selectedCircle.members]
+                  .sort((a, b) => Number(b.userId === user?.id) - Number(a.userId === user?.id) || b.completedDays - a.completedDays)
+                  .map((member) => {
+                    const isMe = member.userId === user?.id;
+                    const doneToday = isToday(member.lastCompletedAt);
+                    return (
+                      <li key={member.userId} className="flex items-center gap-3 py-2.5" style={{ borderColor: theme.borderLight }}>
+                        <AvatarCircle avatarUrl={member.avatarUrl} seed={member.userId} label={member.name ?? ts("labels.counselContact")} size={32} className="size-8" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                              {isMe ? ts("challenges.you") : member.name ?? ts("labels.counselContact")}
+                              {member.role === "host" ? <span className="font-normal" style={{ color: theme.textMuted }}> · {ts("labels.host")}</span> : null}
+                            </span>
+                            <span className="shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: theme.textMuted }}>
+                              {member.completedDays}/{challenge.totalDays}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="min-w-0 flex-1">{renderProgressBar(member.completedDays, challenge.totalDays)}</div>
+                            {doneToday ? (
+                              <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold" style={{ color: accessibleAccentText(theme) }}>
+                                <Check size={11} aria-hidden="true" />
+                                {ts("challenges.memberDoneToday")}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ul>
+
+              {selectedCircleHasCurrentMember ? (
+                <button
+                  type="button"
+                  disabled={inviteLinkBusy}
+                  onClick={() => void inviteMoreFriends(challenge, selectedCircle)}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition disabled:opacity-60"
+                  style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+                >
+                  <UserPlus size={15} aria-hidden="true" />
+                  {inviteLinkBusy ? ts("challenges.creatingInvite") : ts("challenges.inviteMoreFriends")}
+                </button>
+              ) : null}
+              {inviteLinkError ? (
+                <p role="alert" className="text-xs leading-5" style={{ color: theme.textSecondary }}>{inviteLinkError}</p>
+              ) : null}
+
+              {selectedCircleInviteDetails ? <ChallengeInviteDetailsPanel
+                theme={theme}
+                ts={ts}
+                language={language}
+                currentUserId={user?.id ?? null}
+                currentUserName={currentUserName}
+                nudges={selectedCircle.nudges}
+                selectedChallenge={challenge}
+                selectedCircleInviteDetails={selectedCircleInviteDetails}
+                inviteViewerExpanded={inviteViewerExpanded}
+                inviteViewerInviteDetails={inviteViewerInviteDetails}
+                inviteViewerIsFasting={inviteViewerIsFasting}
+                isReadWithMeChallenge={isReadWithMeChallenge}
+                isFastingChallenge={isFastingChallenge}
+                creatingInviteId={creatingInviteId}
+                onOpenInviteEditor={openInviteEditor}
+                onOpenInviteViewer={openInviteViewer}
+                onCloseInviteViewer={closeInviteViewer}
+                onSaveChallengeInvite={saveChallengeInvite}
+              /> : null}
+
+              <ChallengeResponseDashboard
+                theme={theme}
+                ts={ts}
+                language={language}
+                show={Boolean(selectedCircleInviteDetails)}
+                recipients={readWithMeInviteRecipients}
+                responses={readWithMeInviteResponses}
+                inviteCreatedAt={readWithMeInviteCreatedAt}
+                pendingAfterValue={readWithMePendingWindowValue}
+                pendingAfterUnit={readWithMePendingWindowUnit}
+                currentTimestampMs={currentTimestampMs}
+              />
+
+              <ChallengeNudgePanel
+                theme={theme}
+                ts={ts}
+                language={language}
+                nudgeCount={selectedCircle.nudges.length}
+                nudges={selectedCircle.nudges}
+                selectedCircleHasCurrentMember={selectedCircleHasCurrentMember}
+                currentUserId={user?.id ?? null}
+                currentUserName={currentUserName}
+                members={selectedCircle.members}
+                panelRef={nudgePanelRef}
+                sharedCircleNudgeDraft={sharedCircleNudgeDraft}
+                sharedCircleNudgeStatus={sharedCircleNudgeStatus}
+                sharedCircleNudgeBusy={sharedCircleNudgeBusy}
+                sharedCircleNudgeRecipientId={sharedCircleNudgeRecipientId}
+                composerRef={nudgeComposerRef}
+                onSharedCircleNudgeDraftChange={setSharedCircleNudgeDraft}
+                onSharedCircleNudgeRecipientChange={setSharedCircleNudgeRecipientId}
+                onPostSharedCircleNudge={postSharedCircleNudge}
+                onOpenThread={() => setChallengeNudgeThreadOpen(true)}
+              />
+              {selectedCircle.invite.owner.id !== user?.id ? (
+                <button
+                  type="button"
+                  className="h-10 w-full rounded-full px-4 text-sm font-semibold"
+                  style={{ color: theme.textMuted }}
+                  onClick={leaveSharedCircle}
+                >
+                  {ts("challenges.leaveInvite")}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={creatingInviteId === challenge.id}
+              onClick={() => {
+                if (!user) {
+                  onRequestSignIn();
+                  return;
+                }
+                if (isReadWithMeChallenge || isFastingChallenge) {
+                  openInviteEditor(challenge);
+                  return;
+                }
+                void saveChallengeInvite(challenge);
+              }}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold transition disabled:opacity-60"
+              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
+            >
+              <UserPlus size={15} aria-hidden="true" />
+              {creatingInviteId === challenge.id
+                ? ts("challenges.creatingInvite")
+                : isReadWithMeChallenge
+                  ? ts("challenges.createReadWithMeInvite")
+                  : isFastingChallenge
+                    ? ts("challenges.fastingCustom.createInvite")
+                    : ts("challenges.inviteFriends")}
+            </button>
+          )}
+        </aside>
+      </div>
     );
   }
 
   return (
-    <section ref={sectionRef} className="space-y-4">
+    <section ref={sectionRef} className="space-y-4 scroll-mt-28">
       {challengeNudgeThreadModal}
       {dayModal}
       {inviteEditorModal}
 
-      {loading && displayChallenges.length === 0 && (
-        <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
-          {ts("challenges.loading")}
-        </div>
-      )}
-
-      {visibleChallengeCards.length ? (
+      {selectedChallenge ? (
+        renderSelectedPractice(selectedChallenge)
+      ) : (
         <>
-          <div className="formation-card-rail flex gap-3.5 overflow-x-auto px-1 pb-2.5 [-webkit-overflow-scrolling:touch] sm:px-0">
-            {visibleChallengeCards.map((challenge) => {
-              const done = completedDaysFor(challenge);
-              const circle = challengeCircles.find((item) => item.challengeId === challenge.id) ?? null;
-              const isActive = selectedChallenge?.id === challenge.id;
-              const isReadWithMeCard = challenge.id === "read-with-me-7day";
-              const isFastingCard = challenge.id === FASTING_CHALLENGE_ID;
-              const isCustomizableCard = isReadWithMeCard || isFastingCard;
-              const lastCompletedAt = challenge.completedDays.at(-1)?.completedAt ?? null;
-              const progressState = getChallengeProgressState({
-                completedDays: done,
-                totalDays: challenge.totalDays,
-                lastCompletedAt,
-              }, currentTimestampMs);
-              const progressLabel =
-                progressState === "completed"
-                  ? ts("challenges.completedChallenge")
-                  : progressState === "completed_today"
-                    ? ts("challenges.completedToday")
-                  : progressState === "not_started"
-                    ? ts("challenges.startChallenge")
-                    : progressState === "inactive"
-                      ? ts("challenges.continueChallenge")
-                      : ts("challenges.continueChallenge");
+          <div
+            role="tablist"
+            aria-label={ts("challenges.sectionTitle")}
+            className="grid grid-cols-3 gap-1 rounded-full p-1"
+            style={{ backgroundColor: theme.bgInput }}
+          >
+            {formationViewOptions.map((option) => {
+              const active = activeFormationView === option.id;
               return (
-                  <button
-                  key={challenge.id}
+                <button
+                  key={option.id}
                   type="button"
-                  onClick={() => {
-                    if (isCustomizableCard) {
-                      openInviteEditor(challenge);
-                      return;
-                    }
-                    setSelectedChallengeId(challenge.id);
-                    setSelectedDayNumber(null);
-                    setOpenDayDetailDay(null);
-                  }}
-                  className="formation-card premium-tap-card relative flex w-[17rem] shrink-0 snap-start flex-col rounded-[1.45rem] border p-3.5 text-left shadow-[0_6px_14px_rgba(7,10,8,0.05)] transition active:scale-[0.99] sm:w-[18.25rem]"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFormationView(option.id)}
+                  className="h-9 min-w-0 truncate rounded-full px-2 text-[13px] font-semibold transition"
                   style={{
-                    borderColor: isActive ? theme.primary : theme.borderLight,
-                    backgroundColor: isActive ? theme.bgCardElevated : theme.bgCard,
-                    boxShadow: isActive ? `0 0 0 1px ${theme.primary}` : "0 6px 14px rgba(7, 10, 8, 0.04)",
+                    backgroundColor: active ? theme.bgCard : "transparent",
+                    color: active ? theme.textPrimary : theme.textSecondary,
+                    boxShadow: active ? "0 1px 4px rgba(7, 10, 8, 0.12)" : "none",
                   }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {isActive ? ts("challenges.continueChallenge") : ts("challenges.eyebrow")}
-                      </p>
-                      <p className="mt-1 text-[0.95rem] font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                        {ts(challenge.titleKey, challenge.title)}
-                      </p>
-                    </div>
-                    {isCustomizableCard ? (
-                      <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-                        {ts("labels.custom")}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-[11px] font-semibold tabular-nums leading-none" style={{ color: theme.textMuted }}>
-                        {done}/{challenge.totalDays}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-2.5 line-clamp-1 text-[0.92rem] leading-6" style={{ color: theme.textSecondary }}>
-                    {ts(challenge.descriptionKey, challenge.description)}
-                  </p>
-                  <div className="mt-3 border-t pt-2" style={{ borderColor: theme.borderLight }}>
-                    <div className="flex items-center justify-between gap-2 text-[11px] leading-5" style={{ color: theme.textMuted }}>
-                      <span className="font-semibold" style={{ color: theme.textSecondary }}>
-                        {isCustomizableCard ? ts("labels.customizePractice") : progressLabel}
-                      </span>
-                      <span className="truncate text-right">
-                        {circle ? `${circle.memberCount} ${ts("challenges.withFriends")}` : challenge.mode}
-                      </span>
-                    </div>
-                  </div>
+                  {option.label}
                 </button>
               );
             })}
           </div>
 
-          {selectedChallenge ? (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(300px,0.84fr)]">
-              <article ref={selectedChallengeDetailRef} className="overflow-hidden rounded-[1.55rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                <div className="relative border-b px-3.5 py-3.5 sm:px-4 sm:py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                  <h3 className="text-[1.05rem] font-semibold leading-tight sm:text-[1.55rem]" style={{ color: theme.textPrimary }}>
-                    {ts(selectedChallenge.titleKey, selectedChallenge.title)}
-                  </h3>
-                  <p className="mt-1.5 text-[0.95rem] leading-5 sm:text-[0.98rem] sm:leading-6" style={{ color: theme.textSecondary }}>
-                    {ts(selectedChallenge.descriptionKey, selectedChallenge.description)}
-                  </p>
-                  {formationAutoSwitched ? (
-                    <div className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 sm:mt-3 sm:rounded-[0.85rem] sm:items-start" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                      <span className="grid size-5 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }} aria-hidden="true">
-                        <Sparkles size={10} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.textMuted }}>
-                          {ts("challenges.formationAutoSwitchedLabel")}
-                        </p>
-                        <p className="mt-0.5 hidden text-[11px] leading-4 sm:block" style={{ color: theme.textSecondary }}>
-                          {ts("challenges.formationAutoSwitchedBody")}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-5" style={{ color: theme.textMuted }}>
-                    <span className="font-semibold uppercase tracking-[0.08em]" style={{ color: theme.textSecondary }}>
-                      {selectedChallenge.mode}
-                    </span>
-                    <span>
-                      {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
-                    </span>
-                    {selectedCircle ? (
-                      <span>
-                        {selectedCircle.memberCount} {ts("challenges.withFriends")}
-                      </span>
-                    ) : null}
-                  </div>
-                  {readWithMeInviteDetails?.bookTitle ? (
-                    <p className="mt-3.5 text-sm leading-6 text-balance" style={{ color: theme.textSecondary }}>
-                      {readWithMeInviteDetails.bookTitle}
-                      {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
-                      {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
-                    </p>
-                  ) : fastingInviteDetails ? (
-                    <p className="mt-3.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {ts("challenges.fastingCustom.previewBody")}
-                      {fastingDurationLabel ? ` · ${fastingDurationLabel}` : ""}
-                      {fastingStartDate ? ` · ${fastingStartDate}` : ""}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3.5 p-3.5 sm:p-4">
-                  <section className="rounded-[1.35rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.accentGold }}>
-                      {ts("labels.currentlyActiveMode")}
-                    </p>
-                    <h4 className="mt-1.5 text-[1.05rem] font-semibold leading-6 sm:text-[1.1rem]" style={{ color: theme.textPrimary }}>
-                      {ts("challenges.dayOf").replace("{day}", String(selectedChallengeFocusedDay ?? 1)).replace("{total}", String(selectedChallenge.totalDays))}
-                    </h4>
-                    <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {selectedChallengeProgressState === "completed_today"
-                        ? ts("challenges.completedToday")
-                        : currentDayPracticeHint}
-                    </p>
-                    <div className="mt-4 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.max(0, Math.min(100, (selectedChallengeCompletedDays.length / selectedChallenge.totalDays) * 100))}%`,
-                          background: `linear-gradient(90deg, ${theme.primary}, ${theme.accentGold})`,
-                        }}
-                      />
-                    </div>
-                  </section>
-
-                  <section className="relative space-y-2">
-                    {!dayCarouselHasOverflow ? (
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                        {ts("labels.currentlyActiveMode")}
-                      </p>
-                    ) : null}
-                    <div
-                      ref={dayCarouselRef}
-                      className="formation-day-rail flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
-                      aria-label={ts("labels.day")}
-                    >
-                      {selectedChallengeDays.map((day) => {
-                        const state = dayStateFor(selectedChallenge, day.day);
-                        const completion = completionForDay(selectedChallenge, day.day);
-                        const isFocused = selectedChallengeFocusedDay === day.day;
-                        const isLocked = day.day > selectedChallengeNextDay;
-                        const teaserText = localizedDayPrompt(day);
-                        const statusLabel = state === "completed"
-                          ? ts("challenges.completedChallenge")
-                          : ts("challenges.continueChallenge");
-
-                        return (
-                          <article
-                            key={day.day}
-                            ref={(node) => {
-                              dayCardRefs.current[day.day] = node;
-                            }}
-                            role={isLocked ? undefined : "button"}
-                            aria-disabled={isLocked}
-                            tabIndex={isLocked ? -1 : 0}
-                            onClick={
-                              isLocked
-                                ? undefined
-                                : () => {
-                                    setSelectedDayNumber(day.day);
-                                    setOpenDayDetailDay(day.day);
-                                  }
-                            }
-                            onKeyDown={
-                              isLocked
-                                ? undefined
-                                : (event) => {
-                                    if (event.key === "Enter" || event.key === " ") {
-                                      event.preventDefault();
-                                      setSelectedDayNumber(day.day);
-                                      setOpenDayDetailDay(day.day);
-                                    }
-                                  }
-                            }
-                            className="formation-day-card premium-tap-card relative flex h-[11.75rem] w-[15.25rem] shrink-0 snap-center flex-col rounded-[1.15rem] border p-3.5 text-left transition sm:w-[16rem]"
-                            style={{
-                              borderColor: isFocused ? theme.primary : theme.borderLight,
-                              backgroundColor: isFocused && !isLocked ? theme.bgCardElevated : theme.bgCard,
-                              boxShadow: isFocused ? `0 0 0 1px ${theme.primary}` : "none",
-                              opacity: isLocked ? 0.45 : 1,
-                              filter: isLocked ? "grayscale(0.55) saturate(0.7)" : "none",
-                              transform: isLocked ? "translateY(0)" : undefined,
-                              cursor: isLocked ? "not-allowed" : "pointer",
-                            }}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                                  {ts("challenges.dayLabel").replace("{day}", String(day.day))}
-                                </p>
-                                <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                                  {localizedScriptureReference(day.scripture, language)}
-                                </p>
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                {isLocked ? (
-                                  <span
-                                    className="grid size-8 shrink-0 place-items-center rounded-full border"
-                                    aria-hidden="true"
-                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textMuted }}
-                                  >
-                                    <span className="text-[0.8rem] leading-none">•</span>
-                                  </span>
-                                ) : state === "current" || state === "completed" ? (
-                                  <span
-                                    className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
-                                    style={{
-                                      borderColor: theme.borderMedium,
-                                      backgroundColor:
-                                        state === "completed"
-                                          ? theme.activeBg
-                                          : theme.bgInput,
-                                      color: state === "completed"
-                                        ? accessibleAccentText(theme)
-                                        : theme.textSecondary,
-                                    }}
-                                  >
-                                    {statusLabel}
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void shareChallengeDay(selectedChallenge, day.day);
-                                    }}
-                                    disabled={!completion}
-                                  className="formation-day-share-button grid size-8 shrink-0 place-items-center rounded-full border transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label={`${ts("share.shareAletheia")} ${ts("challenges.dayLabel").replace("{day}", String(day.day))}`}
-                                    style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                                  >
-                                    <Share2 size={13} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="mt-3 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                              {teaserText}
-                            </p>
-                          </article>
-                        );
-                      })}
-                    </div>
-                    {dayCarouselHasOverflow ? <RailOverflowCorner theme={theme} /> : null}
-                  </section>
-                </div>
-              </article>
-
-              <aside className="space-y-3">
-                <div className="overflow-hidden rounded-[1.45rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                  <div className="border-b px-3.5 py-3.5 sm:px-4 sm:py-4" style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                          {ts("challenges.communityTitle")}
-                        </p>
-                        <h3 className="mt-1 text-[1.02rem] font-semibold leading-tight sm:text-lg" style={{ color: theme.textPrimary }}>
-                          {selectedCircle ? ts("challenges.communitySummaryTitle") : ts("challenges.noCommunityYet")}
-                        </h3>
-                      </div>
-                    </div>
-                    {selectedCircleInviteDetails?.bookTitle ? (
-                      <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                        {selectedCircleInviteDetails.bookTitle}
-                        {readWithMeDurationLabel ? ` · ${readWithMeDurationLabel}` : ""}
-                        {readWithMeStartDate ? ` · ${readWithMeStartDate}` : ""}
-                      </p>
-                    ) : null}
-                    <p className="mt-2.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                      {selectedCircle ? ts("challenges.communitySummaryBody") : ts("challenges.inviteFriendsBody")}
-                    </p>
-                  </div>
-
-                  {selectedCircle ? (
-                    <div className="space-y-3 p-3.5 sm:p-4">
-                      <ChallengeSharedProgressPanel
-                        theme={theme}
-                        ts={ts}
-                        members={selectedCircle.members}
-                        totalDays={selectedChallenge.totalDays}
-                      />
-
-                      <ChallengeInviteDetailsPanel
-                        theme={theme}
-                        ts={ts}
-                        language={language}
-                        currentUserId={user?.id ?? null}
-                        currentUserName={currentUserName}
-                        nudges={selectedCircle.nudges}
-                        selectedChallenge={selectedChallenge}
-                        selectedCircleInviteDetails={selectedCircleInviteDetails}
-                        inviteViewerExpanded={inviteViewerExpanded}
-                        inviteViewerInviteDetails={inviteViewerInviteDetails}
-                        inviteViewerIsFasting={inviteViewerIsFasting}
-                        isReadWithMeChallenge={isReadWithMeChallenge}
-                        isFastingChallenge={isFastingChallenge}
-                        creatingInviteId={creatingInviteId}
-                        onOpenInviteEditor={openInviteEditor}
-                        onOpenInviteViewer={openInviteViewer}
-                        onCloseInviteViewer={closeInviteViewer}
-                        onSaveChallengeInvite={saveChallengeInvite}
-                      />
-
-                      <ChallengeResponseDashboard
-                        theme={theme}
-                        ts={ts}
-                        language={language}
-                        show={Boolean(selectedCircleInviteDetails)}
-                        recipients={readWithMeInviteRecipients}
-                        responses={readWithMeInviteResponses}
-                        inviteCreatedAt={readWithMeInviteCreatedAt}
-                        pendingAfterValue={readWithMePendingWindowValue}
-                        pendingAfterUnit={readWithMePendingWindowUnit}
-                        currentTimestampMs={currentTimestampMs}
-                      />
-
-                      <ChallengeNudgePanel
-                        theme={theme}
-                        ts={ts}
-                        language={language}
-                        nudgeCount={selectedCircle.nudges.length}
-                        nudges={selectedCircle.nudges}
-                        selectedCircleHasCurrentMember={selectedCircleHasCurrentMember}
-                        currentUserId={user?.id ?? null}
-                        currentUserName={currentUserName}
-                        members={selectedCircle.members}
-                        panelRef={nudgePanelRef}
-                        sharedCircleNudgeDraft={sharedCircleNudgeDraft}
-                        sharedCircleNudgeStatus={sharedCircleNudgeStatus}
-                        sharedCircleNudgeBusy={sharedCircleNudgeBusy}
-                        sharedCircleNudgeRecipientId={sharedCircleNudgeRecipientId}
-                        composerRef={nudgeComposerRef}
-                        onSharedCircleNudgeDraftChange={setSharedCircleNudgeDraft}
-                        onSharedCircleNudgeRecipientChange={setSharedCircleNudgeRecipientId}
-                        onPostSharedCircleNudge={postSharedCircleNudge}
-                        onOpenThread={() => setChallengeNudgeThreadOpen(true)}
-                      />
-                      {selectedCircle.invite.owner.id !== user?.id ? (
-                        <button
-                          type="button"
-                          className="h-10 rounded-full border px-4 text-sm font-semibold"
-                          style={{ borderColor: theme.borderStrong, backgroundColor: theme.bgInput, color: theme.textSecondary }}
-                          onClick={leaveSharedCircle}
-                        >
-                          {ts("challenges.leaveInvite")}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : (
-            <div className="space-y-2.5 p-3.5 sm:p-4">
-                      <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-                        <div className="border-b px-4 py-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                                {isReadWithMeChallenge
-                                  ? ts("challenges.readWithMeInvitePrompt")
-                                  : isFastingChallenge
-                                    ? ts("challenges.fastingCustom.formTitle")
-                                    : ts("challenges.inviteFriendsTitle")}
-                              </p>
-                              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                                {isReadWithMeChallenge
-                                  ? ts("challenges.readWithMeInvitePromptBody")
-                                  : isFastingChallenge
-                                    ? ts("challenges.fastingCustom.formBody")
-                                    : ts("challenges.inviteFriendsBody")}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              disabled={creatingInviteId === selectedChallenge?.id}
-                              onClick={() => {
-                                if (isReadWithMeChallenge || isFastingChallenge) {
-                                  openInviteEditor(selectedChallenge);
-                                  return;
-                                }
-                                if (selectedChallenge) {
-                                  void saveChallengeInvite(selectedChallenge);
-                                }
-                              }}
-                              className="shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition disabled:opacity-60"
-                              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
-                            >
-                              {isReadWithMeChallenge
-                                ? ts("challenges.createReadWithMeInvite")
-                                : isFastingChallenge
-                                  ? ts("challenges.fastingCustom.createInvite")
-                                  : ts("challenges.inviteFriends")}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2 p-3.5 sm:p-4">
-                          {isReadWithMeChallenge || isFastingChallenge ? (
-                            <div className="rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                              <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                {ts("labels.inviteDetails")}
-                              </p>
-                              <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                {selectedCircleInviteDetails ? ts("labels.inviteDetailsBody") : ts("challenges.inviteFriendsBody")}
-                              </p>
-                            </div>
-                          ) : (
-                            <>
-                              <div
-                                id="challenge-nudges-card"
-                                tabIndex={-1}
-                                className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5 outline-none"
-                                style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-                              >
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-                                  <Check size={11} />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                    {ts("labels.sharedPlan")}
-                                  </p>
-                                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                    {ts("challenges.inviteFriendsSharedPlanBody")}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-                                  <Check size={11} />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                    {ts("labels.progressVisible")}
-                                  </p>
-                                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                    {ts("challenges.inviteFriendsProgressBody")}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-3 rounded-[0.95rem] border px-3 py-2.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
-                                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: accessibleAccentText(theme) }}>
-                                  <Check size={11} />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold leading-6" style={{ color: theme.textPrimary }}>
-                                    {ts("labels.responsiveNudges")}
-                                  </p>
-                                  <p className="text-xs leading-5" style={{ color: theme.textSecondary }}>
-                                    {ts("challenges.inviteFriendsNudgesBody")}
-                                  </p>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={creatingInviteId === selectedChallenge?.id}
-                        onClick={() => {
-                          if (selectedCircleInviteDetails) {
-                            openInviteViewer(selectedChallenge);
-                            return;
-                          }
-                          if (isReadWithMeChallenge || isFastingChallenge) {
-                            openInviteEditor(selectedChallenge);
-                            return;
-                          }
-                          if (selectedChallenge) {
-                            void saveChallengeInvite(selectedChallenge);
-                          }
-                        }}
-                        className="inline-flex h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-60"
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                      >
-                        {creatingInviteId === selectedChallenge?.id
-                          ? ts("challenges.creatingInvite")
-                          : isReadWithMeChallenge || isFastingChallenge
-                            ? selectedCircleInviteDetails
-                              ? inviteViewerExpanded
-                                ? ts("hideDetails")
-                                : ts("showDetails")
-                              : ts("challenges.inviteFriends")
-                            : ts("challenges.inviteFriends")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </aside>
+          {loading && displayChallenges.length === 0 ? (
+            <div className="rounded-[1.35rem] border p-4 text-sm" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textMuted }}>
+              {ts("challenges.loading")}
             </div>
-          ) : null}
+          ) : activeFormationView === "mine" ? (
+            !user ? signInPrompt : activePractices.length === 0 && completedPractices.length === 0 ? (
+              <div className="rounded-[1.35rem] border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+                <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.myPracticesEmpty")}</p>
+                <button
+                  type="button"
+                  onClick={() => setFormationView("discover")}
+                  className="mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {ts("challenges.browsePractices")}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activePractices.length ? (
+                  <div>
+                    {groupLabel(ts("challenges.inProgress"))}
+                    <ul className={listSurfaceClass} style={listSurfaceStyle}>
+                      {activePractices.map((challenge) => renderPracticeRow(challenge, "mine"))}
+                    </ul>
+                  </div>
+                ) : null}
+                {completedPractices.length ? (
+                  <div>
+                    {groupLabel(ts("challenges.completedChallenge"))}
+                    <ul className={listSurfaceClass} style={listSurfaceStyle}>
+                      {completedPractices.map((challenge) => renderPracticeRow(challenge, "mine"))}
+                    </ul>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setFormationView("discover")}
+                  className="inline-flex h-10 items-center gap-1 px-1 text-sm font-semibold"
+                  style={{ color: accessibleAccentText(theme) }}
+                >
+                  {ts("challenges.browsePractices")}
+                  <ChevronRight size={15} className="rtl:rotate-180" aria-hidden="true" />
+                </button>
+              </div>
+            )
+          ) : activeFormationView === "discover" ? (
+            <div>
+              <p className="px-1 pb-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.sectionSummary")}</p>
+              <ul className={listSurfaceClass} style={listSurfaceStyle}>
+                {discoverChallenges.map((challenge) => renderPracticeRow(challenge, "discover"))}
+              </ul>
+            </div>
+          ) : !user ? signInPrompt : historyEntries.length === 0 ? (
+            <div className="rounded-[1.35rem] border p-4 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
+              {ts("challenges.historyEmpty")}
+            </div>
+          ) : (
+            <div>
+              <p className="px-1 pb-3 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.historySummary")}</p>
+              <ol className={listSurfaceClass} style={listSurfaceStyle}>
+                {historyEntries.slice(0, 60).map(({ challenge, entry }) => (
+                  <li key={`${challenge.id}-${entry.day}`} style={{ borderColor: theme.borderLight }}>
+                    <button
+                      type="button"
+                      onClick={() => openPracticeDay(challenge, entry.day)}
+                      className="flex w-full items-start gap-3 px-3.5 py-3 text-left transition active:opacity-70 sm:px-4"
+                    >
+                      <span className="w-12 shrink-0 pt-0.5 text-[11px] font-semibold uppercase leading-4 tracking-[0.06em]" style={{ color: theme.textMuted }}>
+                        {formatHistoryDate(entry.completedAt)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
+                          {ts(challenge.titleKey, challenge.title)}
+                        </span>
+                        <span className="block text-xs leading-5" style={{ color: theme.textMuted }}>
+                          {ts("challenges.dayOf").replace("{day}", String(entry.day)).replace("{total}", String(challenge.totalDays))}
+                        </span>
+                        {entry.reflection?.trim() ? (
+                          <span className="mt-1 line-clamp-2 block text-[0.85rem] leading-5" style={{ color: theme.textSecondary }}>
+                            {entry.reflection.trim()}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </>
-      ) : null}
+      )}
     </section>
   );
 }
@@ -20649,8 +21159,8 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   return (
     <div
       ref={panelRef}
-      className="nudge-composer-shell rounded-[1.1rem] border p-3"
-      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}
+      className="nudge-composer-shell border-t pt-3"
+      style={{ borderColor: theme.borderLight }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -20673,8 +21183,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
       </div>
       {selectedCircleHasCurrentMember ? (
         <form
-          className="nudge-composer-shell__form mt-3 grid gap-2.5 rounded-[1rem] border p-2.5"
-          style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
+          className="nudge-composer-shell__form mt-3 grid gap-2.5"
           onSubmit={handleSubmit}
         >
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
@@ -20699,7 +21208,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                   onSharedCircleNudgeRecipientChange(null);
                   event.currentTarget.blur();
                 }}
-                className="inline-flex min-h-11 min-w-[10rem] snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
+                className="inline-flex min-h-11 min-w-[10rem] shrink-0 snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
                 style={{
                   borderColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.borderMedium,
                   backgroundColor: sharedCircleNudgeRecipientId === null ? theme.primary : theme.bgInput,
@@ -20724,7 +21233,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                     onSharedCircleNudgeRecipientChange(member.userId);
                     event.currentTarget.blur();
                   }}
-                  className="inline-flex min-h-11 min-w-[9.5rem] snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
+                  className="inline-flex min-h-11 min-w-[9.5rem] max-w-[12rem] shrink-0 snap-start items-center gap-3 rounded-[1.1rem] border px-2.5 py-2 text-left text-sm font-semibold transition"
                   style={{
                     borderColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.borderMedium,
                     backgroundColor: sharedCircleNudgeRecipientId === member.userId ? theme.primary : theme.bgInput,
@@ -20771,9 +21280,7 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
                     <p>{statusLines[1]}</p>
                   ) : null}
                 </div>
-              ) : (
-                <p>{ts("challenges.noNudgesYet")}</p>
-              )}
+              ) : null}
             </div>
             <button
               type="submit"
@@ -20816,65 +21323,6 @@ const ChallengeNudgePanel = memo(function ChallengeNudgePanel({
   prev.sharedCircleNudgeStatus === next.sharedCircleNudgeStatus &&
   prev.sharedCircleNudgeRecipientId === next.sharedCircleNudgeRecipientId &&
   prev.sharedCircleNudgeBusy === next.sharedCircleNudgeBusy
-));
-
-const ChallengeSharedProgressPanel = memo(function ChallengeSharedProgressPanel({
-  theme,
-  ts,
-  members,
-  totalDays,
-}: {
-  theme: ThemeColors;
-  ts: (key: string, fallback?: string) => string;
-  members: ChallengeCircleMember[];
-  totalDays: number;
-}) {
-  return (
-    <div className="rounded-[1.1rem] border p-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: theme.accentGold }}>
-          {ts("challenges.sharedProgress")}
-        </p>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {members.map((member) => (
-          <div
-            key={member.userId}
-            className="flex min-w-[12rem] items-center gap-2.5 rounded-[1rem] border px-3 py-2"
-            style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput }}
-          >
-            <AvatarCircle
-              avatarUrl={member.avatarUrl}
-              seed={member.userId}
-              label={member.name ?? ts("labels.counselContact")}
-              size={22}
-              className="size-[22px]"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-xs font-semibold leading-4" style={{ color: theme.textPrimary }}>
-                  {member.name ?? ts("labels.counselContact")}
-                </span>
-                <span className="shrink-0 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                  {member.completedDays}/{totalDays}
-                </span>
-              </div>
-              {member.role === "host" ? (
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.08em]" style={{ color: theme.textMuted }}>
-                  {ts("labels.host")}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}, (prev, next) => (
-  prev.theme === next.theme &&
-  prev.ts === next.ts &&
-  prev.members === next.members &&
-  prev.totalDays === next.totalDays
 ));
 
 function AccountPersonalizationPanel({
@@ -21412,7 +21860,7 @@ function TrustCenterCard({
     <div className="space-y-4">
       <section className="rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {biometricLock.available ? (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-[0.85rem] border px-3.5 py-3" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <div className="mb-3 flex items-center justify-between gap-3 border-b pb-3" style={{ borderColor: theme.borderLight }}>
             <div className="min-w-0">
               <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{ts("biometric.settingTitle")}</p>
               <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>{ts("biometric.settingBody")}</p>
@@ -22818,7 +23266,7 @@ function AvatarStudioCard({
     context.drawImage(imageBitmap, 0, 0, width, height);
     imageBitmap.close();
 
-    const dataUrl = canvas.toDataURL("image/webp", 0.86);
+    const dataUrl = encodeAvatarCanvas(canvas);
     const normalized = normalizeAvatarUrl(dataUrl);
     if (!normalized) {
       throw new Error(ts('avatar.tooLargeAfterOptimization'));
@@ -22873,9 +23321,11 @@ function AvatarStudioCard({
           previousHadAvatar: Boolean(previousAvatarUrl),
         });
       } else {
+        setAvatarDraft(previousAvatarUrl);
         setAvatarDraftStatus(ts('avatar.updateFailed'));
       }
     } catch {
+      setAvatarDraft(previousAvatarUrl);
       setAvatarDraftStatus(ts('avatar.updateFailed'));
     } finally {
       setSavingAvatar(false);
@@ -22978,10 +23428,7 @@ function AvatarStudioCard({
         </div>
         <p className="mt-2 min-h-5 text-xs leading-5" aria-live="polite" style={{ color: theme.textSecondary }}>{nameStatus}</p>
       </form>
-      <div
-        className="mt-3.5 rounded-[1rem] border p-2.5"
-        style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}
-      >
+      <div className="mt-3.5">
         <input
           ref={fileInputRef}
           type="file"
@@ -23004,19 +23451,17 @@ function AvatarStudioCard({
           }}
           onChange={onAvatarFileSelected}
         />
-        {avatarDraftStatus ? (
-          <p className="mb-2 text-xs leading-5" style={{ color: theme.textSecondary }}>
-            {avatarDraftStatus}
-          </p>
-        ) : null}
+        <p role="status" aria-live="polite" className="mb-2.5 text-xs leading-5 empty:hidden" style={{ color: theme.textSecondary }}>
+          {avatarUndo ? "" : avatarDraftStatus}
+        </p>
         {avatarUndo ? (
-          <div className="mb-3 flex flex-col gap-2 rounded-[1rem] border p-2.5 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.accentLight, backgroundColor: theme.bgInput }}>
-            <p className="text-sm leading-5" style={{ color: theme.textPrimary }}>
+          <div className="mb-2.5 flex items-center justify-between gap-3">
+            <p className="min-w-0 text-sm leading-5" style={{ color: theme.textPrimary }}>
               {avatarUndo.label}. {ts('avatar.undoWindow')}
             </p>
             <button
               type="button"
-              className="h-9 rounded-full border px-3 text-sm font-semibold"
+              className="min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold"
               style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
               disabled={savingAvatar}
               onClick={() => {
@@ -23033,10 +23478,10 @@ function AvatarStudioCard({
             </button>
           </div>
         ) : null}
-        <RailButtonTray theme={theme} label={ts('avatar.choosePhoto')}>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label={ts('avatar.studioTitle')} aria-busy={savingAvatar}>
           <button
             type="button"
-            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            className="min-h-11 min-w-0 rounded-full border px-3 py-2 text-sm font-semibold leading-5 transition disabled:cursor-wait disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               if (avatarTipsOptOut) {
@@ -23051,7 +23496,7 @@ function AvatarStudioCard({
           </button>
           <button
             type="button"
-            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            className="min-h-11 min-w-0 rounded-full border px-3 py-2 text-sm font-semibold leading-5 transition disabled:cursor-wait disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => setAvatarPickerOpen(true)}
             disabled={savingAvatar}
@@ -23060,7 +23505,7 @@ function AvatarStudioCard({
           </button>
           <button
             type="button"
-            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            className="min-h-11 min-w-0 rounded-full border px-3 py-2 text-sm font-semibold leading-5 transition disabled:cursor-wait disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               const available = curatedAvatarOptions.filter((option) => (normalizeAvatarUrl(option.src) ?? option.src) !== canonicalDraft);
@@ -23076,7 +23521,7 @@ function AvatarStudioCard({
           </button>
           <button
             type="button"
-            className="h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold"
+            className="min-h-11 min-w-0 rounded-full border px-3 py-2 text-sm font-semibold leading-5 transition disabled:cursor-wait disabled:opacity-60"
             style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgInput, color: theme.textPrimary }}
             onClick={() => {
               void applyAvatarChoice("", ts('avatar.restoringDefault'), ts('avatar.defaultApplied'), "default");
@@ -23085,12 +23530,7 @@ function AvatarStudioCard({
           >
             {ts('avatar.useDefault')}
           </button>
-          {savingAvatar ? (
-            <span className="inline-flex h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold" style={{ backgroundColor: theme.bgInput, color: theme.textSecondary }}>
-              {ts('labels.applying')}
-            </span>
-          ) : null}
-        </RailButtonTray>
+        </div>
       </div>
       <AvatarPickerModal
         theme={theme}
@@ -23362,6 +23802,7 @@ function NotificationPanel({
   onEnable,
   onDisable,
   onSendTest,
+  testState,
   onRequestSignIn,
 }: {
   theme: ThemeColors;
@@ -23383,6 +23824,7 @@ function NotificationPanel({
   onEnable: () => void;
   onDisable: () => void;
   onSendTest: () => void;
+  testState: NotificationTestState;
   onRequestSignIn: (mode?: AuthMode) => void;
 }) {
   const timezoneOptions = useMemo(
@@ -23511,6 +23953,19 @@ function NotificationPanel({
           title: ts("notifications.notificationsEnabled"),
           body: ts("notifications.notificationsEnabledBody"),
         };
+  const visibleStatus = status && status !== notificationsSummary.body && status !== notificationsSummary.title ? status : "";
+  const testStateMessage =
+    testState === "waiting" || testState === "sent"
+      ? ts("notifications.testNotificationSentBody")
+      : testState === "received"
+        ? ts("notifications.testNotificationReceivedBody")
+        : testState === "not_received"
+          ? ts("notifications.testNotificationMissingBody")
+          : testState === "failed"
+            ? ts("notifications.testNotificationFailedBody")
+            : testState === "needs_reenable"
+              ? ts("notifications.notificationsNeedReenableDevice")
+              : "";
   const primaryDiagnostic = diagnostics?.account.diagnostics[0] ?? null;
   const notificationHealthRows: Array<{ label: string; value: string; detail: string; tone: "good" | "warn" | "bad" }> = diagnostics
     ? [
@@ -23600,22 +24055,33 @@ function NotificationPanel({
         </section>
       )}
 
-      <p role="status" className="text-sm empty:hidden" style={{ color: theme.textSecondary }}>{status}</p>
+      <p role="status" className="text-sm empty:hidden" style={{ color: theme.textSecondary }}>{visibleStatus}</p>
       <section className="space-y-3 rounded-2xl border p-4" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
         {signedIn && enabled && deviceSubscribed ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: theme.borderLight }}>
-            <p className="text-sm leading-6" style={{ color: theme.textSecondary }}>
-              {ts("notifications.testNotificationBody")}
+          <div className="border-b pb-3" style={{ borderColor: theme.borderLight }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                  {ts("notifications.testNotificationTitle")}
+                </h3>
+                <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  {ts("notifications.testNotificationBody")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onSendTest}
+                disabled={busy || testState === "sending"}
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60"
+                style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+              >
+                <Bell size={14} aria-hidden="true" />
+                {testState === "sending" ? ts("notifications.sendingTestNotification") : ts("notifications.sendTestNotification")}
+              </button>
+            </div>
+            <p role="status" aria-live="polite" className="mt-2 text-xs leading-5 empty:hidden" style={{ color: testState === "received" ? accessibleAccentText(theme) : theme.textSecondary }}>
+              {testStateMessage}
             </p>
-            <button
-              type="button"
-              onClick={onSendTest}
-              disabled={busy}
-              className="inline-flex min-h-11 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60"
-              style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCard, color: theme.textPrimary }}
-            >
-              {ts("notifications.sendTestNotification")}
-            </button>
           </div>
         ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -24071,7 +24537,7 @@ function ScriptureModal({
           }
           style={{ borderColor: theme.borderLight, background: `linear-gradient(180deg, ${theme.bgCardElevated}, ${theme.bgCard})` }}
         />
-        <div className="border-b px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
+        <div className="shrink-0 border-b px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.16em]" style={{ borderColor: theme.borderMedium, backgroundColor: theme.bgCardElevated, color: theme.textSecondary }}>
@@ -24123,7 +24589,7 @@ function ScriptureModal({
             ) : null}
           </div>
         </div>
-        <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div ref={contentRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
           <AnimatePresence mode="wait" initial={false}>
             {view === "quick" ? (
               <motion.div
@@ -29927,7 +30393,7 @@ function DecisionCompanionPanel({
     context.drawImage(imageBitmap, 0, 0, width, height);
     imageBitmap.close();
 
-    const dataUrl = canvas.toDataURL("image/webp", 0.86);
+    const dataUrl = encodeAvatarCanvas(canvas);
     const normalized = normalizeAvatarUrl(dataUrl);
     if (!normalized) {
       throw new Error(englishText.errors.optimizedImageTooLarge);
@@ -30996,8 +31462,8 @@ function ReflectPanel({
   language: LanguageCode;
   mode: Mode;
   ts: (key: string, fallback?: string) => string;
-  reflectSection: "gratitude" | "journal" | "formation";
-  setReflectSection: (section: "gratitude" | "journal" | "formation") => void;
+  reflectSection: "gratitude" | "journal";
+  setReflectSection: (section: "gratitude" | "journal") => void;
   entries: JournalEntry[];
   gratitudeEntries: GratitudeEntry[];
   gratitudeSyncStatus: GratitudeSyncStatus;
@@ -31020,7 +31486,7 @@ function ReflectPanel({
   onUseGratitudeAsReflectionPrompt: (entry: GratitudeEntry) => void;
   theme: ThemeColors;
 }) {
-  const openReflectSection = (section: "gratitude" | "journal" | "formation") => {
+  const openReflectSection = (section: "gratitude" | "journal") => {
     setReflectSection(section);
     trackClientEvent("feature_destination_opened", { surface: "reflect", destination: section });
   };
@@ -31042,7 +31508,6 @@ function ReflectPanel({
         tabs={[
           { key: "gratitude", label: ts('labels.gratitudeLens'), icon: HandHeart },
           { key: "journal", label: ts('labels.reflectionJournal'), icon: Feather },
-          { key: "formation", label: ts('challenges.eyebrow'), icon: Sprout },
         ]}
       />
       <div id="reflect-workspace-panel" role="tabpanel" aria-labelledby={`reflect-workspace-panel-${reflectSection}`} className="min-w-0">
@@ -31065,7 +31530,7 @@ function ReflectPanel({
             onPendingEntryFocusHandled={onPendingGratitudeEntryFocusHandled}
           />
         </section>
-      ) : reflectSection === "journal" ? (
+      ) : (
         <section id="reflect-journal" tabIndex={-1} className="scroll-mt-24 outline-none">
           <h2 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts('labels.reflectionJournal')}</h2>
           <JournalPanel
@@ -31085,90 +31550,11 @@ function ReflectPanel({
             theme={theme}
           />
         </section>
-      ) : (
-        <FormationReflectionHistory signedIn={signedIn} language={language} ts={ts} theme={theme} />
       )}
       </div>
     </div>
   );
 }
-
-function FormationReflectionHistory({
-  signedIn,
-  language,
-  ts,
-  theme,
-}: {
-  signedIn: boolean;
-  language: LanguageCode;
-  ts: (key: string, fallback?: string) => string;
-  theme: ThemeColors;
-}) {
-  const [challenges, setChallenges] = useState<ChallengeWithProgress[]>([]);
-
-  useEffect(() => {
-    if (!signedIn) {
-      return;
-    }
-    let cancelled = false;
-    void fetch("/api/challenges", { cache: "no-store" })
-      .then(async (response) => response.ok ? await response.json() as { challenges?: ChallengeWithProgress[] } : {})
-      .then((data) => {
-        if (!cancelled) setChallenges((data.challenges ?? []).filter((challenge) => challenge.completedDays.length > 0));
-      })
-      .catch(() => {
-        if (!cancelled) setChallenges([]);
-      });
-    return () => { cancelled = true; };
-  }, [signedIn]);
-
-  const history = challenges
-    .flatMap((challenge) => challenge.completedDays.map((entry) => ({ challenge, entry })))
-    .sort((left, right) => Date.parse(right.entry.completedAt) - Date.parse(left.entry.completedAt));
-
-  return (
-    <section id="reflect-formation" tabIndex={-1} className="scroll-mt-24 outline-none">
-      <h2 className="text-xl font-semibold tracking-tight" style={{ color: theme.textPrimary }}>{ts("challenges.historyTitle")}</h2>
-      <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>{ts("challenges.historySummary")}</p>
-      {!signedIn ? (
-        <div className="mt-4 rounded-[1.2rem] border p-4 text-sm leading-6" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textSecondary }}>
-          {ts("challenges.signInToTrack")}
-        </div>
-      ) : history.length === 0 ? (
-        <div className="mt-4 rounded-[1.2rem] border border-dashed p-4 text-sm leading-6" style={{ borderColor: theme.borderMedium, color: theme.textSecondary }}>
-          {ts("challenges.noProgressYet")}
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-3">
-          {history.map(({ challenge, entry }) => (
-            <article key={`${challenge.id}:${entry.day}:${entry.completedAt}`} className="rounded-[1.2rem] border p-3.5" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accentGold }}>
-                    {ts("challenges.dayLabel").replace("{day}", String(entry.day))}
-                  </p>
-                  <h3 className="mt-1 text-sm font-semibold leading-5" style={{ color: theme.textPrimary }}>
-                    {ts(challenge.titleKey, challenge.title)}
-                  </h3>
-                </div>
-                <time className="shrink-0 text-xs" style={{ color: theme.textMuted }} dateTime={entry.completedAt}>
-                  {new Date(entry.completedAt).toLocaleDateString(language, { month: "short", day: "numeric" })}
-                </time>
-              </div>
-              {entry.reflection.trim() ? (
-                <p className="mt-2 text-sm leading-6" style={{ color: theme.textSecondary }}>{entry.reflection}</p>
-              ) : null}
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.bgInput }} aria-hidden="true">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, (entry.day / challenge.totalDays) * 100)}%`, backgroundColor: theme.primary }} />
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 
 function GratitudeEntryModal({
   open,
@@ -32090,6 +32476,11 @@ function LibraryPanel({
   onSetScriptureHighlight,
   onCopyScripture,
   onShareScripture,
+  scriptureNotes,
+  onSaveScriptureNote,
+  onDeleteScriptureNote,
+  onListenToScripture,
+  isListeningToScripture,
   onSaveScriptureMemory,
   onSaveStudyActionAsRule,
   onShareScriptureMemory,
@@ -32125,8 +32516,13 @@ function LibraryPanel({
   onSaveScripture: (scripture: Omit<SavedScripture, "id" | "savedAt">) => void;
   onRemoveSavedScripture: (id: string) => void;
   onSetScriptureHighlight: (book: string, chapter: number, verse: number, highlight: ScriptureHighlightColor | null) => void;
-  onCopyScripture: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
-  onShareScripture: (book: string, chapter: number, verse: number, text: string) => Promise<boolean>;
+  onCopyScripture: (book: string, chapter: number, verse: number, text: string, endVerse?: number) => Promise<boolean>;
+  onShareScripture: (book: string, chapter: number, verse: number, text: string, endVerse?: number) => Promise<boolean>;
+  scriptureNotes: ScriptureNote[];
+  onSaveScriptureNote: (note: Omit<ScriptureNote, "id" | "updatedAt"> & { id?: string }) => void;
+  onDeleteScriptureNote: (id: string) => void;
+  onListenToScripture: (text: string, label: string) => void;
+  isListeningToScripture: boolean;
   onSaveScriptureMemory: (scripture: string, principle: string) => void;
   onSaveStudyActionAsRule: (action: string) => void;
   onShareScriptureMemory: (memory: ScriptureMemory) => void;
@@ -32147,7 +32543,7 @@ function LibraryPanel({
   const railText = railTextColors(theme);
   const localizedModeSearchLabel = localizedModeLabel(mode, preferences.language).toLowerCase();
   const [librarySection, setLibrarySection] = useState<"explore" | "bible" | "listen" | "saved" | "formation">("explore");
-  const [savedPassage, setSavedPassage] = useState<SavedScripture | null>(null);
+  const [savedPassage, setSavedPassage] = useState<{ book: string; chapter: number; verse?: number } | null>(null);
   const libraryRailRef = useRef<HTMLDivElement | null>(null);
   const libraryRailHasOverflow = useRailOverflowCue(libraryRailRef, librarySection === "explore" && entries.length > 0, [entries.length, preferences.language]);
   const libraryNextTitle = search.trim() || entries.length === 0
@@ -32290,7 +32686,7 @@ function LibraryPanel({
 
       {librarySection === "bible" ? (
         <section className="min-w-0">
-          <BibleReader key={savedPassage ? `${savedPassage.book}-${savedPassage.chapter}` : "bible-reader"} preferences={preferences} theme={theme} initialBook={savedPassage?.book} initialChapter={savedPassage?.chapter} onSaveStudyAction={onSaveStudyActionAsRule} savedScriptures={savedScriptures} scriptureHighlights={scriptureHighlights} onSaveScripture={onSaveScripture} onRemoveSavedScripture={onRemoveSavedScripture} onSetScriptureHighlight={onSetScriptureHighlight} onCopyScripture={onCopyScripture} onShareScripture={onShareScripture} />
+          <BibleReader key={savedPassage ? `${savedPassage.book}-${savedPassage.chapter}-${savedPassage.verse ?? 0}` : "bible-reader"} preferences={preferences} theme={theme} initialBook={savedPassage?.book} initialChapter={savedPassage?.chapter} initialVerse={savedPassage?.verse} onSaveStudyAction={onSaveStudyActionAsRule} savedScriptures={savedScriptures} scriptureHighlights={scriptureHighlights} scriptureNotes={scriptureNotes} onSaveScripture={onSaveScripture} onRemoveSavedScripture={onRemoveSavedScripture} onSetScriptureHighlight={onSetScriptureHighlight} onSaveScriptureNote={onSaveScriptureNote} onDeleteScriptureNote={onDeleteScriptureNote} onCopyScripture={onCopyScripture} onShareScripture={onShareScripture} onListen={onListenToScripture} onStopListening={onStopSpeakingFromListen} isListening={isListeningToScripture} />
         </section>
       ) : null}
 
@@ -32313,7 +32709,26 @@ function LibraryPanel({
         </section>
       ) : null}
 
-      {librarySection === "saved" && !savedScriptures.length && !scriptureMemory ? (
+      {librarySection === "saved" && scriptureNotes.length ? (
+        <section className="min-w-0 rounded-2xl border" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCardElevated }}>
+          <h2 className="px-4 pt-4 font-semibold" style={{ color: theme.textPrimary }}>{ts('labels.scriptureNotes')}</h2>
+          {scriptureNotes.map((note) => (
+            <article key={note.id} className="border-b p-4 last:border-b-0" style={{ borderColor: theme.borderLight }}>
+              <div className="flex items-start justify-between gap-3">
+                <button type="button" className="min-h-[44px] text-start text-sm font-semibold underline underline-offset-4" style={{ color: theme.textPrimary }} onClick={() => { setSavedPassage({ book: note.book, chapter: note.chapter, verse: note.verse }); setLibrarySection("bible"); }}>
+                  {localizedBibleBookName(note.book, preferences.language)} {note.chapter}:{note.endVerse > note.verse ? `${note.verse}\u2013${note.endVerse}` : note.verse}
+                </button>
+                <button type="button" className="min-h-[44px] min-w-[44px] shrink-0 text-xs font-semibold" style={{ color: theme.textSecondary }} onClick={() => onDeleteScriptureNote(note.id)}>
+                  {ts('labels.remove')}
+                </button>
+              </div>
+              <p className="whitespace-pre-line text-sm leading-6" style={{ color: theme.textSecondary }}>{note.note}</p>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      {librarySection === "saved" && !savedScriptures.length && !scriptureMemory && !scriptureNotes.length ? (
         <section className="overflow-hidden rounded-[1.35rem] border text-center" style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard }}>
           <div className="relative aspect-[16/7] min-h-32 overflow-hidden">
             <Image

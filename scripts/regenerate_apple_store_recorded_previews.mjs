@@ -113,8 +113,6 @@ const JOURNEYS = [
       await wait(3500);
       await clickTab(page, "Reflection Journal");
       await wait(3500);
-      await clickTab(page, "Formation");
-      await wait(3500);
       await scrollBy(page, 420);
       await wait(3500);
     },
