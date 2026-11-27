@@ -70,6 +70,7 @@ import {
   Trash2,
   WifiOff,
   Bell,
+  BellRing,
   Clock3,
   ExternalLink,
   FileText,
@@ -166,6 +167,7 @@ import { StreakAchievementNotification } from "@/components/streak-badge";
 import { MilestoneCelebrationLayer, useMilestoneCelebration, type CelebrationAnalyticsPayload, type CelebrationRequest } from "@/components/milestone-celebration";
 import { STREAK_MILESTONES, formatStreak, type StreakData } from "@/lib/streak-shared";
 import type { BibleStudyData } from "@/lib/bible-study";
+import { REMINDERS_CARD_DISMISS_STORAGE_PREFIX, shouldShowRemindersReenableCard } from "@/lib/reminders-reenable-card";
 import { wisdomListenDecisionNote, wisdomListenReflectionBody, type WisdomListenResult } from "@/lib/wisdom-listen";
 import {
   advanceGuidedJourney,
@@ -6026,6 +6028,7 @@ export function AletheiaApp({
   const [nativePushResumeCount, setNativePushResumeCount] = useState(0);
   const [notificationBusy, setNotificationBusy] = useState(false);
   const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(DEFAULT_NOTIFICATION_TIMING);
+  const [, setRemindersCardDismissVersion] = useState(0);
   const [wisdomDecisions, setWisdomDecisions] = useState<WisdomDecision[]>([]);
   const [decisionEvents, setDecisionEvents] = useState<DecisionEvent[]>([]);
   const [timelineInsight, setTimelineInsight] = useState<TimelineInsight>({
@@ -8768,7 +8771,7 @@ export function AletheiaApp({
         const statusUrl = deviceId ? `/api/notifications/native?deviceId=${encodeURIComponent(deviceId)}` : "/api/notifications/native";
         const nativeStatusResponse = await fetch(statusUrl, { cache: "no-store" });
         if (!nativeStatusResponse.ok) throw new Error(`Native push status request failed (${nativeStatusResponse.status}).`);
-        const nativeStatus = await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; deviceSubscribed?: boolean };
+        const nativeStatus = await nativeStatusResponse.json() as { configured?: boolean; apnsConfigured?: boolean; fcmConfigured?: boolean; devices?: number; accountEnabled?: boolean; deviceSubscribed?: boolean };
         if (!active) return;
         const nativePlatform = getNativePushPlatform();
         const nativeConfigured = nativePlatform === "ios"
@@ -8779,7 +8782,7 @@ export function AletheiaApp({
         const optedOut = Boolean(user && readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id));
         const nativeDeviceSubscribed = Boolean(nativeStatus?.deviceSubscribed && !optedOut && nativePermission.receive === "granted");
         setNotificationsConfigured(nativeConfigured);
-        setNotificationAccountEnabled(Boolean(nativeStatus?.devices));
+        setNotificationAccountEnabled(nativeStatus?.accountEnabled ?? Boolean(nativeStatus?.devices));
         setNotificationDeviceSubscribed(nativeDeviceSubscribed);
         setNotificationsEnabled(nativeDeviceSubscribed);
         setNotificationDiagnostics(null);
@@ -8932,6 +8935,24 @@ export function AletheiaApp({
     );
     return () => { active = false; };
   }, [startupPaintReady, ts, user, authStatus, nativePushResumeCount]);
+
+  const showRemindersReenableCard = Boolean(user) && notificationAccountEnabled && shouldShowRemindersReenableCard({
+    signedIn: Boolean(user),
+    configured: notificationsConfigured,
+    accountEnabled: notificationAccountEnabled,
+    deviceSubscribed: notificationDeviceSubscribed,
+    permission: notificationPermission,
+    optedOut: Boolean(user && readPushStorage(PUSH_OPT_OUT_STORAGE_PREFIX + user.id)),
+    dismissedAt: user ? readPushStorage(REMINDERS_CARD_DISMISS_STORAGE_PREFIX + user.id) : null,
+    now: Date.now(),
+  }) && (isNativePushShell() || ("PushManager" in window && "Notification" in window));
+
+  function dismissRemindersReenableCard() {
+    if (!user) return;
+    writePushStorage(REMINDERS_CARD_DISMISS_STORAGE_PREFIX + user.id, new Date().toISOString());
+    setRemindersCardDismissVersion((version) => version + 1);
+    trackClientEvent("notification_reenable_card_dismissed");
+  }
 
   useEffect(() => {
     const syncDeviceTimezone = () => {
@@ -11873,6 +11894,7 @@ function startFirstRunGuestFlow() {
     const permission = currentPermission.receive === "granted"
       ? currentPermission
       : silent ? currentPermission : await PushNotifications.requestPermissions().catch(() => ({ receive: "denied" as const }));
+    setNotificationPermission(permission.receive === "granted" ? "granted" : permission.receive === "denied" ? "denied" : "default");
     if (permission.receive !== "granted") {
       trackClientEvent("notification_enable_failed", { reason: "permission_denied", platform });
       setNotificationStatus(ts('notifications.notificationsNotEnabledBody'));
@@ -13812,6 +13834,18 @@ function startFirstRunGuestFlow() {
                         theme={theme}
                       />
                     </div>
+                    {showRemindersReenableCard ? (
+                      <RemindersReenableCard
+                        busy={notificationBusy}
+                        theme={theme}
+                        ts={ts}
+                        onEnable={() => {
+                          trackClientEvent("notification_reenable_card_enable");
+                          void enableNotifications();
+                        }}
+                        onDismiss={dismissRemindersReenableCard}
+                      />
+                    ) : null}
                     <ScreenTabs
                       value={homeSection}
                       onChange={(section) => setHomeSection(section, "home_tabs")}
@@ -15408,6 +15442,51 @@ function ProgressiveOnboardingModal({
         </button>
       </section>
     </div>
+  );
+}
+
+function RemindersReenableCard({
+  busy,
+  theme,
+  ts,
+  onEnable,
+  onDismiss,
+}: {
+  busy: boolean;
+  theme: ThemeColors;
+  ts: (key: string) => string;
+  onEnable: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <section
+      aria-labelledby="reminders-reenable-title"
+      className="mb-3 flex items-start gap-3 rounded-2xl border px-4 py-3 sm:mb-4"
+      style={{ borderColor: theme.borderLight, backgroundColor: theme.bgCard, color: theme.textPrimary }}
+    >
+      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full" style={{ backgroundColor: theme.primary + "1f", color: theme.primary }} aria-hidden="true">
+        <BellRing size={18} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 id="reminders-reenable-title" className="text-sm font-semibold leading-5">{ts("notifications.remindersOffTitle")}</h2>
+        <p className="mt-0.5 text-sm leading-5" style={{ color: theme.textSecondary }}>{ts("notifications.remindersOffBody")}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <button
+            type="button"
+            className="min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-60"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            disabled={busy}
+            aria-busy={busy}
+            onClick={onEnable}
+          >
+            {ts("notifications.remindersOffCta")}
+          </button>
+          <button type="button" className="min-h-11 text-sm font-semibold" style={{ color: theme.textSecondary }} onClick={onDismiss}>
+            {ts("notifications.remindersOffDismiss")}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

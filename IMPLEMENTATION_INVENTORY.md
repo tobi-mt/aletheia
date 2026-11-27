@@ -548,6 +548,8 @@ The routing policy also displaces an implausible selected lens (at most 10% suit
 
 **Counsel acceptance banners:** `POST /api/counsel/notifications` atomically claims one fresh acceptance using the existing account-scoped `notification_delivery_receipts` table. Previously claimed events do not replay after reinstall or on another device; acceptances older than the existing 48-hour counsel push TTL are suppressed. No schema migration is required.
 
+**Turn reminders back on card:** Home shows one short card when the account still has an enabled push device/subscription but this install has not been asked yet (e.g. after a reinstall or on a new phone). Visibility rules live in `src/lib/reminders-reenable-card.ts`: hidden for local opt-out, granted permission (silent self-heal handles it), denied permission, and for 14 days after "Not now". Native status exposes `accountEnabled` (any enabled device). No schema migration is required.
+
 **Implemented:**
 - ✅ **Web Push Support**
   - `POST /api/notifications/subscribe` - Subscribe to push notifications

@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ...configStatus,
       devices: 0,
+      accountEnabled: false,
       deviceSubscribed: false,
       platforms: [],
     });
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ...configStatus,
     devices: devices.length,
+    accountEnabled: devices.some((device) => device.enabled),
     deviceSubscribed: Boolean(deviceId && devices.some((device) => device.id === deviceId && device.enabled)),
     platforms: [...new Set(devices.map((device) => device.platform))],
     latestDevice: devices[0]
