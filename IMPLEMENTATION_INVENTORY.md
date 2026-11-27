@@ -101,6 +101,12 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 
 **Status:** ✅ **COMPLETE** - Full AI-powered wisdom system with guardrails
 
+**Counsel reliability:** With AI consent, Auto-fit uses shared runtime semantic classification across all five lens profiles before Scripture retrieval. Classification compares the requested outcome with each lens's domain and diagnostic questions rather than surface nouns, with probability/margin checks and conservative handling of ambiguity and context-dependent continuations. Its fit survives counsel retries and deterministic fallback; phrase rules are only an availability fallback. Classification defaults independently to `gpt-6-luna` with reasoning disabled for low latency; `OPENAI_MODE_CLASSIFIER_MODEL` can override it (update older `gpt-4o-mini` overrides when deploying). Classification is bounded to 4 seconds within the shared 18-second provider budget. Model and deterministic answers enforce the Scripture evidence requirement; failed-quality answers are not returned or saved as successful counsel. Life-meaning fallback counsel includes two approved, localized, explained passages (Ephesians 2:10 and Micah 6:8), and the client refuses an uncited or insufficiently cited offline fallback.
+
+For offline workload-priority questions, counsel draws on Proverbs 15:22 and Galatians 6:2-5 instead of ranking passages about incidental financial concerns. For model-generated counsel, each passage explanation is written before its grounding phrase is extracted; the phrase must still match both the question and the explanation.
+
+The routing policy also displaces an implausible selected lens (at most 10% suitability) when a distinct leading lens reaches twice the uniform prior (40% across five lenses) for a single requested outcome, or 50% for mixed outcomes, even if another relevant lens is nearby; exact ties and uncertain/context-dependent questions retain the selection. A malformed classification gets at most one repair, sharing the original 4-second signal and deadline rather than resetting the budget. The runtime classifier has an opt-in, real-provider regression covering paraphrased goals, negation, ambiguity, and all 11 supported languages: `MODE_FIT_LIVE_EVAL=1 OPENAI_MODE_CLASSIFIER_MODEL=gpt-6-luna node --test --loader ./tests/alias-loader.mjs --test-name-pattern='live runtime mode-fit' tests/runtime-mode-fit.test.mjs`. It uses synthetic questions only, permits either relevant lens for an overlapping giving/relationship goal, requires a configured API key, and is skipped during ordinary offline tests.
+
 **Discrepancies:**
 - FEATURES.md mentions "Stronger emotional discernment for urgency, fear, shame, and pressure" but this is handled via pattern detection, not explicit emotional scoring beyond the basic readiness calculation
 
@@ -125,6 +131,7 @@ This document compares **what is documented in FEATURES.md** with **what is impl
   - Selectable during onboarding
   - Changeable anytime from Account/Personalization
   - Visual indicator in UI of active mode
+  - Auto-fit preserves the latest manually selected mode across successive automatic fits. The existing keep-selected-mode action regenerates counsel with Auto-fit disabled and replaces the latest exchange; turning Auto-fit off does not remove that action.
 
 **Status:** ✅ **COMPLETE** - All modes fully defined, integrated, and selectable
 
@@ -538,6 +545,8 @@ This document compares **what is documented in FEATURES.md** with **what is impl
 ## 14. NOTIFICATIONS
 
 ### Location: `/src/app/api/notifications/`, `/src/lib/notifications.ts`
+
+**Counsel acceptance banners:** `POST /api/counsel/notifications` atomically claims one fresh acceptance using the existing account-scoped `notification_delivery_receipts` table. Previously claimed events do not replay after reinstall or on another device; acceptances older than the existing 48-hour counsel push TTL are suppressed. No schema migration is required.
 
 **Implemented:**
 - ✅ **Web Push Support**

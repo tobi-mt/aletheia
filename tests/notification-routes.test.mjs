@@ -16,6 +16,51 @@ import { calculatePushRetryDelayMs, sendNotificationWithRetry } from "../src/lib
 import { isExpiredPush, isPermanentNativePushFailure } from "../src/lib/push-policy.ts";
 import { GET as getServiceWorker } from "../src/app/sw.js/route.ts";
 import { runInNewContext } from "node:vm";
+import { claimCounselAcceptanceNotification } from "../src/app/api/counsel/notifications/route.ts";
+
+test("counsel acceptance banners use durable account receipts and expire with counsel push notifications", async () => {
+  const event = { id: "contact-1", name: "Bob", acceptedAt: "2026-11-27T10:00:00.000Z" };
+  let seen = false;
+  const calls = [];
+  const deps = {
+    getCurrentUser: async () => ({ id: "owner-1" }),
+    now: () => new Date("2026-11-27T12:00:00.000Z"),
+    many: async (sql, ...params) => {
+      calls.push({ sql, params });
+      if (seen) return [];
+      seen = true;
+      return [event];
+    },
+  };
+  const first = await claimCounselAcceptanceNotification(deps);
+  assert.deepEqual(await first.json(), { notifications: [event] });
+  // A new client has no local seen-state; it still receives no replay.
+  const reinstalled = await claimCounselAcceptanceNotification({ ...deps });
+  assert.deepEqual(await reinstalled.json(), { notifications: [] });
+  assert.deepEqual(calls[0].params, [
+    "2026-11-27T12:00:00.000Z", "2026-11-27T12:00:00.000Z", "2026-11-27T12:00:00.000Z",
+    "owner-1", "2026-11-25T12:00:00.000Z", "2026-11-27T12:00:00.000Z",
+  ]);
+  const sql = calls[0].sql;
+  assert.match(sql, /c\.user_id = \? AND c\.invite_status = 'accepted'/);
+  assert.match(sql, /c\.accepted_at >= \? AND c\.accepted_at <= \?/);
+  assert.match(sql, /r\.recipient_user_id = c\.user_id/);
+  assert.match(sql, /EXTRACT\(EPOCH FROM c\.accepted_at\)/);
+  assert.match(sql, /LIMIT 1\s+ON CONFLICT \(notification_kind, notification_id, recipient_user_id\) DO NOTHING/);
+});
+
+test("counsel acceptance receipts cannot be claimed by a guest and database errors remain failures", async () => {
+  let queries = 0;
+  const deps = {
+    getCurrentUser: async () => null,
+    now: () => new Date(),
+    many: async () => { queries += 1; throw new Error("database unavailable"); },
+  };
+  assert.equal((await claimCounselAcceptanceNotification(deps)).status, 401);
+  assert.equal(queries, 0);
+  await assert.rejects(claimCounselAcceptanceNotification({ ...deps, getCurrentUser: async () => ({ id: "owner-1" }) }),
+    /database unavailable/);
+});
 
 function createCallLog() {
   return {

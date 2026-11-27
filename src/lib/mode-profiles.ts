@@ -106,10 +106,10 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
   },
   [MODE_KEYS.PURPOSE]: {
     label: MODE_KEYS.PURPOSE,
-    intent: "Slow down and discern the person this decision forms.",
-    focus: "Identity, direction, anxiety, values, long-term clarity",
-    useWhen: "Use when the real question is identity, direction, peace, timing, or values.",
-    lens: "A discernment lens: identity, peace, motives, patience, and the next faithful step.",
+    intent: "Discern meaning, identity, values, and life direction with steady attention.",
+    focus: "Meaning, identity, direction, anxiety, values, long-term clarity",
+    useWhen: "Use when the real question is meaning, identity, life direction, peace, timing, or values.",
+    lens: "A discernment lens: meaning, identity, peace, motives, patience, and the next faithful step.",
     diagnosticTracks: [
       "Identity: what is the user trying to prove, protect, or become?",
       "Peace: what changes when urgency quiets down?",
@@ -141,7 +141,7 @@ export const modeProfiles: Record<Mode, ModeProfile> = {
       "Offer a small faithful next step",
     ],
     promptCue:
-      "In Purpose mode, emphasize discernment, identity, motives, peace, patience, values, prayerful reflection, and the next faithful step. Keep the guidance grounded and non-mystical; do not claim divine certainty.",
+      "In Purpose mode, emphasize meaning, discernment, identity, motives, peace, patience, values, prayerful reflection, and the next faithful step. Keep the guidance grounded and non-mystical; do not claim divine certainty.",
     prompts: [
       "How do I make a decision when I feel unclear?",
       "What if I am chasing success for the wrong reasons?",

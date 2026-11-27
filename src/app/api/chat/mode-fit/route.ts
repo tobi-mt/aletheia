@@ -1,13 +1,9 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-errors";
-import { modeProfiles } from "@/lib/mode-profiles";
 import { normalizeMode } from "@/lib/wisdom-data";
 import { readJsonBody } from "@/lib/request";
 import { checkRateLimit, getClientIdentity, rateLimitHeaders } from "@/lib/rate-limit";
-import { calibrateSemanticModeFit, normalizeModeProbabilities } from "@/lib/semantic-mode-fit";
-
-const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+import { classifyModeAtRuntime } from "@/lib/runtime-mode-fit";
 
 export async function POST(request: Request) {
   const parsed = await readJsonBody<{ question?: unknown; selectedMode?: unknown; thirdPartyAiConsent?: unknown }>(request, { maxBytes: 4_000 });
@@ -21,36 +17,16 @@ export async function POST(request: Request) {
   if (process.env.SEMANTIC_MODE_FIT_ENABLED === "false") {
     return NextResponse.json({ available: false, suggestion: null }, { headers: { "Cache-Control": "no-store" } });
   }
-  if (!client) return NextResponse.json({ available: false, suggestion: null });
+  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ available: false, suggestion: null });
 
   const limit = await checkRateLimit(await getClientIdentity(), { namespace: "mode-fit", limit: 30, windowMs: 60 * 60 * 1000 });
   if (!limit.allowed) return NextResponse.json({ available: false, suggestion: null }, { headers: rateLimitHeaders(limit) });
 
-  try {
-    const profiles = Object.values(modeProfiles).map((profile) => `${profile.label}: ${profile.useWhen} Lens: ${profile.lens}`).join("\n");
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODE_CLASSIFIER_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini",
-      input: [
-        { role: "system", content: "Classify the primary problem the person needs help solving across the supplied Aletheia lenses, not merely the nouns in the question. Consider expressed emotion, motive, pressure, desired change, and relational stakes without diagnosing or inventing personal history. Money covers stewardship, enough, scarcity, security, debt, and risk. Work covers vocation, capacity, performance, leadership, burnout, and service. Purpose covers identity, meaning, motives, values, timing, and direction. Generosity covers willingness, guilt, coercion, rescuing, boundaries, and sustainable giving. Life covers relationships, habits, shame, loneliness, health, rest, recovery, safety, holiness, and formation. A job question centered on identity may be Purpose; money given from guilt may be Generosity; work harming health or marriage may be Life. Return calibrated probabilities that sum to 1. Mark mixed true when two lenses are genuinely co-primary or evidence is insufficient. Do not infer personal history. Topic must be a short privacy-safe category, never a quotation or paraphrase of the question." },
-        { role: "user", content: `Available lenses:\n${profiles}\n\nSelected lens: ${selectedMode}\n\nQuestion:\n${question}` },
-      ],
-      text: { format: { type: "json_schema", name: "aletheia_mode_fit", strict: true, schema: {
-        type: "object", additionalProperties: false,
-        properties: {
-          probabilities: { type: "object", additionalProperties: false, properties: {
-            Money: { type: "number", minimum: 0, maximum: 1 }, Work: { type: "number", minimum: 0, maximum: 1 },
-            Purpose: { type: "number", minimum: 0, maximum: 1 }, Generosity: { type: "number", minimum: 0, maximum: 1 }, Life: { type: "number", minimum: 0, maximum: 1 },
-          }, required: ["Money", "Work", "Purpose", "Generosity", "Life"] },
-          mixed: { type: "boolean" }, topic: { type: "string", maxLength: 48 },
-        }, required: ["probabilities", "mixed", "topic"],
-      } } },
-    }, { signal: AbortSignal.timeout(2_200) });
-    const raw = JSON.parse(response.output_text) as { probabilities?: unknown; mixed?: unknown; topic?: unknown };
-    const probabilities = normalizeModeProbabilities(raw.probabilities);
-    if (!probabilities || typeof raw.mixed !== "boolean" || typeof raw.topic !== "string") throw new Error("Invalid mode-fit output");
-    const suggestion = calibrateSemanticModeFit({ probabilities, mixed: raw.mixed, topic: raw.topic }, selectedMode);
-    return NextResponse.json({ available: true, probabilities, mixed: raw.mixed, suggestion }, { headers: rateLimitHeaders(limit) });
-  } catch {
-    return NextResponse.json({ available: false, suggestion: null }, { headers: rateLimitHeaders(limit) });
-  }
+  const fit = await classifyModeAtRuntime({ question, selectedMode, allowModel: true });
+  const suggestion = fit.available && fit.recommendedMode !== selectedMode ? {
+    mode: fit.recommendedMode, confidence: "very_high", evidence: "semantic", topic: fit.topic,
+    leadingProbability: fit.probabilities[fit.recommendedMode], selectedProbability: fit.probabilities[selectedMode],
+    margin: fit.probabilities[fit.recommendedMode] - fit.probabilities[selectedMode],
+  } : null;
+  return NextResponse.json({ ...fit, suggestion }, { headers: rateLimitHeaders(limit) });
 }

@@ -14,6 +14,9 @@ import { analyticsQuestionMetadata } from "@/lib/analytics-taxonomy";
 import { normalizeMode } from "@/lib/wisdom-data";
 import { readJsonBody } from "@/lib/request";
 import { apiError } from "@/lib/api-errors";
+import { classifyModeAtRuntime } from "@/lib/runtime-mode-fit";
+
+const defaultChatDeps = { getCurrentUser, getClientIdentity, classifyModeAtRuntime, retrieveWisdomEvidence, generateWisdomIntelligence };
 
 type DeferredChatMessage = {
   id?: unknown;
@@ -235,8 +238,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  const identity = user?.id ?? (await getClientIdentity());
+  return postChat(request);
+}
+
+export async function postChat(request: Request, overrides: Partial<typeof defaultChatDeps> = {}) {
+  const deps = { ...defaultChatDeps, ...overrides };
+  const user = await deps.getCurrentUser();
+  const identity = user?.id ?? (await deps.getClientIdentity());
   const rateLimit = await checkRateLimit(identity, {
     namespace: user ? "chat-user" : "chat-guest",
     limit: user ? 60 : 12,
@@ -275,11 +283,16 @@ export async function POST(request: Request) {
   }
 
   const safeTopic = counselSafetyTopic(message);
+  const modelDeadline = performance.now() + 18_000;
+  const modeFit = body.autoFit === false || safeTopic === "crisis" || preferences.thirdPartyAiConsent !== true ? undefined
+    : await deps.classifyModeAtRuntime({
+      question: message, selectedMode: mode, allowModel: preferences.thirdPartyAiConsent === true, deadline: modelDeadline,
+    });
   const fittingMode = body.autoFit === false || safeTopic === "crisis"
-    ? mode : suggestModeForQuestion(message, mode)?.mode ?? mode;
-  let sources = await retrieveWisdomEvidence(message, fittingMode, 8, preferences.language);
+    ? mode : modeFit?.available ? modeFit.recommendedMode : suggestModeForQuestion(message, mode)?.mode ?? mode;
+  let sources = await deps.retrieveWisdomEvidence(message, fittingMode, 8, preferences.language);
   if (safeTopic === "crisis") {
-    const crisisCandidates = await retrieveWisdomEvidence(
+    const crisisCandidates = await deps.retrieveWisdomEvidence(
       "Isaiah 41:10 fear help presence suffering anxiety care hope",
       mode,
       8
@@ -479,7 +492,7 @@ export async function POST(request: Request) {
       .join("\n\n");
   }
   const mayUseThirdPartyAi = preferences.thirdPartyAiConsent === true;
-  const intelligence = await generateWisdomIntelligence({
+  const intelligence = await deps.generateWisdomIntelligence({
     question: message,
     selectedMode: mode,
     sources,
@@ -487,7 +500,16 @@ export async function POST(request: Request) {
     memoryContext: mayUseThirdPartyAi ? memoryContext : "",
     allowModel: mayUseThirdPartyAi,
     forceSelectedMode: body.autoFit === false,
+    modeFit,
+    modelDeadline,
   });
+  if (!intelligence.quality.passed) {
+    console.error("[wisdom-intelligence] refusing failed counsel", {
+      route: intelligence.routing.route,
+      failedChecks: Object.entries(intelligence.quality.checks).filter(([, passed]) => !passed).map(([check]) => check),
+    });
+    return apiError(503, "unavailable", "A grounded answer is not available right now.");
+  }
   const effectiveMode = body.autoFit === false ? mode : intelligence.recommendedMode;
   const aiText = intelligence.counsel;
   const citedReferences = new Set(intelligence.biblicalEvidence.map(({ reference }) => reference));

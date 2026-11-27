@@ -6,9 +6,132 @@ import { assembleCompanionDraft, requiredBiblicalEvidenceCount, resolveUnifiedRe
 import { defaultPreferences, normalizePreferences } from "../src/lib/localization.ts";
 import { readFileSync } from "node:fs";
 import { scriptureTextMatches } from "../src/lib/scripture-text-matches.ts";
+import { scriptureCounselIndex } from "../src/lib/scripture-counsel-index.ts";
+import { postChat } from "../src/app/api/chat/route.ts";
+import { suggestModeForQuestion } from "../src/lib/mode-suggestion.ts";
+
+test("chat refuses uncited fallback output instead of returning a successful answer", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const response = await postChat(new Request("http://localhost/api/chat", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "Explain quantum entanglement.", mode: "Money", preferences: defaultPreferences }),
+  }), { getCurrentUser: async () => null, getClientIdentity: async () => "quality-regression" });
+  assert.equal(response.status, 503);
+  const data = await response.json();
+  assert.equal(data.errorCode, "unavailable");
+  assert.equal(data.reply, undefined);
+});
+
+test("chat returns the life-meaning answer with linkable sources and respects Auto-fit off", async () => {
+  for (const autoFit of [true, false]) {
+    const response = await postChat(new Request("http://localhost/api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "What is life all about?", mode: "Money", autoFit, preferences: defaultPreferences }),
+    }), { getCurrentUser: async () => null, getClientIdentity: async () => "life-meaning-regression" });
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.reply.mode, autoFit ? "Purpose" : "Money");
+    assert.equal(data.userMessage.mode, data.reply.mode);
+    assert.equal(data.intelligence.quality.passed, true);
+    assert.deepEqual(data.reply.sources.map(({ scripture }) => scripture), ["Ephesians 2:10", "Micah 6:8"]);
+    assert.equal(scriptureTextMatches(data.reply.text, data.reply.sources.map(({ scripture }) => scripture), "en").length, 2);
+  }
+});
+
+test("the reported life-meaning question survives two rejected drafts with relevant linked Scripture", async (t) => {
+  const env = process.env;
+  process.env = { ...env, OPENAI_API_KEY: "test-key" };
+  t.after(() => { process.env = env; });
+  const post = t.mock.method(OpenAI.prototype, "post", () => ({
+    _thenUnwrap: (unwrap) => Promise.resolve(unwrap({ output_text: JSON.stringify({
+      biblicalEvidence: [{ reference: "Ephesians 2:10", questionDetail: "my next decision", connection: "This is generic advice unrelated to the question." }],
+    }), output: [] })),
+  }));
+  const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?life-meaning-fallback");
+  const question = "What is life all about?";
+  const evidence = rankWisdomEvidence(scriptureCounselIndex, question, "Purpose", 8);
+  const result = await generateWisdomIntelligence({ question, selectedMode: "Money", sources: evidence, preferences: defaultPreferences });
+  assert.equal(post.mock.callCount(), 2);
+  assert.equal(result.routing.route, "deterministic");
+  assert.equal(result.recommendedMode, "Purpose");
+  assert.equal(result.quality.passed, true);
+  assert.deepEqual(result.biblicalEvidence.map(({ reference }) => reference), ["Ephesians 2:10", "Micah 6:8"]);
+  assert.match(result.counsel, /know God|God and.*neighbor/i);
+  assert.equal(scriptureTextMatches(result.counsel, evidence.map(({ scripture }) => scripture), "en").length, 2);
+});
+
+test("model repair enforces two meaning-of-life passages without rejecting typographic apostrophes", async (t) => {
+  const env = process.env;
+  process.env = { ...env, OPENAI_API_KEY: "test-key" };
+  t.after(() => { process.env = env; });
+  const draft = {
+    responseLanguage: "en", recommendedMode: "Money",
+    probabilities: { Money: 0.8, Work: 0.05, Purpose: 0.05, Generosity: 0.05, Life: 0.05 },
+    ambiguity: { mixed: false, uncertain: false, alternativeMode: null, reason: "" },
+    safeTopic: "general", opening: "Biblically, life is about knowing God and loving your neighbor, not earning the right to exist.",
+    reasoningPlan: {
+      tension: "Meaning is more than achievement.", diagnosticQuestion: "", blindSpot: "Success cannot create your worth.",
+      maturitySignal: "Faithfulness becomes ordinary care.", nextStep: "Choose one person to care for today and write down one practical act of kindness.",
+    },
+    biblicalEvidence: [
+      { reference: "Ephesians 2:10", questionDetail: "What’s life all about", connection: "If you ask “What’s life all about”, Paul begins with grace, not achievement: good works flow from God's care for you, rather than earning your worth." },
+      { reference: "Micah 6:8", questionDetail: "life all about", connection: "Micah describes justice, mercy, and humble walking with God. Asking what life all about means in practice can lead to one concrete act of care for your neighbor today." },
+    ],
+  };
+  const requests = [];
+  t.mock.method(OpenAI.prototype, "post", (_path, options) => {
+    requests.push(options.body);
+    const response = requests.length === 1 ? { ...draft, biblicalEvidence: draft.biblicalEvidence.slice(0, 1) } : draft;
+    return { _thenUnwrap: (unwrap) => Promise.resolve(unwrap({ output_text: JSON.stringify(response), output: [] })) };
+  });
+  const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?meaning-evidence-repair");
+  const sources = scriptureCounselIndex.filter(({ scripture }) => ["Ephesians 2:10", "Micah 6:8"].includes(scripture));
+  const result = await generateWisdomIntelligence({
+    question: "What's life all about?", selectedMode: "Money", sources, preferences: defaultPreferences,
+    modeFit: { available: true, recommendedMode: "Purpose", probabilities: { Money: 0.05, Work: 0.05, Purpose: 0.8, Generosity: 0.05, Life: 0.05 },
+      mixed: false, uncertain: false, continuesSelectedGoal: false, topic: "identity" },
+  });
+  assert.equal(result.routing.route, "secondary");
+  assert.equal(result.recommendedMode, "Purpose");
+  assert.equal(result.quality.passed, true);
+  assert.equal(requests[0].text.format.schema.properties.biblicalEvidence.minItems, 2);
+  assert.match(requests[1].input[0].content, /failed checks: biblicalGrounding/);
+});
+
+test("life-meaning offline counsel stays localized and grounded in every supported language", async () => {
+  const { composeCompanionCounsel } = await import("../src/lib/companion-counsel.ts");
+  const questions = {
+    en: "What is life all about?", es: "¿Cuál es el sentido de la vida?", fr: "Quel est le sens de la vie?",
+    de: "Was ist der Sinn des Lebens?", pt: "Qual é o sentido da vida?", yo: "Kí ni ìtumọ̀ ayé?",
+    ig: "Gịnị bụ nzube ndụ?", ha: "Menene ma'anar rayuwa?", tl: "Ano ang kahulugan ng buhay?",
+    ar: "ما معنى الحياة؟", hi: "जीवन का अर्थ क्या है?",
+  };
+  for (const [language, question] of Object.entries(questions)) {
+    assert.equal(suggestModeForQuestion(question, "Money")?.mode, "Purpose", language);
+    const preferences = normalizePreferences({ language });
+    const result = composeCompanionCounsel(question, scriptureCounselIndex, preferences);
+    assert.deepEqual(result.sources.map(({ scripture }) => scripture), ["Ephesians 2:10", "Micah 6:8"], language);
+    assert.equal(scriptureTextMatches(result.text, result.sources.map(({ scripture }) => scripture), language).length, 2, language);
+    if (language !== "en") assert.doesNotMatch(result.text, /It makes sense to bring care|Calling is received|God's will is never/);
+  }
+});
+
+test("uncited deterministic output cannot pass quality, even when no keywords match", async () => {
+  const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts");
+  const result = await generateWisdomIntelligence({
+    question: "Tell me about quantum entanglement.", selectedMode: "Money", sources, preferences: defaultPreferences, allowModel: false,
+  });
+  assert.equal(result.quality.passed, false);
+  assert.equal(result.quality.checks.biblicalGrounding, false);
+  const withoutRetrievedEvidence = await generateWisdomIntelligence({
+    question: "How should I repay my debt?", selectedMode: "Money", sources: [], preferences: defaultPreferences, allowModel: false,
+  });
+  assert.equal(withoutRetrievedEvidence.quality.passed, false);
+  assert.equal(withoutRetrievedEvidence.quality.checks.biblicalGrounding, false);
+});
 
 const intelligenceSource = readFileSync(new URL("../src/lib/wisdom-intelligence.ts", import.meta.url), "utf8");
-const modeFitRouteSource = readFileSync(new URL("../src/app/api/chat/mode-fit/route.ts", import.meta.url), "utf8");
+const modeFitRouteSource = readFileSync(new URL("../src/lib/runtime-mode-fit.ts", import.meta.url), "utf8");
 
 const sources = [
   { theme: "Stewardship", scripture: "Proverbs 21:5", principle: "Patient planning matters.", context: "Planning", application: "Write the plan.", keywords: ["plan", "money"], emotions: ["pressure"], questions: ["What is the next step?"] },
@@ -62,6 +185,8 @@ test("model counsel retries an ungrounded citation and accepts four grounded, li
   const result = await generateWisdomIntelligence({
     question: "How should I renegotiate my workload so I have time to take on a new project at work?",
     selectedMode: "Money", sources: available, preferences: defaultPreferences,
+    modeFit: { available: true, recommendedMode: "Work", probabilities: { Money: 0.05, Work: 0.8, Purpose: 0.05, Generosity: 0.05, Life: 0.05 },
+      mixed: false, uncertain: false, continuesSelectedGoal: false, topic: "vocation" },
   });
   assert.equal(result.routing.route, "secondary");
   assert.equal(requests.length, 2);
@@ -85,6 +210,9 @@ test("localized medical counsel passes on primary; incidental English words cann
     biblicalEvidence: [{
       reference: "Proverbs 15:22", questionDetail: "mis síntomas",
       connection: "El proverbio valora pedir consejo. Puedes decir «me cuesta hablar de mis síntomas» al comienzo de la conversación.",
+    }, {
+      reference: "James 1:5", questionDetail: "pedir ayuda",
+      connection: "Santiago invita a pedir sabiduría a Dios. Puedes orar para encontrar las palabras al pedir ayuda, sin esperar a tenerlo todo claro para consultar a un profesional.",
     }],
   };
   const post = t.mock.method(OpenAI.prototype, "post", () => ({
@@ -94,11 +222,12 @@ test("localized medical counsel passes on primary; incidental English words cann
   process.env = { ...env, OPENAI_API_KEY: "test-key" };
   t.after(() => { process.env = env; });
   const { generateWisdomIntelligence } = await import("../src/lib/wisdom-intelligence.ts?localized-safety");
-  const result = await generateWisdomIntelligence({ question, selectedMode: "Life", sources, preferences });
+  const available = [...sources, { ...sources[1], scripture: "James 1:5" }];
+  const result = await generateWisdomIntelligence({ question, selectedMode: "Life", sources: available, preferences });
   assert.equal(post.mock.callCount(), 1);
   assert.equal(result.routing.route, "primary");
   assert.equal(result.quality.passed, true);
-  const boundary = result.counsel.split("\n\n")[2];
+  const boundary = result.counsel.split("\n\n")[3];
   assert.match(boundary, /consulta a un profesional sanitario cualificado/);
   const withoutBoundary = { ...result, counsel: result.counsel.replace(boundary, "A trusted friend is available.") };
   assert.equal(validateWisdomIntelligence(withoutBoundary, sources, preferences, 1).checks.safetyBoundary, false);

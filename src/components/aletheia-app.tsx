@@ -80,7 +80,7 @@ import {
 } from "lucide-react";
 import { buildDecisionCardPreview, buildDecisionDraftPrefill, buildDecisionSummary, detectPatterns, parseDecisionSummary, scoreDecision } from "@/lib/decision-intelligence";
 import { buildAnswerContinuation, continuationLabel, type AnswerContinuation } from "@/lib/answer-continuation";
-import { composeCompanionCounsel, hasCapacityPressure, preferredCounselReferences } from "@/lib/companion-counsel";
+import { composeCompanionCounsel, hasCapacityPressure, preferredCounselReferences, requiredBiblicalEvidenceCount } from "@/lib/companion-counsel";
 import { normalizeScriptureMatchText, scriptureTextMatches } from "@/lib/scripture-text-matches";
 import { scriptureCounselIndex } from "@/lib/scripture-counsel-index";
 import enTranslations from "@/locales/en.json";
@@ -509,7 +509,6 @@ const NOTIFICATION_SUBSCRIPTION_REFRESH_STORAGE_KEY = "aletheia_notification_sub
 const NATIVE_PUSH_DEVICE_STORAGE_KEY = "aletheia_native_push_device";
 const PUSH_OPT_OUT_STORAGE_PREFIX = "aletheia_push_opt_out:";
 const NOTIFICATION_SUBSCRIPTION_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const COUNSEL_ACCEPTANCE_TRACKING_KEY = "aletheia_counsel_acceptance_tracking";
 const CARRY_TODAY_STORAGE_KEY = "aletheia_carry_today";
 const SCRIPTURE_MEMORY_STORAGE_KEY = "aletheia_scripture_memory";
 const SAVED_SCRIPTURES_STORAGE_KEY = "aletheia_saved_scriptures";
@@ -5833,6 +5832,7 @@ export function AletheiaApp({
   }, []);
   
   const [mode, setMode] = useState<Mode>("Money");
+  const selectedModeRef = useRef<Mode>(mode);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>(defaultMessages);
   const [librarySearch, setLibrarySearch] = useState("");
@@ -5968,6 +5968,12 @@ export function AletheiaApp({
     gentleObservation: runtimeCopyFor(storedPreferences().language).timelineReady,
   });
   const [counselContacts, setCounselContacts] = useState<CounselContact[]>([]);
+  const counselAcceptanceClaimRef = useRef<{
+    userId: string;
+    contacts: CounselContact[];
+    result: Promise<{ id: string; name: string; acceptedAt: string } | undefined>;
+    shown: boolean;
+  } | null>(null);
   const [receivedCounselInvites, setReceivedCounselInvites] = useState<CounselInvitePreview[]>([]);
   const [rulesOfLife, setRulesOfLife] = useState<RuleOfLife[]>([]);
   const [decisionTitle, setDecisionTitle] = useState("");
@@ -8844,33 +8850,29 @@ export function AletheiaApp({
     };
   }, [notificationTiming.timezoneMode, notificationTiming.preferredTimezone, notificationBusy, user, notificationsEnabled, notificationDeviceSubscribed]);
 
-  // Detect newly accepted counsel invites
   useEffect(() => {
-    if (counselContacts.length === 0) {
-      return;
+    if (!user || !counselContacts.length) return;
+    let active = true;
+    let claim = counselAcceptanceClaimRef.current;
+    if (!claim || claim.userId !== user.id || claim.contacts !== counselContacts) {
+      claim = {
+        userId: user.id, contacts: counselContacts, shown: false,
+        result: (async () => {
+          const response = await fetch("/api/counsel/notifications", { method: "POST" });
+          if (!response.ok) throw new Error(`Counsel notification claim failed (${response.status})`);
+          const data = await response.json() as { notifications: Array<{ id: string; name: string; acceptedAt: string }> };
+          return data.notifications[0];
+        })(),
+      };
+      counselAcceptanceClaimRef.current = claim;
     }
-    
-    const previousAcceptanceJson = window.localStorage.getItem(COUNSEL_ACCEPTANCE_TRACKING_KEY);
-    const previousAcceptance: Record<string, string> = previousAcceptanceJson ? JSON.parse(previousAcceptanceJson) : {};
-    
-    const newlyAccepted = counselContacts.filter(
-      (contact) => contact.inviteStatus === "accepted" && Boolean(contact.acceptedAt) && previousAcceptance[contact.id] !== contact.acceptedAt
-    );
-    
-    // Update tracked acceptance timestamps
-    const currentAcceptance: Record<string, string> = {};
-    counselContacts.forEach((contact) => {
-      if (contact.inviteStatus === "accepted" && contact.acceptedAt) {
-        currentAcceptance[contact.id] = contact.acceptedAt;
-      }
-    });
-    window.localStorage.setItem(COUNSEL_ACCEPTANCE_TRACKING_KEY, JSON.stringify(currentAcceptance));
-    
-    // Show notification for first newly accepted contact
-    if (newlyAccepted.length > 0) {
-      const contact = newlyAccepted[0];
-      const decisionCount = wisdomDecisions.length;
-      window.setTimeout(() => {
+    const pendingClaim = claim;
+    const notifyAcceptance = async () => {
+      try {
+        const contact = await pendingClaim.result;
+        if (!active || !contact || pendingClaim.shown) return;
+        pendingClaim.shown = true;
+        const decisionCount = wisdomDecisions.length;
         announceWorkflow(
           ts('notifications.counselInviteAcceptedTitle').replace('{name}', contact.name),
           ts('notifications.counselInviteAcceptedBody')
@@ -8885,9 +8887,14 @@ export function AletheiaApp({
             },
           }
         );
-      }, 0);
-    }
-  }, [announceWorkflow, counselContacts, setActiveView, ts, wisdomDecisions]);
+      } catch (error) {
+        if (counselAcceptanceClaimRef.current === pendingClaim) counselAcceptanceClaimRef.current = null;
+        console.error("Could not load counsel acceptance notifications", error);
+      }
+    };
+    void notifyAcceptance();
+    return () => { active = false; };
+  }, [announceWorkflow, counselContacts, setActiveView, ts, user, wisdomDecisions]);
 
   const filteredEntries = useMemo(() => {
     if (!librarySearch.trim()) {
@@ -9260,6 +9267,7 @@ export function AletheiaApp({
   }, [challengeProgress, focusIntentions, journalEntries, manualContext, messages, mode, preferences.language, user, wisdomDecisions]);
 
   function handleModeChange(nextMode: Mode) {
+    selectedModeRef.current = nextMode;
     setActiveAutoModeSwitch(null);
     setMode(nextMode);
     trackClientEvent("wisdom_mode_selected", { mode: nextMode });
@@ -10961,13 +10969,20 @@ function startFirstRunGuestFlow() {
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", mode: questionMode, text: visibleQuestion?.trim() || trimmed };
     const registerAutoFit = (reply: ChatMessage, persistedQuestionMessageId = userMessage.id) => {
       const switchedMode = reply.mode;
-      if (!switchedMode || !(options.autoFit ?? autoFitEnabled) || switchedMode === questionMode) return false;
+      if (!switchedMode || !(options.autoFit ?? autoFitEnabled)) return false;
+      const originalMode = selectedModeRef.current;
+      const changed = switchedMode !== questionMode;
+      if (!changed && switchedMode === originalMode) return false;
       const topic = reply.intelligence?.safeTopic ?? "general";
       setMode(switchedMode);
+      if (switchedMode === originalMode) {
+        setActiveAutoModeSwitch(null);
+        return changed;
+      }
       setActiveAutoModeSwitch({
         question: trimmed,
         visibleQuestion,
-        originalMode: questionMode,
+        originalMode,
         suggestedMode: switchedMode,
         learningTopic: topic,
         questionMessageId: userMessage.id,
@@ -10975,14 +10990,16 @@ function startFirstRunGuestFlow() {
         persistedQuestionMessageId,
         consentOverride,
       });
-      recordModeSwitchFeedback(window.localStorage, questionMode, switchedMode, topic, "accepted");
-      trackClientEvent("mode_better_fit_accepted", {
-        from_mode: questionMode,
-        to_mode: switchedMode,
-        topic,
-        unified_pipeline: true,
-      });
-      return true;
+      if (changed) {
+        recordModeSwitchFeedback(window.localStorage, questionMode, switchedMode, topic, "accepted");
+        trackClientEvent("mode_better_fit_accepted", {
+          from_mode: questionMode,
+          to_mode: switchedMode,
+          topic,
+          unified_pipeline: true,
+        });
+      }
+      return changed;
     };
     setIsWorking(true);
     announceWorkflow(ts('notifications.questionSent'), ts('notifications.questionSentBody'), "info");
@@ -11124,6 +11141,14 @@ function startFirstRunGuestFlow() {
       const fallbackMode = (options.autoFit ?? autoFitEnabled) && counselSafetyTopic(trimmed) !== "crisis"
         ? suggestModeForQuestion(trimmed, questionMode)?.mode ?? questionMode : questionMode;
       const fallback = composeResponse(trimmed, fallbackMode, preferences);
+      const minimumEvidence = requiredBiblicalEvidenceCount(trimmed, 2, counselSafetyTopic(trimmed));
+      if (fallback.sources.length < minimumEvidence) {
+        console.error("Could not produce grounded offline counsel", error);
+        setMessages((current) => current.filter((message) => message.id !== "thinking"));
+        setStatusMessage(ts('notifications.answerUnavailableBody'));
+        announceWorkflow(ts('notifications.answerUnavailable'), ts('notifications.answerUnavailableBody'), "warning");
+        return;
+      }
       const reply: ChatMessage = { id: crypto.randomUUID(), role: "aletheia", mode: fallbackMode, text: fallback.text, sources: fallback.sources };
       const autoSwitched = registerAutoFit(reply);
       setMessages((current) =>
@@ -11195,7 +11220,6 @@ function startFirstRunGuestFlow() {
     setAutoFitEnabled((current) => {
       const next = !current;
       window.localStorage.setItem("aletheia_auto_fit_enabled", next ? "on" : "off");
-      if (!next) setActiveAutoModeSwitch(null);
       trackClientEvent("mode_auto_fit_toggled", { enabled: next });
       return next;
     });

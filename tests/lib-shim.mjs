@@ -92,6 +92,8 @@ export async function sendChallengeReminders() {
 
 export async function trackEvent() {}
 
+export async function trackServerEvent() {}
+
 export async function analyticsSummary() {
   return {};
 }

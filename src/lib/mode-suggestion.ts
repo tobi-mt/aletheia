@@ -31,6 +31,19 @@ const LOCALIZED_GOALS: Record<Mode, string[]> = {
 const ASK_START = /^(?:how|what|should|can|i (?:want|need) to|como|que puedo|comment|wie|كيف|ta yaya|kedu ka|bawo ni|paano)(?=\s)/u;
 const HINDI_ASK = /(?:^|\s)(?:कैसे|क्या)(?=\s|$)/u;
 
+const LIFE_MEANING_CUES = [
+  /\bwhat(?: is|'s) (?:life (?:all )?about|(?:the )?(?:meaning|purpose|point) of (?:my |our )?(?:life(?!\s+insurance)|lives))\b/u,
+  /\bwhat does life mean\b|\bwhat are we living for\b/u,
+  /^why (?:am i here|do we exist|are we alive)[?.!]*$/u,
+  /\b(?:sentido|proposito) de la vida\b|\bsens de la vie\b|\bsinn des lebens\b|\b(?:sentido|proposito) da vida\b/u,
+  /معنى الحياة|هدف الحياة|ma'anar rayuwa|nzube ndu|itumo aye|जीवन का (?:अर्थ|उद्देश्य)|kahulugan ng buhay/u,
+];
+
+export function isLifeMeaningQuestion(question: string) {
+  const normalized = normalize(question);
+  return LIFE_MEANING_CUES.some((cue) => cue.test(normalized));
+}
+
 type ModeSignals = {
   phrases: string[];
   terms: string[];
@@ -258,12 +271,14 @@ function focusedGoals(question: string) {
     .filter((clause) => ASK_START.test(clause) || HINDI_ASK.test(clause))
     .map((clause) => clause.split(/\s+(?:without|rather than|instead of|sin|sans|sem|ohne|دون|ba tare da|n'eghi|lai|nang hindi)\s+/u, 1)[0]);
   return FOCUSED_GOALS.filter(({ mode, cue }) => asks.some((clause) =>
-    cue.test(clause) || LOCALIZED_GOALS[mode].some((goal) => ` ${clause} `.includes(` ${normalize(goal)} `)),
+    cue.test(clause) || LOCALIZED_GOALS[mode].some((goal) => ` ${clause} `.includes(` ${normalize(goal)} `))
+    || (mode === MODE_KEYS.PURPOSE && isLifeMeaningQuestion(clause)),
   ));
 }
 
 export function modeFitExplicitGoal(question: string) {
   const goals = focusedGoals(normalize(question));
+  if (!goals.length && isLifeMeaningQuestion(question)) return MODE_KEYS.PURPOSE;
   return goals.length === 1 ? goals[0].mode : null;
 }
 
@@ -284,13 +299,16 @@ export function suggestModeForQuestion(
 ): ModeSuggestion | null {
   const normalizedQuestion = normalize(question);
   const words = wordSet(normalizedQuestion);
-  if (normalizedQuestion.length < 12 || words.size < 3) return null;
   const goals = focusedGoals(normalizedQuestion);
   if (goals.length > 1) return null;
   if (goals.length === 1) {
     const goal = goals[0].mode;
     return goal === currentMode ? null : { mode: goal, confidence: "very_high", evidence: "context_pair" };
   }
+  if (isLifeMeaningQuestion(question)) {
+    return currentMode === MODE_KEYS.PURPOSE ? null : { mode: MODE_KEYS.PURPOSE, confidence: "very_high", evidence: "explicit_phrase" };
+  }
+  if (normalizedQuestion.length < 12 || words.size < 3) return null;
   if (isModeFitContinuation(normalizedQuestion)) return null;
 
   const ranked = (Object.keys(SIGNALS) as Mode[])

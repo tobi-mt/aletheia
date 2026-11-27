@@ -24,6 +24,11 @@ page.on("pageerror", (error) => console.error("PAGE ERROR", error));
 const chatRequests = [];
 let legacyClassifierCalls = 0;
 
+// Keep this UI regression isolated from configured account/database services.
+await page.route("**/api/**", (route) => route.fulfill({
+  status: 200, contentType: "application/json", body: "{}",
+}));
+
 await page.route("**/api/chat/mode-fit", async (route) => {
   legacyClassifierCalls += 1;
   await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
@@ -180,14 +185,27 @@ async function verifyJourney() {
   assert.ok(answerBox && answerBox.y >= 0 && answerBox.y <= 852, "completed answer must be guided into the phone viewport");
   await page.screenshot({ path: path.join(outputDir, "02-answer-onscreen.png"), fullPage: false });
 
+  // A second answer using the auto-selected lens must still offer the user's
+  // original selection, not the previous automatic selection.
+  await page.locator("#companion-question-input").fill("How can I handle the responsibilities already on my plate?");
+  await askButton.tap();
+  await page.waitForFunction(() => {
+    const button = [...document.querySelectorAll("button")].find((item) => item.textContent?.trim() === "Keep Money");
+    return button && !button.disabled;
+  }, undefined, { timeout: 10_000 });
+  await page.getByRole("button", { name: "Auto-fit", exact: true }).tap();
+  assert.equal(await page.getByRole("button", { name: "Auto-fit", exact: true }).getAttribute("aria-pressed"), "false");
+  assert.equal(await keepButton.isVisible(), true, "turning Auto-fit off must not remove reversion");
+
   await keepButton.tap();
   await page.getByText("ORIGINAL_MONEY_COUNSEL", { exact: true }).waitFor({ state: "visible", timeout: 5_000 });
-  assert.equal(await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).count(), 0);
+  assert.equal(await page.getByText("UNIFIED_WORK_COUNSEL", { exact: true }).count(), 1, "Reversion replaces only the latest exchange, preserving earlier counsel");
   assert.deepEqual(chatRequests.map(({ mode, autoFit }) => ({ mode, autoFit })), [
     { mode: "Money", autoFit: true },
+    { mode: "Work", autoFit: true },
     { mode: "Money", autoFit: false },
   ]);
-  assert.equal(chatRequests[1].supersedeMessageIds?.length, 2);
+  assert.equal(chatRequests[2].supersedeMessageIds?.length, 2);
   await page.screenshot({ path: path.join(outputDir, "02-kept-money-answer.png"), fullPage: true });
 
   console.log(`PASS unified visual mode-switch and keep-original flow: ${chatRequests.length} chat requests, ${legacyClassifierCalls} classifier requests`);

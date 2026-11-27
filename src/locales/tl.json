@@ -1,4 +1,10 @@
 {
+  "counselLifeMeaning": {
+    "graceConnection": "Inilalagay ni Pablo ang mabubuting gawa pagkatapos ng nagliligtas na biyaya ng Diyos, hindi bago nito. Ang layunin ng buhay ay hindi patunayang karapat-dapat kang umiral: ikaw ay likha ng Diyos, inaanyayahang gumawa ng kabutihang nagpapakita ng kanyang pag-aalaga.",
+    "faithfulnessConnection": "Inilalarawan ni Mikas ang tapat na buhay bilang paggawa ng katarungan, pagmamahal sa awa, at mapagpakumbabang paglakad kasama ang Diyos. Binibigyan nito ng pang-araw-araw na anyo ang kahulugan ng buhay: mas mahalaga ang pakikitungo mo sa mga tao at ang gabay na sinusunod mo kaysa sa isang kahanga-hangang kuwento ng buhay.",
+    "opening": "Sa pananaw ng Biblia, ang buhay ay tungkol sa pagkilala sa Diyos at pagmamahal sa kapwa: pagtanggap sa iyong halaga bilang kaloob ng biyaya, at pagsasabuhay nito sa tapat na pag-aalaga, katarungan, at awa. Hindi mo kailangang kitain ang dahilan ng iyong pag-iral sa pamamagitan ng pera, katayuan, o tagumpay.",
+    "nextStep": "Mag-isip ng isang taong maaari mong alagaan ngayon, at pumili ng isang tiyak na gawa ng kabutihan o katarungan para sa kanya. Hayaan ang maliit na gawaing iyon na magpahayag ng buhay na nais mong linangin."
+  },
   "nav": {
     "companion": "Bahay",
     "decisions": "Mga Pasya",

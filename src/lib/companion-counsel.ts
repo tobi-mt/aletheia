@@ -12,6 +12,8 @@ import { detectLifeSupportConcern } from "@/lib/life-support";
 import { wisdomEntries, type WisdomEntryData } from "@/lib/wisdom-data";
 import { scriptureTextMatches } from "@/lib/scripture-text-matches";
 import { counselSafetyBoundary, counselSafetyTopic, crisisScriptureConnection, type SafeTopic } from "@/lib/counsel-safety";
+import { isLifeMeaningQuestion, modeFitExplicitGoal } from "@/lib/mode-suggestion";
+import { getTranslation, loadTranslationsSync } from "@/lib/translations";
 
 const promotion = /\b(?:promotion|new role|more (?:work|hours|responsibility))\b/i;
 const fixedWorkload = /\b(?:no (?:duties|responsibilities) (?:can|will) be (?:removed|reduced)|(?:will not|won['’]t|can['’]t|cannot) (?:remove|reduce|drop|offload) (?:any |my |the )?(?:duties|responsibilities|workload)|workload (?:cannot|can['’]t|won['’]t) change)\b/i;
@@ -41,10 +43,12 @@ const restConnection: Record<UserPreferences["language"], string> = {
   hi: "यीशु भारी बोझ उठाने वालों को अपने पास विश्राम पाने के लिए बुलाते हैं। अपनी थकान को हल्के में न लें: एक ज़िम्मेदारी चुनें जिसे इस सप्ताह कोई आपके साथ बाँट सके।",
 };
 
-type CounselFocus = "workCapacity" | "familyRest" | "debtInvestment" | "givingCapacity" | "careerComparison" | "fatigue";
+type CounselFocus = "workCapacity" | "workPriorities" | "familyRest" | "debtInvestment" | "givingCapacity" | "careerComparison" | "fatigue" | "lifeMeaning";
 
 function counselFocus(question: string): CounselFocus | undefined {
+  if (isLifeMeaningQuestion(question)) return "lifeMeaning";
   if (promotion.test(question) && hasCapacityPressure(question)) return "workCapacity";
+  if (modeFitExplicitGoal(question) === "Work") return "workPriorities";
   if (familyRest.test(question) && rest.test(question)) return "familyRest";
   if (debt.test(question) && investment.test(question)) return "debtInvestment";
   if (rentPressure.test(question) && family.test(question) && /\b(?:give|help|ask\w*|lend|money)\b/i.test(question)) return "givingCapacity";
@@ -59,6 +63,8 @@ const focusReferences: Record<CounselFocus, readonly string[]> = {
   givingCapacity: ["2 Corinthians 8:12-14", "Galatians 6:2-5"],
   careerComparison: ["Colossians 3:23-24", "Proverbs 15:22"],
   fatigue: [restPassage],
+  lifeMeaning: ["Ephesians 2:10", "Micah 6:8"],
+  workPriorities: ["Proverbs 15:22", "Galatians 6:2-5"],
 };
 
 export function preferredCounselReferences(question: string): readonly string[] {
@@ -76,6 +82,14 @@ export function isFixedWorkloadContinuation(question: string) {
 }
 
 type FocusCopy = { opening: string; nextStep: string; connections?: Record<string, string> };
+
+export function requiredBiblicalEvidenceCount(question: string, sourceCount: number, safeTopic: SafeTopic) {
+  if (sourceCount <= 0) return 0;
+  if (safeTopic === "crisis") return 1;
+  const substantive = isLifeMeaningQuestion(question)
+    || question.trim().split(/\s+/u).filter(Boolean).length > 8 || question.trim().length > 80;
+  return Math.min(substantive ? 2 : 1, sourceCount);
+}
 
 export function closedWorkloadNextStep(question: string, language: UserPreferences["language"]) {
   if (language === "en" && !question.startsWith(answerContinuationPromptPrefix)
@@ -153,6 +167,28 @@ function focusedCopy(question: string, language: UserPreferences["language"]): F
       ? continuation.reply : undefined;
   }
   const focus = counselFocus(question);
+  if (focus === "lifeMeaning") {
+    const translations = loadTranslationsSync(language);
+    const text = (key: string) => {
+      const value = getTranslation(translations, `counselLifeMeaning.${key}`);
+      if (typeof value !== "string" || !value.trim()) throw new Error(`Missing life-meaning counsel translation for ${language}: ${key}`);
+      return value;
+    };
+    return {
+      opening: text("opening"), nextStep: text("nextStep"),
+      connections: { "Ephesians 2:10": text("graceConnection"), "Micah 6:8": text("faithfulnessConnection") },
+    };
+  }
+  if (language === "en" && focus === "workPriorities") {
+    return {
+      opening: "Approach the conversation as a choice about priorities. Be clear about what you can finish well and what would have to wait.",
+      nextStep: "Bring two competing tasks to the person who sets priorities and ask, “Which should I finish first, and what can we move or share?”",
+      connections: {
+        "Proverbs 15:22": "This proverb commends testing plans through counsel. Rather than guessing which deadline matters most, invite the person relying on your work to help you decide.",
+        "Galatians 6:2-5": "Paul calls people both to carry one another’s burdens and to take responsibility for their own load. Name what you can own and where sharing a task would help.",
+      },
+    };
+  }
   if (language === "en" && focus === "workCapacity") {
     const closedNextStep = closedWorkloadNextStep(question, language);
     return {

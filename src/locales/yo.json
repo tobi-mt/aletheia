@@ -1,4 +1,10 @@
 {
+  "counselLifeMeaning": {
+    "graceConnection": "Pọ́ọ̀lù fi iṣẹ́ rere sí lẹ́yìn oore-ọ̀fẹ́ ìgbàlà Ọlọ́run, kì í ṣe ṣáájú rẹ̀. Ète ìgbésí ayé kì í ṣe láti fi ẹ̀rí hàn pé o yẹ láti wà láàyè: iṣẹ́ ọwọ́ Ọlọ́run ni ọ́, ó sì pè ọ́ láti ṣe rere tí ń fi ìtọ́jú rẹ̀ hàn.",
+    "faithfulnessConnection": "Míkà ṣàpèjúwe ìgbésí ayé olóòtítọ́ gẹ́gẹ́ bí ṣíṣe ìdájọ́ òdodo, nínífẹ̀ẹ́ àánú àti rírìn pẹ̀lú Ọlọ́run ní ìrẹ̀lẹ̀. Èyí fún ìbéèrè ìtumọ̀ ayé ní àpẹẹrẹ ojoojúmọ́: bí o ṣe ń bá ènìyàn lò àti ìtọ́sọ́nà tí o ń tẹ̀lé ṣe pàtàkì ju ìtàn ayé tó ń fa ìyìn lọ.",
+    "opening": "Lójú Bíbélì, ìgbésí ayé jẹ́ láti mọ Ọlọ́run àti láti nífẹ̀ẹ́ aládùúgbò rẹ: láti gba iyì rẹ gẹ́gẹ́ bí ẹ̀bùn oore-ọ̀fẹ́, kí o sì fi hàn nípa ìtọ́jú, ìdájọ́ òdodo àti àánú. O kò nílò láti fi owó, ipò tàbí àṣeyọrí ra ìdí tí o fi wà láàyè.",
+    "nextStep": "Ronú nípa ènìyàn kan tí o lè tọ́jú lónìí, kí o sì yan iṣẹ́ rere tàbí ìdájọ́ òdodo kan fún un. Jẹ́ kí ìṣe kékeré yẹn fi ìgbésí ayé tí o fẹ́ dàgbà sínú rẹ̀ hàn."
+  },
   "nav": {
     "companion": "Ilé",
     "decisions": "Ìpinnu",

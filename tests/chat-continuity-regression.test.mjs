@@ -5,6 +5,7 @@ import test from "node:test";
 const route = readFileSync(new URL("../src/app/api/chat/route.ts", import.meta.url), "utf8");
 const modeFitRoute = readFileSync(new URL("../src/app/api/chat/mode-fit/route.ts", import.meta.url), "utf8");
 const app = readFileSync(new URL("../src/components/aletheia-app.tsx", import.meta.url), "utf8");
+const runtimeModeFit = readFileSync(new URL("../src/lib/runtime-mode-fit.ts", import.meta.url), "utf8");
 
 test("chat reload returns the newest bounded history in chronological display order", () => {
   assert.match(route, /ORDER BY created_at DESC, CASE WHEN role = 'aletheia' THEN 0 ELSE 1 END\s+LIMIT 60/);
@@ -67,8 +68,19 @@ test("semantic mode-fit is consent-gated, bounded, and remotely disableable", ()
   assert.match(modeFitRoute, /thirdPartyAiConsent !== true/);
   assert.match(modeFitRoute, /SEMANTIC_MODE_FIT_ENABLED === "false"/);
   assert.match(modeFitRoute, /\.slice\(0, 1_200\)/);
-  assert.match(modeFitRoute, /AbortSignal\.timeout\(2_200\)/);
+  assert.match(runtimeModeFit, /Math\.min\(4_000,/);
+  assert.match(modeFitRoute, /classifyModeAtRuntime/);
+  assert.match(route, /await deps\.classifyModeAtRuntime/);
   assert.doesNotMatch(modeFitRoute, /conversationHistory|recentQuestions|userProfile/);
+});
+
+test("turning Auto-fit off preserves the latest keep-selected-mode action", () => {
+  const toggle = app.slice(app.indexOf("function toggleAutoFit"), app.indexOf("async function handleAsk"));
+  const revert = app.slice(app.indexOf("async function keepOriginalModeForPendingAnswer"), app.indexOf("function toggleAutoFit"));
+  assert.doesNotMatch(toggle, /setActiveAutoModeSwitch\(null\)/);
+  assert.match(revert, /setMode\(pending\.originalMode\)/);
+  assert.match(revert, /autoFit: false/);
+  assert.match(app, /const originalMode = selectedModeRef\.current/);
 });
 
 test("first-question AI consent resumes through mode-fit classification", () => {

@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { suggestModeForQuestion } from "../src/lib/mode-suggestion.ts";
+import { isLifeMeaningQuestion, suggestModeForQuestion } from "../src/lib/mode-suggestion.ts";
+
+test("life-meaning questions fit Purpose without hijacking concrete life concerns", () => {
+  for (const question of ["What is life all about?", "What is life about?", "What's the point of life?", "What is the meaning of life?", "Was ist der Sinn des Lebens?"]) {
+    for (const mode of ["Money", "Work", "Life", "Generosity"]) {
+      assert.equal(suggestModeForQuestion(question, mode)?.mode, "Purpose", question);
+    }
+    assert.equal(suggestModeForQuestion(question, "Purpose"), null);
+  }
+  assert.equal(suggestModeForQuestion("How can I repair my marriage?", "Money")?.mode, "Life");
+  assert.equal(suggestModeForQuestion("What is life insurance all about?", "Work"), null);
+  assert.equal(isLifeMeaningQuestion("What is the meaning of life insurance?"), false);
+  assert.equal(suggestModeForQuestion("Why am I here at work with my manager?", "Life")?.mode, "Work");
+});
 
 test("suggests a clearly better lens without changing an already fitting lens", () => {
   assert.deepEqual(
