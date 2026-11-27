@@ -8936,6 +8936,45 @@ export function AletheiaApp({
     return () => { active = false; };
   }, [startupPaintReady, ts, user, authStatus, nativePushResumeCount]);
 
+  // A single failed providers request (e.g. during a deploy restart) used to hide
+  // Google sign-in for the whole session, so keep re-checking while signed out.
+  useEffect(() => {
+    if (authStatus !== "guest" || googleAuthAvailable) return;
+    let cancelled = false;
+    let attempt = 0;
+    let timeoutId: number | null = null;
+    const check = async () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = null;
+      try {
+        const response = await fetch("/api/auth/providers", { cache: "no-store" });
+        if (response.ok) {
+          const providers = (await response.json()) as Record<string, unknown>;
+          if (cancelled) return;
+          if (providers.google) setGoogleAuthAvailable(true);
+          return;
+        }
+      } catch {
+        // Offline or server restarting; retry below.
+      }
+      if (cancelled) return;
+      attempt += 1;
+      timeoutId = window.setTimeout(() => void check(), Math.min(60_000, 2_000 * 2 ** Math.min(attempt, 5)));
+    };
+    const recheckNow = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    timeoutId = window.setTimeout(() => void check(), 1_500);
+    window.addEventListener("online", recheckNow);
+    document.addEventListener("visibilitychange", recheckNow);
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      window.removeEventListener("online", recheckNow);
+      document.removeEventListener("visibilitychange", recheckNow);
+    };
+  }, [authStatus, googleAuthAvailable]);
+
   const showRemindersReenableCard = Boolean(user) && notificationAccountEnabled && shouldShowRemindersReenableCard({
     signedIn: Boolean(user),
     configured: notificationsConfigured,
